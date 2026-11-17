@@ -420,3 +420,22 @@ div[class*="option"] * {
 textarea::placeholder {
   color: #666666 !important;
 }
+/* Forzar tarjetas de opciones y campos de formulario a color claro */
+.option-card, 
+.form-input {
+  background-color: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+/* Forzar que los textos y títulos dentro de las tarjetas de selección sean oscuros y legibles */
+.option-card strong, 
+.option-card span, 
+.option-card p {
+  color: var(--text-primary) !important;
+}
+
+/* Asegurar que las opciones seleccionadas resalten bien */
+.option-card.selected {
+  border-color: var(--accent-color) !important;
+}
