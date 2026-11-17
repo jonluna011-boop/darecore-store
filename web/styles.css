@@ -393,20 +393,30 @@ footer {
   #searchInput {
     display: none; 
   }
-/* Forzar fondos claros y textos legibles en las opciones de personalización y tarjetas */
+/* Forzar diseño claro en tarjetas de prendas, selectores y textareas */
 .option-card, 
 .garment-card, 
+div[class*="card"], 
+div[class*="option"],
 input[type="text"], 
 input[type="file"], 
 select, 
-textarea {
-  background-color: var(--card-bg) !important; /* Usará el gris claro definido en root */
-  color: var(--text-primary) !important;     /* Texto oscuro legible */
-  border-color: var(--border-color) !important;
+textarea,
+.customization-box {
+  background-color: #f5f5f5 !important;
+  color: #111111 !important;
+  border: 1px solid #e0e0e0 !important;
 }
 
-/* Si hay algún texto secundario dentro de esas tarjetas que se vea oscuro */
-.option-card p, 
-.garment-card p {
-  color: var(--text-secondary) !important;
+/* Forzar que los textos dentro de esas tarjetas también sean oscuros y legibles */
+.option-card *, 
+.garment-card *, 
+div[class*="card"] *, 
+div[class*="option"] * {
+  color: #111111 !important;
+}
+
+/* Específico para el cuadro de texto de instrucciones adicionales */
+textarea::placeholder {
+  color: #666666 !important;
 }
