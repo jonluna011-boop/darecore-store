@@ -363,3 +363,25 @@ footer {
     .specs-banner { grid-template-columns: 1fr; text-align: center; }
     .specs-stat { border: none; text-align: center; padding: 0; }
 }
+/* Ajuste para deslizar el menú en celulares */
+@media (max-width: 768px) {
+  header {
+    flex-wrap: wrap;
+  }
+  
+  /* Permite deslizar las opciones del menú de lado suavemente en la pantalla chica */
+  header nav, .nav-links {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding: 8px 10px;
+  }
+  
+  /* Oculta la barra de scroll para que se vea estético pero funcione el deslizamiento */
+  header nav::-webkit-scrollbar, 
+  .nav-links::-webkit-scrollbar {
+    display: none;
+  }
+}
