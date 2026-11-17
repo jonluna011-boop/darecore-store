@@ -385,3 +385,11 @@ footer {
     display: none;
   }
 }
+/* Oculta o acomoda la barra de búsqueda en celulares para que no estorbe */
+@media (max-width: 768px) {
+  /* Si prefieres ocultarla por completo en el cel para dejar espacio al menú: */
+  header input[type="text"], 
+  header .search-bar,
+  #searchInput {
+    display: none; 
+  }
