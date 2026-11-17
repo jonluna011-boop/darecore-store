@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DARECORE // Dare Lab - Crea tu prenda a medida</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .lab-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+        .lab-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+        .lab-step-title {
+            font-size: 14px;
+            font-weight: 800;
+            margin-bottom: 15px;
+            color: var(--accent-color);
+            text-transform: uppercase;
+        }
+        .options-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .option-card {
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            cursor: pointer;
+            background: #101010;
+            transition: border-color 0.2s;
+        }
+        .option-card:hover, .option-card.selected {
+            border-color: var(--accent-color);
+        }
+        .form-input {
+            width: 100%;
+            background: #101010;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 10px;
+            margin-top: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        @media(max-width: 900px) { .lab-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <span>DARE LAB CUSTOM STUDIO • DESDE 1 PIEZA HASTA EQUIPOS Y ESCUDERÍAS</span>
+    </div>
+
+    <header>
+        <div class="nav-container">
+            <a href="index.html" class="logo">DARE<span>CORE</span></a>
+            <ul class="nav-links">
+                <li><a href="index.html">INICIO</a></li>
+                <li><a href="hombre.html">HOMBRE</a></li>
+                <li><a href="mujer.html">MUJER</a></li>
+                <li><a href="oversize.html">OVERSIZE</a></li>
+                <li><a href="personalizar.html" class="active">PERSONALIZAR</a></li>
+            </ul>
+            <div class="nav-actions">
+                <input type="text" class="search-box" placeholder="Buscar en lab...">
+                <button class="cart-btn">🛒 <span class="cart-badge">0</span></button>
+            </div>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="hero-content">
+            <span style="color: var(--accent-color); font-size: 11px; font-weight: 700;">DARE LAB // CUSTOM STUDIO</span>
+            <h1>DARE LAB // CREA TU PRENDA A MEDIDA</h1>
+            <p>Desde 1 sola pieza personal hasta producciones técnicas para escuderías, clubes automotrices, talleres y gimnasios de alto rendimiento.</p>
+        </div>
+        <div class="hero-banner-side">
+            <span style="font-size: 11px; color: var(--text-secondary);">PRODUCCIÓN EN LEÓN, GTO</span>
+            <h3 style="font-size: 16px; margin-top: 5px;">SERIGRAFÍA HD • BORDADO 3D • DTF</h3>
+        </div>
+    </section>
+
+    <main class="container">
+        <div class="lab-grid">
+            <!-- Columna de pasos -->
+            <div>
+                <div class="lab-box">
+                    <div class="lab-step-title">01. Selecciona Base & Gramaje</div>
+                    <div class="options-row">
+                        <div class="option-card selected">
+                            <strong>BOXY TEE 240G</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Algodón peinado pesado - $550 MXN</p>
+                        </div>
+                        <div class="option-card">
+                            <strong>HEAVY HOODIE 400G</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Felpa francesa alto gramaje - $1,099 MXN</p>
+                        </div>
+                        <div class="option-card">
+                            <strong>VARSITY JACKET BORDADA</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Chamarra de equipo - $1,750 MXN</p>
+                        </div>
+                        <div class="option-card">
+                            <strong>TOP DEPORTIVO SEAMLESS</strong>
+                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Compresión gym - $460 MXN</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lab-box">
+                    <div class="lab-step-title">02. Técnica & Detalles de tu Diseño</div>
+                    <label style="font-size: 12px; color: var(--text-secondary);">Técnica de estampado</label>
+                    <select class="form-input">
+                        <option>Serigrafía HD (Alta Densidad)</option>
+                        <option>Bordado 3D Relieve</option>
+                        <option>DTF Textil Ultrafino</option>
+                    </select>
+
+                    <label style="font-size: 12px; color: var(--text-secondary);">Sube tu archivo o logotipo (PNG, AI, PDF)</label>
+                    <input type="file" class="form-input">
+
+                    <label style="font-size: 12px; color: var(--text-secondary);">Instrucciones adicionales</label>
+                    <textarea class="form-input" rows="3" placeholder="Ej: Logo en pecho izquierdo de 10cm y diseño grande en espalda..."></textarea>
+                </div>
+            </div>
+
+            <!-- Columna de resumen -->
+            <div>
+                <div class="lab-box" style="position: sticky; top: 90px;">
+                    <div class="lab-step-title">Resumen de Cotización</div>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">Configuración estimada para 1 pieza personalizada:</p>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
+                        <span>Prenda Base:</span>
+                        <strong>Boxy Tee 240G</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
+                        <span>Estampado:</span>
+                        <strong>Serigrafía HD</strong>
+                    </div>
+                    <hr style="border-color: var(--border-color); margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <span>Total Estimado:</span>
+                        <span style="font-size: 24px; font-weight: 900; color: var(--accent-color);">$670 MXN</span>
+                    </div>
+                    <button class="btn-primary" style="width: 100%; text-align: center;">SOLICITAR MOCKUP DIGITAL</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-container">
+            <div class="footer-col">
+                <h4>DARECORE</h4>
+                <p>Tu estilo. Tus reglas. Prendas creadas con actitud, motorsport vibes y calidad premium desde León, Gto.</p>
+            </div>
+            <div class="footer-col">
+                <h4>COLECCIONES</h4>
+                <ul>
+                    <li><a href="hombre.html">Hombre Track & Core</a></li>
+                    <li><a href="mujer.html">Mujer Active & Street</a></li>
+                    <li><a href="oversize.html">Oversize Drop</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>AYUDA & ENVÍOS</h4>
+                <ul>
+                    <li><a href="#">Guía de tallas</a></li>
+                    <li><a href="#">Pedidos por mayoreo</a></li>
+                </ul>
+            </div>
+            <div class="footer-col">
+                <h4>LEGAL & PAGOS</h4>
+                <ul>
+                    <li><a href="#">Términos de servicio</a></li>
+                    <li><a href="#">Aviso de privacidad</a></li>
+                </ul>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
