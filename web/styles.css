@@ -393,3 +393,20 @@ footer {
   #searchInput {
     display: none; 
   }
+/* Forzar fondos claros y textos legibles en las opciones de personalización y tarjetas */
+.option-card, 
+.garment-card, 
+input[type="text"], 
+input[type="file"], 
+select, 
+textarea {
+  background-color: var(--card-bg) !important; /* Usará el gris claro definido en root */
+  color: var(--text-primary) !important;     /* Texto oscuro legible */
+  border-color: var(--border-color) !important;
+}
+
+/* Si hay algún texto secundario dentro de esas tarjetas que se vea oscuro */
+.option-card p, 
+.garment-card p {
+  color: var(--text-secondary) !important;
+}
