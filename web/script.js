@@ -1,5 +1,5 @@
 /* ==========================================
-   DARECORE - SCRIPT MAESTRO LIMPIO (SIN RELLENO)
+   DARECORE - SCRIPT DEFINITIVO Y SINCRONIZADO
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
@@ -19,11 +19,19 @@ function getStoredProducts() {
     if (local) {
         try { 
             const parsed = JSON.parse(local);
-            if (Array.isArray(parsed)) return parsed;
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         } catch (e) { /* fallback */ }
     }
-    // Cero fotos falsas o de IA. Si está vacío, devuelve un array completamente limpio.
-    return [];
+    return getDefaultProducts();
+}
+
+function getDefaultProducts() {
+    return [
+        { id: 1, category: 'inicio', tag: 'BEST SELLER', name: 'MONTE CARLO RACING #04', desc: 'Corte boxy, al igual & pesada oblatura...', price: 599, image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80' },
+        { id: 2, category: 'inicio', tag: '400G HEAVYWEIGHT', name: 'DARE CORE CLUB 400G', desc: 'Sudadera de doble capa sin cordón...', price: 1199, image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80' },
+        { id: 3, category: 'inicio', tag: 'GYM PERFORMANCE', name: "GYM TEE 'DISCIPLINE & POWER'", desc: 'Max tela / algodón con alta densidad...', price: 499, image: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=600&q=80' },
+        { id: 4, category: 'inicio', tag: 'EDICIÓN LIMITADA', name: "VARSITY JACKET 'LEÓN'", desc: 'Cuerina de alta gramaje y alta protección...', price: 1899, image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=600&q=80' }
+    ];
 }
 
 function initStore() {
@@ -40,7 +48,7 @@ function renderProducts(products) {
     
     grid.innerHTML = '';
     if (!products || products.length === 0) {
-        grid.innerHTML = '<p style="color: #888; grid-column: span 4; text-align: center; padding: 40px;">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
+        grid.innerHTML = '<p style="color: #666; grid-column: span 4; text-align: center; padding: 30px;">No hay prendas disponibles en este momento.</p>';
         return;
     }
 
@@ -51,12 +59,12 @@ function renderProducts(products) {
 
         card.innerHTML = `
             ${p.tag ? `<span class="product-tag">${p.tag}</span>` : ''}
-            <div class="product-img" style="background-image: url('${p.image || ''}'); background-size: cover; background-position: center; height: 220px;"></div>
-            <div class="product-name" style="font-weight: 700; margin-top: 10px; color: #111;">${p.name}</div>
+            <div class="product-img" style="background-image: url('${p.image || ''}'); background-size: cover; background-position: center; height: 220px; display: flex; align-items: center; justify-content: center; color: #666;"></div>
+            <div class="product-name" style="font-weight: 700; margin-top: 10px;">${p.name}</div>
             <div class="product-desc" style="font-size: 11px; color: #666; margin-bottom: 10px;">${p.desc}</div>
             <div class="product-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
-                <span class="price" style="font-weight: 800; color: #111;">$${Number(p.price).toLocaleString('es-MX')} <small>MXN</small></span>
-                <button class="btn-add" onclick="event.stopPropagation(); openProductModal('${p.id}')">Ver</button>
+                <span class="price" style="font-weight: 800;">$${Number(p.price).toLocaleString('es-MX')} <small>MXN</small></span>
+                <button class="btn-add" onclick="event.stopPropagation(); openProductModal('${p.id}')">Agregar</button>
             </div>
         `;
         
@@ -69,7 +77,7 @@ function renderProducts(products) {
 }
 
 /* ==========================================
-   2. BUSCADOR GLOBAL EN TIEMPO REAL
+   2. BUSCADOR EN VIVO
    ========================================== */
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
@@ -78,12 +86,6 @@ function setupSearch() {
     searchInput.addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase().trim();
         const products = getStoredProducts();
-        
-        if (!term) {
-            renderProducts(products);
-            return;
-        }
-
         const filtered = products.filter(p => 
             (p.name && p.name.toLowerCase().includes(term)) || 
             (p.desc && p.desc.toLowerCase().includes(term)) ||
@@ -107,20 +109,19 @@ function openProductModal(productId) {
         modalOverlay = document.createElement('div');
         modalOverlay.id = 'quickViewModal';
         modalOverlay.className = 'product-modal-overlay';
-        modalOverlay.style.cssText = "display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;";
         document.body.appendChild(modalOverlay);
     }
 
     modalOverlay.innerHTML = `
-        <div class="product-modal-content" style="background:#111; padding:30px; border-radius:8px; max-width:600px; width:90%; position:relative; display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-            <button class="product-modal-close" onclick="closeProductModal()" style="position:absolute; top:10px; right:15px; background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
-            <div style="background-image: url('${product.image}'); background-size: cover; background-position: center; height:250px; border-radius:4px;"></div>
+        <div class="product-modal-content">
+            <button class="product-modal-close" onclick="closeProductModal()">&times;</button>
+            <div class="product-modal-img" style="background-image: url('${product.image}'); background-size: cover; background-position: center;"></div>
             <div style="display: flex; flex-direction: column; justify-content: center; color: #ffffff;">
                 <span style="color: #ff3b1b; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;">${product.tag || 'DARECORE'}</span>
-                <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
-                <p style="color: #aaaaaa; font-size: 12px; margin-bottom: 15px;">${product.desc}</p>
-                <div style="font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 20px;">$${Number(product.price).toLocaleString('es-MX')} MXN</div>
-                <button class="btn-primary" onclick="alert('¡Prenda seleccionada con éxito!'); closeProductModal();" style="background:#ff3b1b; color:#fff; border:none; padding:10px; font-weight:700; cursor:pointer;">Aceptar / Comprar</button>
+                <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
+                <p style="color: #aaaaaa; font-size: 13px; margin-bottom: 15px;">${product.desc}</p>
+                <div style="font-size: 20px; font-weight: 800; color: #ffffff; margin-bottom: 20px;">$${Number(product.price).toLocaleString('es-MX')} MXN</div>
+                <button class="btn-primary" onclick="alert('¡Producto agregado al carrito exitosamente!'); closeProductModal();">Agregar al Carrito</button>
             </div>
         </div>
     `;
@@ -179,6 +180,8 @@ function setupDareLab() {
 
             const resumen = `¡Hola DARECORE! Me gustaría solicitar un Mockup Digital en Dare Lab:\n\n• Prenda Base: ${selectedBase.name}\n• Técnica: ${techName}\n• Archivo: ${fileName}\n• Notas: ${notes}\n• Total Estimado: $${total.toLocaleString('es-MX')} MXN`;
 
+            alert(`¡Cotización lista!\n\nPrenda: ${selectedBase.name}\nTécnica: ${techName}\nTotal Estimado: $${total.toLocaleString('es-MX')} MXN\n\nSe abrirá WhatsApp para enviar tu solicitud directamente al taller.`);
+
             const waUrl = `https://wa.me/5214770000000?text=${encodeURIComponent(resumen)}`;
             window.open(waUrl, '_blank');
         });
@@ -195,7 +198,7 @@ function renderCustomBasesPublic() {
     bases.forEach((base, index) => {
         const card = document.createElement('div');
         card.className = `option-card ${index === selectedCustomBaseIndex ? 'selected' : ''}`;
-        card.style.cssText = "background: #f5f5f5; border: 2px solid #dcdcdc; padding: 15px; cursor: pointer; transition: all 0.2s; border-radius: 6px;";
+        card.style.cssText = "background: #f5f5f5; border: 2px solid #dcdcdc; padding: 15px; cursor: pointer; transition: all 0.2s;";
         
         card.innerHTML = `
             <div style="font-weight: 800; font-size: 14px; color: #111111; margin-bottom: 5px;">${base.name}</div>
@@ -243,7 +246,7 @@ function updateCustomSummary() {
 }
 
 /* ==========================================
-   5. PANEL DE ADMINISTRACIÓN
+   5. PANEL DE ADMINISTRACIÓN (`admin.html`)
    ========================================== */
 function initAdminPanel() {
     const loginForm = document.getElementById('loginForm');
@@ -358,7 +361,7 @@ function handleProductSubmit(e) {
                 name,
                 desc,
                 price,
-                image: imgUrl || ''
+                image: imgUrl || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80'
             };
             products.unshift(newProduct);
             alert('¡Prenda publicada con éxito!');
@@ -390,7 +393,7 @@ function handleProductSubmit(e) {
             const existing = products.find(p => p.id == editingId);
             saveProductData(existing ? existing.image : null);
         } else {
-            saveProductData('');
+            saveProductData('https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80');
         }
     }
 }
