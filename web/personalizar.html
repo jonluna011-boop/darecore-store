@@ -34,23 +34,23 @@
             border: 1px solid var(--border-color);
             padding: 15px;
             cursor: pointer;
-            background: #101010;
-            transition: border-color 0.2s;
+            transition: all 0.2s;
         }
         .option-card:hover, .option-card.selected {
-            border-color: var(--accent-color);
+            border-color: var(--accent-color) !important;
         }
         .form-input {
             width: 100%;
-            background: #101010;
             border: 1px solid var(--border-color);
-            color: white;
             padding: 10px;
             margin-top: 8px;
             margin-bottom: 15px;
             font-size: 13px;
         }
-        @media(max-width: 900px) { .lab-grid { grid-template-columns: 1fr; } }
+        @media(max-width: 900px) { 
+            .lab-grid { grid-template-columns: 1fr; } 
+            .options-row { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -94,40 +94,25 @@
             <div>
                 <div class="lab-box">
                     <div class="lab-step-title">01. Selecciona Base & Gramaje</div>
-                    <div class="options-row">
-                        <div class="option-card selected">
-                            <strong>BOXY TEE 240G</strong>
-                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Algodón peinado pesado - $550 MXN</p>
-                        </div>
-                        <div class="option-card">
-                            <strong>HEAVY HOODIE 400G</strong>
-                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Felpa francesa alto gramaje - $1,099 MXN</p>
-                        </div>
-                        <div class="option-card">
-                            <strong>VARSITY JACKET BORDADA</strong>
-                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Chamarra de equipo - $1,750 MXN</p>
-                        </div>
-                        <div class="option-card">
-                            <strong>TOP DEPORTIVO SEAMLESS</strong>
-                            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">Compresión gym - $460 MXN</p>
-                        </div>
+                    <div class="options-row" id="customBasesContainer">
+                        <!-- Se llena automáticamente desde JavaScript / Firebase -->
                     </div>
                 </div>
 
                 <div class="lab-box">
                     <div class="lab-step-title">02. Técnica & Detalles de tu Diseño</div>
                     <label style="font-size: 12px; color: var(--text-secondary);">Técnica de estampado</label>
-                    <select class="form-input">
-                        <option>Serigrafía HD (Alta Densidad)</option>
-                        <option>Bordado 3D Relieve</option>
-                        <option>DTF Textil Ultrafino</option>
+                    <select class="form-input" id="customTechniqueSelect">
+                        <option value="Serigrafía HD" data-extra="120">Serigrafía HD (Alta Densidad) (+ $120 MXN)</option>
+                        <option value="Bordado 3D Relieve" data-extra="180">Bordado 3D Relieve (+ $180 MXN)</option>
+                        <option value="DTF Textil Ultrafino" data-extra="100">DTF Textil Ultrafino (+ $100 MXN)</option>
                     </select>
 
                     <label style="font-size: 12px; color: var(--text-secondary);">Sube tu archivo o logotipo (PNG, AI, PDF)</label>
-                    <input type="file" class="form-input">
+                    <input type="file" class="form-input" id="customDesignFile">
 
                     <label style="font-size: 12px; color: var(--text-secondary);">Instrucciones adicionales</label>
-                    <textarea class="form-input" rows="3" placeholder="Ej: Logo en pecho izquierdo de 10cm y diseño grande en espalda..."></textarea>
+                    <textarea class="form-input" id="customNotes" rows="3" placeholder="Ej: Logo en pecho izquierdo de 10cm y diseño grande en espalda..."></textarea>
                 </div>
             </div>
 
@@ -138,18 +123,18 @@
                     <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">Configuración estimada para 1 pieza personalizada:</p>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
                         <span>Prenda Base:</span>
-                        <strong>Boxy Tee 240G</strong>
+                        <strong id="summaryBaseName">Boxy Tee 240G</strong>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
                         <span>Estampado:</span>
-                        <strong>Serigrafía HD</strong>
+                        <strong id="summaryTechName">Serigrafía HD</strong>
                     </div>
                     <hr style="border-color: var(--border-color); margin: 15px 0;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <span>Total Estimado:</span>
-                        <span style="font-size: 24px; font-weight: 900; color: var(--accent-color);">$670 MXN</span>
+                        <span id="summaryTotalPrice" style="font-size: 24px; font-weight: 900; color: var(--accent-color);">$670 MXN</span>
                     </div>
-                    <button class="btn-primary" style="width: 100%; text-align: center;">SOLICITAR MOCKUP DIGITAL</button>
+                    <button class="btn-primary" id="requestMockupBtn" style="width: 100%; text-align: center;">SOLICITAR MOCKUP DIGITAL</button>
                 </div>
             </div>
         </div>
@@ -185,23 +170,24 @@
             </div>
         </div>
     </footer>
-<!-- Conexión a Firebase Firestore -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyA4Md6MEuvVfNFPoB3lY_WkHa1VdhLNBL8",
-    authDomain: "dare-core-store.firebaseapp.com",
-    projectId: "dare-core-store",
-    storageBucket: "dare-core-store.firebasestorage.app",
-    messagingSenderId: "104855215716",
-    appId: "1:104855215716:web:e6ef3fba67a906bf904971"
-  };
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
-  window.db = firebase.firestore();
-</script>
+
+    <!-- Conexión a Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyA4Md6MEuvVfNFPoB3lY_WkHa1VdhLNBL8",
+        authDomain: "dare-core-store.firebaseapp.com",
+        projectId: "dare-core-store",
+        storageBucket: "dare-core-store.firebasestorage.app",
+        messagingSenderId: "104855215716",
+        appId: "1:104855215716:web:e6ef3fba67a906bf904971"
+      };
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      window.db = firebase.firestore();
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
