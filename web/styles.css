@@ -474,3 +474,16 @@ div[class*="top-bar"] {
   background-color: #ff3b1b !important;
   color: #ffffff !important;
 }
+/* --- CORREGIR CAMPOS DE TEXTO E INPUTS EN MODO CLARO --- */
+input, select, textarea {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+  border: 1px solid #dcdcdc !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #111111 !important;
+}
