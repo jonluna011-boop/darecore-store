@@ -1,4 +1,4 @@
-// --- 1. PRODUCTOS INICIALES POR DEFECTO ---
+// --- 1. PRODUCTOS INICIALES Y SINCRONIZACIÓN CON FIREBASE ---
 const defaultProducts = [
     {
         id: 1,
@@ -38,8 +38,28 @@ const defaultProducts = [
     }
 ];
 
-// Cargar productos guardados o iniciar con los de defecto
+let isSyncing = false;
+
+// Cargar productos desde Firebase Firestore (con respaldo en LocalStorage)
 function getProducts() {
+    if (window.db && !isSyncing) {
+        isSyncing = true;
+        window.db.collection('products').orderBy('id', 'desc').get().then((snapshot) => {
+            if (!snapshot.empty) {
+                const cloudProducts = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
+                localStorage.setItem('darecore_products', JSON.stringify(cloudProducts));
+                if (typeof renderPublicStore === 'function') renderPublicStore();
+                if (typeof renderAdminList === 'function') renderAdminList();
+            } else {
+                // Si la nube está vacía, subimos los productos base por primera vez
+                defaultProducts.forEach(prod => {
+                    window.db.collection('products').add(prod);
+                });
+            }
+        }).catch(err => console.log("Modo offline o error al sincronizar:", err))
+          .finally(() => { setTimeout(() => { isSyncing = false; }, 2000); });
+    }
+
     const stored = localStorage.getItem('darecore_products');
     if (!stored) {
         localStorage.setItem('darecore_products', JSON.stringify(defaultProducts));
@@ -48,7 +68,8 @@ function getProducts() {
     return JSON.parse(stored);
 }
 
-function saveProducts(products) {
+// Guardar lista en memoria local
+function saveProductsLocal(products) {
     localStorage.setItem('darecore_products', JSON.stringify(products));
 }
 
@@ -175,11 +196,22 @@ function setupAdminPanel() {
 
             const products = getProducts();
             products.unshift(newProduct);
-            saveProducts(products);
+            saveProductsLocal(products);
+
+            // Subir a Firebase Firestore para que todos los clientes lo vean
+            if (window.db) {
+                window.db.collection('products').add(newProduct)
+                    .then((docRef) => {
+                        newProduct.firestoreId = docRef.id;
+                        saveProductsLocal(products);
+                        renderAdminList();
+                    })
+                    .catch((error) => console.error("Error al subir a la nube:", error));
+            }
 
             addProductForm.reset();
             renderAdminList();
-            alert('¡Prenda publicada exitosamente en la tienda!');
+            alert('¡Prenda publicada exitosamente en la tienda y sincronizada en la nube!');
         };
         reader.readAsDataURL(file);
     });
@@ -198,7 +230,7 @@ function renderAdminList() {
             <div style="display: flex; align-items: center; gap: 12px;">
                 ${prod.image 
                     ? `<img src="${prod.image}" alt="${prod.name}">` 
-                    : `<div style="width:60px; height:60px; background:#222; display:flex; align-items:center; justify-content:center; font-size:10px; color:#777;">Sin foto</div>`
+                    : `<div style="width:60px; height:60px; background:#f5f5f5; display:flex; align-items:center; justify-content:center; font-size:10px; color:#777;">Sin foto</div>`
                 }
                 <div>
                     <span style="font-size: 10px; color: var(--accent-color); font-weight: 700; text-transform: uppercase;">[${prod.category}] • ${prod.tag}</span>
@@ -213,106 +245,71 @@ function renderAdminList() {
 
 window.deleteProduct = function(id) {
     if (confirm('¿Seguro que deseas eliminar esta prenda de la tienda?')) {
-        const products = getProducts().filter(p => p.id !== id);
-        saveProducts(products);
+        const currentProducts = getProducts();
+        const target = currentProducts.find(p => p.id === id);
+        const products = currentProducts.filter(p => p.id !== id);
+        
+        saveProductsLocal(products);
+
+        // Borrar de Firebase Firestore si existe en la nube
+        if (window.db && target && target.firestoreId) {
+            window.db.collection('products').doc(target.firestoreId).delete()
+                .catch(err => console.error("Error al borrar de la nube:", err));
+        }
+
         renderAdminList();
     }
 };
 
+// --- 5. BUSCADOR EN TIEMPO REAL ---
+function setupLiveSearch() {
+    const searchInput = document.querySelector('.search-box');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const grid = document.querySelector('.product-grid');
+        if (!grid) return;
+
+        if (query === '') {
+            renderPublicStore();
+            return;
+        }
+
+        const allProducts = getProducts();
+        const filtered = allProducts.filter(p => 
+            (p.name && p.name.toLowerCase().includes(query)) || 
+            (p.desc && p.desc.toLowerCase().includes(query))
+        );
+
+        if (filtered.length === 0) {
+            grid.innerHTML = `<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 40px;">No se encontraron productos para "${query}"</p>`;
+            return;
+        }
+
+        grid.innerHTML = filtered.map(prod => `
+            <div class="product-card">
+                <span class="product-tag">${prod.tag || ''}</span>
+                ${prod.image 
+                    ? `<img src="${prod.image}" alt="${prod.name}" class="product-img" style="object-fit: cover;">` 
+                    : `<div class="product-img">[ Sin foto asignada ]</div>`
+                }
+                <div class="product-name">${prod.name}</div>
+                <div class="product-desc">${prod.desc}</div>
+                <div class="product-footer">
+                    <span class="price">$${prod.price} <small>MXN</small></span>
+                    <button class="btn-add">Agregar al carrito</button>
+                </div>
+            </div>
+        `).join('');
+
+        setupCartButtons();
+    });
+}
+
+// --- INICIALIZAR TODO AL CARGAR LA PÁGINA ---
 document.addEventListener('DOMContentLoaded', () => {
     renderPublicStore();
     setupAdminPanel();
-});
-
-/* Forzar tarjetas de productos generales a fondo claro */
-// --- FUNCIONALIDAD DEL BUSCADOR EN TIEMPO REAL ---
-document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.querySelector('.search-box') || document.getElementById('searchInput');
-  const productsGrid = document.querySelector('.product-grid') || document.getElementById('productGrid');
-
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      const searchTerm = e.target.value.toLowerCase().trim();
-      
-      // Obtenemos los productos guardados en localStorage (tanto los de base como los que subió el admin)
-      const allProducts = JSON.parse(localStorage.getItem('darecore_products')) || [];
-
-      // Filtramos los productos que coincidan con el nombre o descripción
-      const filteredProducts = allProducts.filter(product => 
-        product.name.toLowerCase().includes(searchTerm) || 
-        product.description.toLowerCase().includes(searchTerm)
-      );
-
-      // Si existe una función para renderizar productos en tu script, la llamamos con el resultado filtrado
-      if (typeof renderProducts === 'function') {
-        renderProducts(filteredProducts);
-      } else {
-        // Método alternativo por si las tarjetas están fijas en el HTML
-        const productCards = document.querySelectorAll('.product-card');
-        productCards.forEach(card => {
-          const title = card.querySelector('h3, h4, strong');
-          if (title) {
-            const text = title.textContent.toLowerCase();
-            if (text.includes(searchTerm) || searchTerm === '') {
-              card.style.display = 'block';
-            } else {
-              card.style.display = 'none';
-            }
-          }
-        });
-      }
-    });
-  }
-});
-// --- BUSCADOR EN TIEMPO REAL DEFINITIVO ---
-document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.querySelector('.search-box');
-
-  if (searchInput) {
-    searchInput.addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase().trim();
-      const grid = document.querySelector('.product-grid');
-      if (!grid) return;
-
-      const allProducts = typeof getProducts === 'function' ? getProducts() : [];
-      
-      // Si se borra el texto, regresamos a la tienda normal
-      if (query === '') {
-        if (typeof renderPublicStore === 'function') {
-          renderPublicStore();
-        }
-        return;
-      }
-
-      // Filtramos los productos por nombre o descripción
-      const filtered = allProducts.filter(p => 
-        (p.name && p.name.toLowerCase().includes(query)) || 
-        (p.description && p.description.toLowerCase().includes(query))
-      );
-
-      if (filtered.length === 0) {
-        grid.innerHTML = `<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 40px;">No se encontraron productos para "${query}"</p>`;
-        return;
-      }
-
-      // Renderizamos los resultados en pantalla con el diseño actual
-      grid.innerHTML = filtered.map(prod => `
-        <div class="product-card">
-          <span class="product-tag">${prod.tag || ''}</span>
-          ${prod.image 
-            ? `<img src="${prod.image}" alt="${prod.name}" class="product-img" style="object-fit: cover;">`
-            : `<div style="width: 100%; height: 200px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #666;">[ Sin foto asignada ]</div>`
-          }
-          <div class="product-info" style="padding: 15px;">
-            <h3 style="font-size: 16px; margin-bottom: 5px; color: var(--text-primary);">${prod.name}</h3>
-            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">${prod.description}</p>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; font-size: 15px; color: var(--text-primary);">$${prod.price} MXN</span>
-              <button class="btn-primary add-to-cart-btn" data-id="${prod.id}" style="padding: 8px 12px; font-size: 12px;">AGREGAR AL CARRITO</button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    });
-  }
+    setupLiveSearch();
 });
