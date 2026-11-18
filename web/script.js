@@ -384,7 +384,7 @@ function checkoutCart() {
     const detalle = cart.map(item => `• ${item.qty}x ${item.name} ($${item.price} MXN)`).join('\n');
     const mensaje = `¡Hola DARECORE! Me gustaría finalizar mi pedido:\n\n${detalle}\n\nTotal a Pagar: $${subtotal.toLocaleString('es-MX')} MXN`;
     
-    window.open(`https://wa.me/5214770000000?text=${encodeURIComponent(mensaje)}`, '_blank');
+    window.open(`https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`, '_blank');
 }
 
 function openGoogleAuthModal() {
