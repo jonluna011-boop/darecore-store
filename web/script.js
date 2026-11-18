@@ -552,7 +552,7 @@ function setupDareLab() {
             alert(`¡Cotización lista!\n\nPrenda: ${selectedBase.name}\nTécnica: ${techName}\nTotal Estimado: $${total.toLocaleString('es-MX')} MXN\n\nSe abrirá WhatsApp para enviar tu solicitud directamente al taller.`);
 
             // Cambia el número 5214770000000 por el WhatsApp real de tu negocio
-            const waUrl = `https://wa.me/5214770000000?text=${encodeURIComponent(resumen)}`;
+            const waUrl = `https://wa.me/5214777219254?text=${encodeURIComponent(resumen)}`;
             window.open(waUrl, '_blank');
         });
     }
