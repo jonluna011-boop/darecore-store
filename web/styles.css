@@ -424,3 +424,25 @@ footer {
 .product-item div {
   background-color: #f5f5f5 !important;
 }
+/* Forzar tarjetas de selección y campos de texto a un tono claro elegante */
+.option-card, 
+.form-input, 
+select.form-input, 
+textarea.form-input {
+  background-color: #f5f5f5 !important;
+  color: #111111 !important;
+  border: 1px solid #dcdcdc !important;
+}
+
+/* Asegurar que los textos dentro de los cuadros se lean oscuros */
+.option-card strong, 
+.option-card span, 
+.option-card p {
+  color: #111111 !important;
+}
+
+/* Cuando el cliente seleccione una opción (borde naranja de la marca) */
+.option-card.selected {
+  border-color: #ff3b1b !important;
+  background-color: #ffffff !important;
+}
