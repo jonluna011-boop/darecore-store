@@ -79,7 +79,8 @@ function setupCartButtons() {
     const addButtons = document.querySelectorAll('.btn-add');
 
     addButtons.forEach(button => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation(); // Evita que se abra el modal al dar clic directo al botón rápido
             cartCount++;
             if (badge) badge.textContent = cartCount;
             const originalText = button.textContent;
@@ -95,7 +96,7 @@ function setupCartButtons() {
     });
 }
 
-// --- 3. RENDERIZAR PRODUCTOS EN LA TIENDA PÚBLICA ---
+// --- 3. RENDERIZAR PRODUCTOS EN LA TIENDA PÚBLICA (Con soporte para clic en tarjeta) ---
 function renderPublicStore() {
     const grid = document.querySelector('.product-grid');
     if (!grid) return;
@@ -117,7 +118,7 @@ function renderPublicStore() {
     }
 
     grid.innerHTML = filtered.map(prod => `
-        <div class="product-card">
+        <div class="product-card" onclick="openProductModal('${prod.id || prod.firestoreId}')" style="cursor: pointer;">
             <span class="product-tag">${prod.tag}</span>
             ${prod.image 
                 ? `<img src="${prod.image}" alt="${prod.name}" class="product-img" style="object-fit: cover;">` 
@@ -337,71 +338,4 @@ function renderAdminList() {
 window.deleteProduct = function(id) {
     if (confirm('¿Seguro que deseas eliminar esta prenda de la tienda?')) {
         const currentProducts = getProducts();
-        const target = currentProducts.find(p => p.id == id || p.firestoreId == id);
-        const products = currentProducts.filter(p => p.id != id && p.firestoreId != id);
-        
-        saveProductsLocal(products);
-
-        if (window.db && target && target.firestoreId) {
-            window.db.collection('products').doc(target.firestoreId).delete()
-                .catch(err => console.error("Error al borrar de la nube:", err));
-        }
-
-        renderAdminList();
-        renderPublicStore();
-    }
-};
-
-// --- 5. BUSCADOR EN TIEMPO REAL (Nombre, Descripción y Etiqueta Superior) ---
-function setupLiveSearch() {
-    const searchInput = document.querySelector('.search-box');
-    if (!searchInput) return;
-
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-        const grid = document.querySelector('.product-grid');
-        if (!grid) return;
-
-        if (query === '') {
-            renderPublicStore();
-            return;
-        }
-
-        const allProducts = getProducts();
-        const filtered = allProducts.filter(p => 
-            (p.name && p.name.toLowerCase().includes(query)) || 
-            (p.desc && p.desc.toLowerCase().includes(query)) ||
-            (p.tag && p.tag.toLowerCase().includes(query)) // Búsqueda habilitada por etiqueta superior
-        );
-
-        if (filtered.length === 0) {
-            grid.innerHTML = `<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 40px;">No se encontraron productos para "${query}"</p>`;
-            return;
-        }
-
-        grid.innerHTML = filtered.map(prod => `
-            <div class="product-card">
-                <span class="product-tag">${prod.tag || ''}</span>
-                ${prod.image 
-                    ? `<img src="${prod.image}" alt="${prod.name}" class="product-img" style="object-fit: cover;">` 
-                    : `<div class="product-img">[ Sin foto asignada ]</div>`
-                }
-                <div class="product-name">${prod.name}</div>
-                <div class="product-desc">${prod.desc}</div>
-                <div class="product-footer">
-                    <span class="price">$${prod.price} <small>MXN</small></span>
-                    <button class="btn-add">Agregar al carrito</button>
-                </div>
-            </div>
-        `).join('');
-
-        setupCartButtons();
-    });
-}
-
-// --- INICIALIZAR TODO AL CARGAR LA PÁGINA ---
-document.addEventListener('DOMContentLoaded', () => {
-    renderPublicStore();
-    setupAdminPanel();
-    setupLiveSearch();
-});
+        const target = currentProducts.find(p => p.id == id
