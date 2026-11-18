@@ -171,13 +171,14 @@
         projectId: "dare-core-store",
         storageBucket: "dare-core-store.firebasestorage.app",
         messagingSenderId: "104855215716",
-        appId: "1:104855215716:web:e6ef3fba67a906bf904971"
+        appId: "1:104855215716:web:e6ef3fba67a906bf904971",
+        measurementId: "G-Q641EBS6LM"
     };
     if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
     }
     window.db = firebase.firestore();
-    window.auth = firebase.auth(); // <-- ¡Esta línea es clave para que script.js reconozca el Auth!
+    window.auth = firebase.auth();
 </script>
 <script src="script.js"></script>
 </body>
