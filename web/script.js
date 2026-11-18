@@ -1,5 +1,5 @@
 /* ==========================================
-   DARECORE - SCRIPT COMPLETO Y CORREGIDO
+   DARECORE - SCRIPT PÚBLICO Y ADMIN DEFINITIVO
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================
-   1. GESTIÓN DE PRODUCTOS Y TIENDA PÚBLICA
+   1. GESTIÓN DE PRODUCTOS Y TIENDA PÚBLica
    ========================================== */
 function getStoredProducts() {
     const local = localStorage.getItem('darecore_products');
@@ -27,10 +27,10 @@ function getStoredProducts() {
 
 function getDefaultProducts() {
     return [
-        { id: 1, category: 'hoodies', tag: 'NEW', name: 'Hoodie Oversized DareCore', desc: 'Algodón pesado 380g, corte boxy fit.', price: 1150, image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80' },
-        { id: 2, category: 'tees', tag: 'BESTSELLER', name: 'Playera Minimalista Heavyweight', desc: '100% algodón peinado 280g.', price: 550, image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80' },
-        { id: 3, category: 'hoodies', tag: 'LIMITED', name: 'Hoodie Cyberpunk Edition', desc: 'Diseño exclusivo serigrafía HD.', price: 1250, image: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=600&q=80' },
-        { id: 4, category: 'accessories', tag: 'HOT', name: 'Gorra Dad Hat DareCore', desc: 'Bordado frontal 3D alta definición.', price: 420, image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=600&q=80' }
+        { id: 1, category: 'inicio', tag: 'BEST SELLER', name: 'MONTE CARLO RACING #04', desc: 'Corte boxy, al igual & pesada oblatura...', price: 599, image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80' },
+        { id: 2, category: 'inicio', tag: '400G HEAVYWEIGHT', name: 'DARE CORE CLUB 400G', desc: 'Sudadera de doble capa sin cordón...', price: 1199, image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80' },
+        { id: 3, category: 'inicio', tag: 'GYM PERFORMANCE', name: "GYM TEE 'DISCIPLINE & POWER'", desc: 'Max tela / algodón con alta densidad...', price: 499, image: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=600&q=80' },
+        { id: 4, category: 'inicio', tag: 'EDICIÓN LIMITADA', name: "VARSITY JACKET 'LEÓN'", desc: 'Cuerina de alta gramaje y alta protección...', price: 1899, image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=600&q=80' }
     ];
 }
 
@@ -38,11 +38,14 @@ function initStore() {
     const grid = document.getElementById('productGrid');
     if (!grid) return;
     
-    // Carga inicial directa de LocalStorage para velocidad y persistencia de lo subido
-    const products = getStoredProducts();
-    renderProducts(products);
+    // Si no hay productos en localStorage, guardamos los por defecto
+    if (!localStorage.getItem('darecore_products')) {
+        localStorage.setItem('darecore_products', JSON.stringify(getDefaultProducts()));
+    }
 
-    // Sincronización en segundo plano con Firebase si está disponible
+    renderProducts(getStoredProducts());
+
+    // Sincronización en segundo plano con Firebase
     if (window.db) {
         window.db.collection('dare-core-store').get().then(snapshot => {
             if (!snapshot.empty) {
@@ -65,7 +68,7 @@ function renderProducts(products) {
     
     grid.innerHTML = '';
     if (!products || products.length === 0) {
-        grid.innerHTML = '<p style="color: #66; grid-column: span 4; text-align: center; padding: 30px;">No hay prendas disponibles en este momento.</p>';
+        grid.innerHTML = '<p style="color: #666; grid-column: span 4; text-align: center; padding: 30px;">No hay prendas disponibles en este momento.</p>';
         return;
     }
 
@@ -74,21 +77,19 @@ function renderProducts(products) {
         card.className = 'product-card';
         card.style.cursor = 'pointer';
         
-        // Identificador seguro para el modal
         const identifier = p.id ? p.id : `'${p.firestoreId}'`;
 
         card.innerHTML = `
             ${p.tag ? `<span class="product-tag">${p.tag}</span>` : ''}
-            <div class="product-img" style="background-image: url('${p.image || ''}'); background-size: cover; background-position: center;"></div>
-            <div class="product-name">${p.name}</div>
-            <div class="product-desc">${p.desc}</div>
-            <div class="product-footer">
-                <span class="price">$${Number(p.price).toLocaleString('es-MX')} MXN</span>
-                <button class="btn-add" onclick="event.stopPropagation(); openProductModal(${identifier})">Ver / Comprar</button>
+            <div class="product-img" style="background-image: url('${p.image || ''}'); background-size: cover; background-position: center; height: 220px; display: flex; align-items: center; justify-content: center; color: #666;">${!p.image || p.image.includes('unsplash') === false ? '[ Imagen Mockup ]' : ''}</div>
+            <div class="product-name" style="font-weight: 700; margin-top: 10px;">${p.name}</div>
+            <div class="product-desc" style="font-size: 11px; color: #666; margin-bottom: 10px;">${p.desc}</div>
+            <div class="product-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+                <span class="price" style="font-weight: 800;">$${Number(p.price).toLocaleString('es-MX')} <small>MXN</small></span>
+                <button class="btn-add" onclick="event.stopPropagation(); openProductModal(${identifier})" style="background: #111; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer;">Agregar</button>
             </div>
         `;
         
-        // Hacer clic en toda la tarjeta para abrir la vista rápida
         card.addEventListener('click', () => {
             openProductModal(p.id || p.firestoreId);
         });
@@ -207,7 +208,6 @@ function setupDareLab() {
 
             alert(`¡Cotización lista!\n\nPrenda: ${selectedBase.name}\nTécnica: ${techName}\nTotal Estimado: $${total.toLocaleString('es-MX')} MXN\n\nSe abrirá WhatsApp para enviar tu solicitud directamente al taller.`);
 
-            // Reemplaza 5214770000000 con tu número real de WhatsApp a 10 dígitos con LADA y código de país (Ej: 521477...)
             const waUrl = `https://wa.me/5214770000000?text=${encodeURIComponent(resumen)}`;
             window.open(waUrl, '_blank');
         });
@@ -276,7 +276,7 @@ function updateCustomSummary() {
    ========================================== */
 function initAdminPanel() {
     const loginForm = document.getElementById('loginForm');
-    if (!loginForm) return; // Si no estamos en admin.html, salir
+    if (!loginForm) return;
 
     const loginSection = document.getElementById('loginSection');
     const dashboardSection = document.getElementById('dashboardSection');
@@ -365,7 +365,6 @@ function handleProductSubmit(e) {
 
     const saveProductData = (imgUrl) => {
         if (editingId) {
-            // Modo Edición
             products = products.map(p => {
                 if (p.id == editingId || p.firestoreId == editingId) {
                     return {
@@ -382,7 +381,6 @@ function handleProductSubmit(e) {
             });
             alert('¡Prenda actualizada con éxito!');
         } else {
-            // Modo Creación
             const newProduct = {
                 id: Date.now(),
                 category,
@@ -398,7 +396,6 @@ function handleProductSubmit(e) {
 
         localStorage.setItem('darecore_products', JSON.stringify(products));
         
-        // Resetear formulario y modo edición
         document.getElementById('addProductForm').reset();
         const editingInput = document.getElementById('editingProductId');
         if (editingInput) editingInput.value = '';
@@ -410,6 +407,7 @@ function handleProductSubmit(e) {
         if (cancelEditBtn) cancelEditBtn.classList.add('hidden');
 
         loadAdminProducts();
+        renderProducts(getStoredProducts());
     };
 
     if (imageFile) {
@@ -419,7 +417,6 @@ function handleProductSubmit(e) {
         };
         reader.readAsDataURL(imageFile);
     } else {
-        // Si está editando y no subió foto nueva, mantener la anterior
         if (editingId) {
             const existing = products.find(p => p.id == editingId || p.firestoreId == editingId);
             saveProductData(existing ? existing.image : null);
@@ -441,7 +438,6 @@ function editProduct(productId) {
     document.getElementById('prodDesc').value = product.desc || '';
     document.getElementById('prodPrice').value = product.price || '';
 
-    // Cambiar textos y mostrar botón de cancelar edición
     const formTitle = document.getElementById('formTitle');
     if (formTitle) formTitle.innerText = '✏️ EDITAR PRENDA';
     const submitBtn = document.getElementById('submitBtn');
@@ -449,7 +445,6 @@ function editProduct(productId) {
     const cancelEditBtn = document.getElementById('cancelEditBtn');
     if (cancelEditBtn) cancelEditBtn.classList.remove('hidden');
 
-    // Desplazar la vista hacia el formulario
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -461,6 +456,7 @@ function deleteProduct(productId) {
     localStorage.setItem('darecore_products', JSON.stringify(products));
 
     loadAdminProducts();
+    renderProducts(getStoredProducts());
     alert('Prenda eliminada correctamente.');
 }
 
