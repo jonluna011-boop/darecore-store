@@ -388,13 +388,22 @@ function checkoutCart() {
 }
 
 function openGoogleAuthModal() {
-    if (!window.firebase || !firebase.auth) {
+    // 1. Verificamos que Firebase Auth esté disponible globalmente
+    if (!window.auth) {
         alert("Firebase Auth no está inicializado.");
         return;
     }
     
+    // 2. Creamos el proveedor de Google
     const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider)
+    
+    // 3. Forzamos que siempre muestre el selector de cuentas
+    provider.setCustomParameters({
+        'prompt': 'select_account'
+    });
+
+    // 4. Abrimos la ventana emergente oficial
+    window.auth.signInWithPopup(provider)
         .then((result) => {
             const user = result.user;
             alert(`¡Bienvenido, ${user.displayName || user.email}! Sesión iniciada con éxito.`);
