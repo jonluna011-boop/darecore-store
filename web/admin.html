@@ -125,10 +125,13 @@
         <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 30px;">Los productos que agregues o elimines aquí se actualizarán automáticamente en la tienda pública.</p>
 
         <div class="admin-grid">
-            <!-- FORMULARIO PARA AGREGAR PRENDA -->
+           <!-- FORMULARIO PARA AGREGAR / EDITAR PRENDA -->
             <div class="panel-box">
-                <h3 style="font-size: 15px; color: var(--accent-color); margin-bottom: 20px;">+ NUEVA PRENDA</h3>
+                <h3 id="formTitle" style="font-size: 15px; color: var(--accent-color); margin-bottom: 20px;">+ NUEVA PRENDA</h3>
                 <form id="addProductForm">
+                    <!-- Campo oculto para guardar el ID cuando se esté editando -->
+                    <input type="hidden" id="editingProductId" value="">
+
                     <div class="form-group">
                         <label>Sección donde aparecerá</label>
                         <select id="prodCategory" class="form-control" required>
@@ -141,7 +144,8 @@
 
                     <div class="form-group">
                         <label>Foto de la prenda (Desde PC o Celular)</label>
-                        <input type="file" id="prodImageFile" class="form-control" accept="image/*" required>
+                        <input type="file" id="prodImageFile" class="form-control" accept="image/*">
+                        <small style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 4px;">* Déjalo vacío si deseas conservar la foto actual al editar.</small>
                     </div>
 
                     <div class="form-group">
@@ -164,10 +168,12 @@
                         <input type="number" id="prodPrice" class="form-control" placeholder="599" required>
                     </div>
 
-                    <button type="submit" class="btn-primary" style="width: 100%;">PUBLICAR EN TIENDA</button>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="submit" id="submitBtn" class="btn-primary" style="width: 100%;">PUBLICAR EN TIENDA</button>
+                        <button type="button" id="cancelEditBtn" class="btn-delete hidden" style="width: 130px; text-align: center; display: flex; align-items: center; justify-content: center;">CANCELAR</button>
+                    </div>
                 </form>
             </div>
-
             <!-- LISTA DE PRODUCTOS PUBLICADOS -->
             <div class="panel-box">
                 <h3 style="font-size: 15px; margin-bottom: 20px;">PRENDAS PUBLICADAS EN TIENDA (<span id="totalCount">0</span>)</h3>
