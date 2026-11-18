@@ -386,78 +386,26 @@ footer {
   }
 }
 /* Oculta o acomoda la barra de búsqueda en celulares para que no estorbe */
+/* Media query para móviles correctamente cerrado */
 @media (max-width: 768px) {
-  /* Si prefieres ocultarla por completo en el cel para dejar espacio al menú: */
+  header {
+    flex-wrap: wrap;
+  }
+  header nav, .nav-links {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    padding: 8px 10px;
+  }
+  header nav::-webkit-scrollbar, 
+  .nav-links::-webkit-scrollbar {
+    display: none;
+  }
   header input[type="text"], 
   header .search-bar,
   #searchInput {
     display: none; 
   }
-/* Forzar diseño claro en tarjetas de prendas, selectores y textareas */
-.option-card, 
-.garment-card, 
-div[class*="card"], 
-div[class*="option"],
-input[type="text"], 
-input[type="file"], 
-select, 
-textarea,
-.customization-box {
-  background-color: #f5f5f5 !important;
-  color: #111111 !important;
-  border: 1px solid #e0e0e0 !important;
-}
-
-/* Forzar que los textos dentro de esas tarjetas también sean oscuros y legibles */
-.option-card *, 
-.garment-card *, 
-div[class*="card"] *, 
-div[class*="option"] * {
-  color: #111111 !important;
-}
-
-/* Específico para el cuadro de texto de instrucciones adicionales */
-textarea::placeholder {
-  color: #666666 !important;
-}
-/* Forzar tarjetas de opciones y campos de formulario a color claro fijo */
-.option-card, 
-.form-input {
-  background-color: #f5f5f5 !important;
-  color: #111111 !important;
-  border: 1px solid #d0d0d0 !important;
-}
-
-.option-card strong, 
-.option-card span, 
-.option-card p {
-  color: #111111 !important;
-}
-
-/* Forzar que los textos y títulos dentro de las tarjetas de selección sean oscuros y legibles */
-.option-card strong, 
-.option-card span, 
-.option-card p {
-  color: var(--text-primary) !important;
-}
-
-/* Asegurar que las opciones seleccionadas resalten bien */
-.option-card.selected {
-  border-color: var(--accent-color) !important;
-}
-/* Forzar el fondo de las tarjetas de productos y sus contenedores de imagen a color claro */
-.product-card, 
-.product-box, 
-.product-img-container, 
-.product-image,
-div[class*="product"] {
-  background-color: #f5f5f5 !important;
-  color: #111111 !important;
-  border-color: #e0e0e0 !important;
-}
-
-/* Forzar que el cuadro negro interno de la foto o etiqueta se vuelva claro */
-.product-card img, 
-.product-card div:not(.product-info) {
-  background-color: #e5e5e5 !important;
 }
