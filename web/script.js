@@ -1,5 +1,5 @@
 /* ==========================================
-   DARECORE - SCRIPT MAESTRO DEFINITIVO (CON PRECARGA)
+   DARECORE - SCRIPT MAESTRO LIMPIO (SIN RELLENO)
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
@@ -19,43 +19,11 @@ function getStoredProducts() {
     if (local) {
         try { 
             const parsed = JSON.parse(local);
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            if (Array.isArray(parsed)) return parsed;
         } catch (e) { /* fallback */ }
     }
-    
-    // PRODUCTOS REALES POR DEFECTO (Cero fotos de IA extrañas, puro estilo DARECORE)
-    const defaultProducts = [
-        { 
-            id: 'prod_1', 
-            category: 'inicio', 
-            tag: 'BEST SELLER', 
-            name: 'MONTE CARLO RACING #04', 
-            desc: 'Corte boxy fit, algodón pesado de 280g con rib robusto en cuello.', 
-            price: 599, 
-            image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80' 
-        },
-        { 
-            id: 'prod_2', 
-            category: 'inicio', 
-            tag: '400G HEAVYWEIGHT', 
-            name: 'DARE CORE CLUB 400G', 
-            desc: 'Sudadera heavyweight de doble capa sin cordón, estructura rígida premium.', 
-            price: 1199, 
-            image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80' 
-        },
-        { 
-            id: 'prod_3', 
-            category: 'inicio', 
-            tag: 'GYM PERFORMANCE', 
-            name: "GYM TEE 'DISCIPLINE & POWER'", 
-            desc: 'Diseñada para entrenamiento pesado, máxima transpirabilidad y calce atlético.', 
-            price: 499, 
-            image: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=600&q=80' 
-        }
-    ];
-
-    localStorage.setItem('darecore_products', JSON.stringify(defaultProducts));
-    return defaultProducts;
+    // Cero fotos falsas o de IA. Si está vacío, devuelve un array completamente limpio.
+    return [];
 }
 
 function initStore() {
@@ -72,7 +40,7 @@ function renderProducts(products) {
     
     grid.innerHTML = '';
     if (!products || products.length === 0) {
-        grid.innerHTML = '<p style="color: #888; grid-column: span 4; text-align: center; padding: 40px;">No hay prendas registradas. Agrega tu primer producto desde el Panel de Administración.</p>';
+        grid.innerHTML = '<p style="color: #888; grid-column: span 4; text-align: center; padding: 40px;">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
         return;
     }
 
@@ -390,7 +358,7 @@ function handleProductSubmit(e) {
                 name,
                 desc,
                 price,
-                image: imgUrl || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80'
+                image: imgUrl || ''
             };
             products.unshift(newProduct);
             alert('¡Prenda publicada con éxito!');
@@ -422,7 +390,7 @@ function handleProductSubmit(e) {
             const existing = products.find(p => p.id == editingId);
             saveProductData(existing ? existing.image : null);
         } else {
-            saveProductData('https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80');
+            saveProductData('');
         }
     }
 }
