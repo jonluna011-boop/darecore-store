@@ -40,7 +40,6 @@ const defaultProducts = [
 
 let isSyncing = false;
 
-// Cargar productos desde Firebase Firestore (con respaldo en LocalStorage)
 function getProducts() {
     if (window.db && !isSyncing) {
         isSyncing = true;
@@ -63,7 +62,6 @@ function getProducts() {
     return JSON.parse(stored);
 }
 
-// Guardar lista en memoria local
 function saveProductsLocal(products) {
     localStorage.setItem('darecore_products', JSON.stringify(products));
 }
@@ -76,7 +74,7 @@ function setupCartButtons() {
 
     addButtons.forEach(button => {
         button.addEventListener('click', (e) => {
-            e.stopPropagation(); // Evita que se abra el modal al dar clic en el botón rápido
+            e.stopPropagation();
             cartCount++;
             if (badge) badge.textContent = cartCount;
             const originalText = button.textContent;
@@ -148,6 +146,7 @@ function setupAdminPanel() {
         dashboardSection.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
         renderAdminList();
+        renderAdminCustomBases();
     }
 
     loginForm.addEventListener('submit', (e) => {
@@ -161,6 +160,7 @@ function setupAdminPanel() {
             dashboardSection.classList.remove('hidden');
             logoutBtn.classList.remove('hidden');
             renderAdminList();
+            renderAdminCustomBases();
         } else {
             document.getElementById('loginError').style.display = 'block';
         }
@@ -203,9 +203,7 @@ function setupAdminPanel() {
                 const updateData = { category, tag, name, desc, price };
 
                 const saveChanges = (imgData) => {
-                    if (imgData !== undefined) {
-                        updateData.image = imgData;
-                    }
+                    if (imgData !== undefined) updateData.image = imgData;
                     
                     products[index] = { ...products[index], ...updateData };
                     saveProductsLocal(products);
@@ -229,9 +227,7 @@ function setupAdminPanel() {
 
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = function(event) {
-                        saveChanges(event.target.result);
-                    };
+                    reader.onload = (event) => saveChanges(event.target.result);
                     reader.readAsDataURL(file);
                 } else {
                     saveChanges();
@@ -349,7 +345,7 @@ window.deleteProduct = function(id) {
     }
 };
 
-// --- 5. BUSCADOR EN TIEMPO REAL (Con soporte para clic y modal) ---
+// --- 5. BUSCADOR EN TIEMPO REAL ---
 function setupLiveSearch() {
     const searchInput = document.querySelector('.search-box');
     if (!searchInput) return;
@@ -453,9 +449,157 @@ window.closeProductModal = function(event) {
     if (modal) modal.remove();
 };
 
+// --- 7. DARE LAB: PERSONALIZACIÓN DINÁMICA Y EDICIÓN EN ADMIN ---
+const defaultCustomBases = [
+    { id: 0, name: 'BOXY TEE 240G', desc: 'Algodón peinado pesado', price: 550 },
+    { id: 1, name: 'HEAVY HOODIE 400G', desc: 'Felpa francesa alto gramaje', price: 1099 },
+    { id: 2, name: 'VARSITY JACKET BORDADA', desc: 'Chamarra de equipo', price: 1750 },
+    { id: 3, name: 'TOP DEPORTIVO SEAMLESS', desc: 'Compresión gym', price: 460 }
+];
+
+function getCustomBases() {
+    if (window.db) {
+        window.db.collection('settings').doc('customBases').get().then((doc) => {
+            if (doc.exists && doc.data().items) {
+                localStorage.setItem('darecore_custom_bases', JSON.stringify(doc.data().items));
+                if (document.getElementById('customBasesContainer')) renderCustomBasesPublic();
+                if (document.getElementById('adminCustomBasesList')) renderAdminCustomBases();
+            }
+        }).catch(() => {});
+    }
+
+    const stored = localStorage.getItem('darecore_custom_bases');
+    if (!stored) {
+        localStorage.setItem('darecore_custom_bases', JSON.stringify(defaultCustomBases));
+        return defaultCustomBases;
+    }
+    return JSON.parse(stored);
+}
+
+let selectedCustomBaseIndex = 0;
+
+function renderCustomBasesPublic() {
+    const container = document.getElementById('customBasesContainer');
+    if (!container) return;
+
+    const bases = getCustomBases();
+
+    container.innerHTML = bases.map((base, idx) => `
+        <div class="option-card ${idx === selectedCustomBaseIndex ? 'selected' : ''}" onclick="selectCustomBase(${idx})">
+            <strong>${base.name}</strong>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">${base.desc} - $${base.price.toLocaleString('es-MX')} MXN</p>
+        </div>
+    `).join('');
+
+    updateCustomSummary();
+}
+
+window.selectCustomBase = function(index) {
+    selectedCustomBaseIndex = index;
+    renderCustomBasesPublic();
+};
+
+function updateCustomSummary() {
+    const bases = getCustomBases();
+    const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
+    const techSelect = document.getElementById('customTechniqueSelect');
+    
+    const baseNameEl = document.getElementById('summaryBaseName');
+    const techNameEl = document.getElementById('summaryTechName');
+    const totalPriceEl = document.getElementById('summaryTotalPrice');
+
+    if (!baseNameEl || !techSelect || !totalPriceEl) return;
+
+    const selectedOption = techSelect.options[techSelect.selectedIndex];
+    const techName = selectedOption.value;
+    const extraCost = Number(selectedOption.getAttribute('data-extra') || 0);
+    const total = Number(selectedBase.price) + extraCost;
+
+    baseNameEl.textContent = selectedBase.name;
+    techNameEl.textContent = techName;
+    totalPriceEl.textContent = `$${total.toLocaleString('es-MX')} MXN`;
+}
+
+function setupDareLab() {
+    const container = document.getElementById('customBasesContainer');
+    if (!container) return;
+
+    renderCustomBasesPublic();
+
+    const techSelect = document.getElementById('customTechniqueSelect');
+    if (techSelect) {
+        techSelect.addEventListener('change', updateCustomSummary);
+    }
+
+    const mockupBtn = document.getElementById('requestMockupBtn');
+    if (mockupBtn) {
+        mockupBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const bases = getCustomBases();
+            const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
+            const techSelect = document.getElementById('customTechniqueSelect');
+            const selectedOption = techSelect.options[techSelect.selectedIndex];
+            const techName = selectedOption.value;
+            const extraCost = Number(selectedOption.getAttribute('data-extra') || 0);
+            const total = Number(selectedBase.price) + extraCost;
+
+            const fileInput = document.getElementById('customDesignFile');
+            const fileName = fileInput && fileInput.files[0] ? fileInput.files[0].name : 'Lo enviaré por chat';
+            const notes = document.getElementById('customNotes')?.value.trim() || 'Sin notas adicionales';
+
+            const resumen = `¡Hola DARECORE! Me gustaría solicitar un Mockup Digital en Dare Lab:\n\n• Prenda Base: ${selectedBase.name}\n• Técnica: ${techName}\n• Archivo: ${fileName}\n• Notas: ${notes}\n• Total Estimado: $${total.toLocaleString('es-MX')} MXN`;
+
+            alert(`¡Cotización lista!\n\nPrenda: ${selectedBase.name}\nTécnica: ${techName}\nTotal Estimado: $${total.toLocaleString('es-MX')} MXN\n\nSe abrirá WhatsApp para enviar tu solicitud directamente al taller.`);
+
+            // Cambia el número 5214770000000 por el WhatsApp real de tu negocio
+            const waUrl = `https://wa.me/5214770000000?text=${encodeURIComponent(resumen)}`;
+            window.open(waUrl, '_blank');
+        });
+    }
+}
+
+function renderAdminCustomBases() {
+    const list = document.getElementById('adminCustomBasesList');
+    if (!list) return;
+
+    const bases = getCustomBases();
+    list.innerHTML = bases.map((base, idx) => `
+        <div style="background: #1b1b1b; border: 1px solid #333; padding: 15px;">
+            <label style="font-size: 10px; color: #aaa; display: block;">PRENDA & GRAMAJE</label>
+            <input type="text" id="editBaseName_${idx}" value="${base.name}" style="width: 100%; padding: 6px; margin: 4px 0 10px; font-size: 12px;">
+            
+            <label style="font-size: 10px; color: #aaa; display: block;">DESCRIPCIÓN</label>
+            <input type="text" id="editBaseDesc_${idx}" value="${base.desc}" style="width: 100%; padding: 6px; margin: 4px 0 10px; font-size: 12px;">
+            
+            <label style="font-size: 10px; color: #aaa; display: block;">PRECIO BASE (MXN)</label>
+            <input type="number" id="editBasePrice_${idx}" value="${base.price}" style="width: 100%; padding: 6px; margin: 4px 0 12px; font-size: 12px;">
+            
+            <button onclick="saveCustomBaseAdmin(${idx})" style="background: var(--accent-color); color: white; border: none; width: 100%; padding: 8px; font-weight: 700; font-size: 11px; cursor: pointer;">GUARDAR CAMBIOS</button>
+        </div>
+    `).join('');
+}
+
+window.saveCustomBaseAdmin = function(idx) {
+    const bases = getCustomBases();
+    bases[idx].name = document.getElementById(`editBaseName_${idx}`).value.trim().toUpperCase();
+    bases[idx].desc = document.getElementById(`editBaseDesc_${idx}`).value.trim();
+    bases[idx].price = Number(document.getElementById(`editBasePrice_${idx}`).value);
+
+    localStorage.setItem('darecore_custom_bases', JSON.stringify(bases));
+
+    if (window.db) {
+        window.db.collection('settings').doc('customBases').set({ items: bases })
+            .catch(err => console.error("Error al sincronizar bases en la nube:", err));
+    }
+
+    alert('¡Base y precio actualizados correctamente!');
+    renderAdminCustomBases();
+};
+
 // --- INICIALIZAR TODO AL CARGAR LA PÁGINA ---
 document.addEventListener('DOMContentLoaded', () => {
     renderPublicStore();
     setupAdminPanel();
     setupLiveSearch();
+    setupDareLab();
 });
