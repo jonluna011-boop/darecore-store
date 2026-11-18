@@ -388,11 +388,21 @@ function checkoutCart() {
 }
 
 function openGoogleAuthModal() {
-    alert('Redirigiendo al inicio de sesión seguro con Google Account...');
-    setTimeout(() => {
-        alert('¡Inicio de sesión con Google exitoso! Tu cuenta ha sido vinculada.');
-        closeCartModal();
-    }, 1000);
+    if (!window.firebase || !firebase.auth) {
+        alert("Firebase Auth no está inicializado.");
+        return;
+    }
+    
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider)
+        .then((result) => {
+            const user = result.user;
+            alert(`¡Bienvenido, ${user.displayName || user.email}! Sesión iniciada con éxito.`);
+            closeCartModal();
+        }).catch((error) => {
+            console.error("Error en autenticación con Google:", error.message);
+            alert("Hubo un error al iniciar sesión con Google: " + error.message);
+        });
 }
 
 /* ==========================================
