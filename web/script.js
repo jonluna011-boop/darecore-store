@@ -1,5 +1,5 @@
 /* ==========================================
-   DARECORE - SCRIPT DEFINITIVO DE PRODUCCIÓN
+   DARECORE - SCRIPT MAESTRO DEFINITIVO
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
@@ -22,7 +22,7 @@ function getStoredProducts() {
             if (Array.isArray(parsed)) return parsed;
         } catch (e) { /* fallback */ }
     }
-    // Si no hay productos guardados, devuelve una lista vacía para que no aparezcan fotos ajenas
+    // Si está vacío, devuelve un array vacío (sin fotos falsas)
     return [];
 }
 
@@ -40,7 +40,7 @@ function renderProducts(products) {
     
     grid.innerHTML = '';
     if (!products || products.length === 0) {
-        grid.innerHTML = '<p style="color: #888; grid-column: span 4; text-align: center; padding: 40px;">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
+        grid.innerHTML = '<p style="color: #888; grid-column: span 4; text-align: center; padding: 40px;">No hay prendas registradas. Agrega tu primer producto desde el Panel de Administración.</p>';
         return;
     }
 
@@ -60,6 +60,7 @@ function renderProducts(products) {
             </div>
         `;
         
+        // Al hacer clic en cualquier parte de la tarjeta, abre el modal en grande correctamente
         card.addEventListener('click', () => {
             openProductModal(p.id);
         });
@@ -95,7 +96,7 @@ function setupSearch() {
 }
 
 /* ==========================================
-   3. MODAL DE VISTA RÁPIDA
+   3. MODAL DE VISTA RÁPIDA (EN GRANDE)
    ========================================== */
 function openProductModal(productId) {
     const products = getStoredProducts();
@@ -107,19 +108,21 @@ function openProductModal(productId) {
         modalOverlay = document.createElement('div');
         modalOverlay.id = 'quickViewModal';
         modalOverlay.className = 'product-modal-overlay';
+        // Estilos garantizados para que se vea perfectamente en grande al centro
+        modalOverlay.style.cssText = "display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;";
         document.body.appendChild(modalOverlay);
     }
 
     modalOverlay.innerHTML = `
-        <div class="product-modal-content">
-            <button class="product-modal-close" onclick="closeProductModal()">&times;</button>
-            <div class="product-modal-img" style="background-image: url('${product.image}'); background-size: cover; background-position: center;"></div>
+        <div class="product-modal-content" style="background:#111; padding:30px; border-radius:8px; max-width:600px; width:90%; position:relative; display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+            <button class="product-modal-close" onclick="closeProductModal()" style="position:absolute; top:10px; right:15px; background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
+            <div style="background-image: url('${product.image}'); background-size: cover; background-position: center; height:250px; border-radius:4px;"></div>
             <div style="display: flex; flex-direction: column; justify-content: center; color: #ffffff;">
                 <span style="color: #ff3b1b; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;">${product.tag || 'DARECORE'}</span>
-                <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
-                <p style="color: #aaaaaa; font-size: 13px; margin-bottom: 15px;">${product.desc}</p>
-                <div style="font-size: 20px; font-weight: 800; color: #ffffff; margin-bottom: 20px;">$${Number(product.price).toLocaleString('es-MX')} MXN</div>
-                <button class="btn-primary" onclick="alert('¡Prenda seleccionada!'); closeProductModal();">Aceptar</button>
+                <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
+                <p style="color: #aaaaaa; font-size: 12px; margin-bottom: 15px;">${product.desc}</p>
+                <div style="font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 20px;">$${Number(product.price).toLocaleString('es-MX')} MXN</div>
+                <button class="btn-primary" onclick="alert('¡Prenda seleccionada con éxito!'); closeProductModal();" style="background:#ff3b1b; color:#fff; border:none; padding:10px; font-weight:700; cursor:pointer;">Aceptar / Comprar</button>
             </div>
         </div>
     `;
