@@ -51,7 +51,6 @@ function getProducts() {
                 if (typeof renderPublicStore === 'function') renderPublicStore();
                 if (typeof renderAdminList === 'function') renderAdminList();
             } else {
-                // Si la nube está vacía, subimos los productos base por primera vez
                 defaultProducts.forEach(prod => {
                     window.db.collection('products').add(prod);
                 });
@@ -176,7 +175,6 @@ function setupAdminPanel() {
         window.location.reload();
     });
 
-    // Botón cancelar edición
     if (cancelEditBtn) {
         cancelEditBtn.addEventListener('click', () => {
             addProductForm.reset();
@@ -188,7 +186,6 @@ function setupAdminPanel() {
         });
     }
 
-    // Guardar (Crear o Editar Prenda)
     addProductForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const editingId = document.getElementById('editingProductId').value;
@@ -204,33 +201,23 @@ function setupAdminPanel() {
         const products = getProducts();
 
         if (editingId) {
-            // --- MODO EDICIÓN ---
             const index = products.findIndex(p => p.id == editingId || p.firestoreId == editingId);
             if (index !== -1) {
-                const updateData = {
-                    category,
-                    tag,
-                    name,
-                    desc,
-                    price
-                };
+                const updateData = { category, tag, name, desc, price };
 
                 const saveChanges = (imgData) => {
                     if (imgData !== undefined) {
                         updateData.image = imgData;
                     }
                     
-                    // Actualizar en arreglo local
                     products[index] = { ...products[index], ...updateData };
                     saveProductsLocal(products);
 
-                    // Actualizar en Firebase Firestore
                     if (window.db && products[index].firestoreId) {
                         window.db.collection('products').doc(products[index].firestoreId).update(updateData)
                             .catch(err => console.error("Error al actualizar en la nube:", err));
                     }
 
-                    // Resetear formulario a estado normal
                     addProductForm.reset();
                     document.getElementById('editingProductId').value = '';
                     document.getElementById('formTitle').innerText = '+ NUEVA PRENDA';
@@ -243,7 +230,6 @@ function setupAdminPanel() {
                     alert('¡Prenda actualizada exitosamente!');
                 };
 
-                // Si seleccionó nueva foto, la procesamos; si no, mantenemos la anterior
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function(event) {
@@ -251,11 +237,10 @@ function setupAdminPanel() {
                     };
                     reader.readAsDataURL(file);
                 } else {
-                    saveChanges(); // Sin nueva foto
+                    saveChanges();
                 }
             }
         } else {
-            // --- MODO CREACIÓN NUEVA ---
             if (!file) {
                 alert('Por favor selecciona una foto para la nueva prenda.');
                 return;
@@ -297,7 +282,6 @@ function setupAdminPanel() {
     });
 }
 
-// Función global para cargar los datos de una prenda en el formulario al dar clic en Editar
 window.prepareEditProduct = function(id) {
     const products = getProducts();
     const product = products.find(p => p.id == id || p.firestoreId == id);
@@ -309,16 +293,66 @@ window.prepareEditProduct = function(id) {
     document.getElementById('prodName').value = product.name || '';
     document.getElementById('prodDesc').value = product.desc || '';
     document.getElementById('prodPrice').value = product.price || '';
-    document.getElementById('prodImageFile').value = ''; // Opcional al editar
+    document.getElementById('prodImageFile').value = '';
 
-    // Cambiar aspecto del panel para indicar que se está editando
     document.getElementById('formTitle').innerText = '✏️ EDITAR PRENDA';
     document.getElementById('formTitle').style.color = '#3b82f6';
     document.getElementById('submitBtn').innerText = 'GUARDAR CAMBIOS';
     
     const cancelEditBtn = document.getElementById('cancelEditBtn');
     if (cancelEditBtn) cancelEditBtn.classList.remove('hidden');
-// --- 5. BUSCADOR EN TIEMPO REAL ---
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+function renderAdminList() {
+    const listContainer = document.getElementById('adminProductList');
+    const totalCount = document.getElementById('totalCount');
+    if (!listContainer) return;
+
+    const products = getProducts();
+    totalCount.textContent = products.length;
+
+    listContainer.innerHTML = products.map(prod => `
+        <div class="product-item-admin">
+            <div style="display: flex; align-items: center; gap: 12px; flex-grow: 1;">
+                ${prod.image 
+                    ? `<img src="${prod.image}" alt="${prod.name}">` 
+                    : `<div style="width:60px; height:60px; background:#202020; display:flex; align-items:center; justify-content:center; font-size:10px; color:#aaa;">Sin foto</div>`
+                }
+                <div>
+                    <span style="font-size: 10px; color: var(--accent-color); font-weight: 700; text-transform: uppercase;">[${prod.category}] • ${prod.tag}</span>
+                    <div style="font-size: 13px; font-weight: 700; color: white;">${prod.name}</div>
+                    <div style="font-size: 12px; color: var(--text-secondary);">$${prod.price} MXN</div>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <button class="btn-edit" onclick="prepareEditProduct('${prod.id || prod.firestoreId}')" style="background: #112233; color: #3b82f6; border: 1px solid #1e3a8a; padding: 5px 10px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase;">Editar</button>
+                <button class="btn-delete" onclick="deleteProduct('${prod.id || prod.firestoreId}')">Eliminar</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+window.deleteProduct = function(id) {
+    if (confirm('¿Seguro que deseas eliminar esta prenda de la tienda?')) {
+        const currentProducts = getProducts();
+        const target = currentProducts.find(p => p.id == id || p.firestoreId == id);
+        const products = currentProducts.filter(p => p.id != id && p.firestoreId != id);
+        
+        saveProductsLocal(products);
+
+        if (window.db && target && target.firestoreId) {
+            window.db.collection('products').doc(target.firestoreId).delete()
+                .catch(err => console.error("Error al borrar de la nube:", err));
+        }
+
+        renderAdminList();
+        renderPublicStore();
+    }
+};
+
+// --- 5. BUSCADOR EN TIEMPO REAL (Nombre, Descripción y Etiqueta Superior) ---
 function setupLiveSearch() {
     const searchInput = document.querySelector('.search-box');
     if (!searchInput) return;
@@ -337,57 +371,7 @@ function setupLiveSearch() {
         const filtered = allProducts.filter(p => 
             (p.name && p.name.toLowerCase().includes(query)) || 
             (p.desc && p.desc.toLowerCase().includes(query)) ||
-            (p.tag && p.tag.toLowerCase().includes(query)) // <--- Agregado para buscar por etiqueta superior
-        );
-
-        if (filtered.length === 0) {
-            grid.innerHTML = `<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 40px;">No se encontraron productos para "${query}"</p>`;
-            return;
-        }
-
-        grid.innerHTML = filtered.map(prod => `
-            <div class="product-card">
-                <span class="product-tag">${prod.tag || ''}</span>
-                ${prod.image 
-                    ? `<img src="${prod.image}" alt="${prod.name}" class="product-img" style="object-fit: cover;">` 
-                    : `<div class="product-img">[ Sin foto asignada ]</div>`
-                }
-                <div class="product-name">${prod.name}</div>
-                <div class="product-desc">${prod.desc}</div>
-                <div class="product-footer">
-                    <span class="price">$${prod.price} <small>MXN</small></span>
-                    <button class="btn-add">Agregar al carrito</button>
-                </div>
-            </div>
-        `).join('');
-
-        setupCartButtons();
-    });
-}
-        renderAdminList();
-        renderPublicStore();
-    }
-};
-
-// --- 5. BUSCADOR EN TIEMPO REAL ---
-function setupLiveSearch() {
-    const searchInput = document.querySelector('.search-box');
-    if (!searchInput) return;
-
-    searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-        const grid = document.querySelector('.product-grid');
-        if (!grid) return;
-
-        if (query === '') {
-            renderPublicStore();
-            return;
-        }
-
-        const allProducts = getProducts();
-        const filtered = allProducts.filter(p => 
-            (p.name && p.name.toLowerCase().includes(query)) || 
-            (p.desc && p.desc.toLowerCase().includes(query))
+            (p.tag && p.tag.toLowerCase().includes(query)) // Búsqueda habilitada por etiqueta superior
         );
 
         if (filtered.length === 0) {
