@@ -225,3 +225,42 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* Forzar tarjetas de productos generales a fondo claro */
+// --- FUNCIONALIDAD DEL BUSCADOR EN TIEMPO REAL ---
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.querySelector('.search-box') || document.getElementById('searchInput');
+  const productsGrid = document.querySelector('.product-grid') || document.getElementById('productGrid');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const searchTerm = e.target.value.toLowerCase().trim();
+      
+      // Obtenemos los productos guardados en localStorage (tanto los de base como los que subió el admin)
+      const allProducts = JSON.parse(localStorage.getItem('darecore_products')) || [];
+
+      // Filtramos los productos que coincidan con el nombre o descripción
+      const filteredProducts = allProducts.filter(product => 
+        product.name.toLowerCase().includes(searchTerm) || 
+        product.description.toLowerCase().includes(searchTerm)
+      );
+
+      // Si existe una función para renderizar productos en tu script, la llamamos con el resultado filtrado
+      if (typeof renderProducts === 'function') {
+        renderProducts(filteredProducts);
+      } else {
+        // Método alternativo por si las tarjetas están fijas en el HTML
+        const productCards = document.querySelectorAll('.product-card');
+        productCards.forEach(card => {
+          const title = card.querySelector('h3, h4, strong');
+          if (title) {
+            const text = title.textContent.toLowerCase();
+            if (text.includes(searchTerm) || searchTerm === '') {
+              card.style.display = 'block';
+            } else {
+              card.style.display = 'none';
+            }
+          }
+        });
+      }
+    });
+  }
+});
