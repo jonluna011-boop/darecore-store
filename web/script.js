@@ -1,5 +1,5 @@
 /* ==========================================
-   DARECORE - SCRIPT DEFINITIVO DE BÚSQUEDA Y TIENDA
+   DARECORE - SCRIPT DEFINITIVO DE PRODUCCIÓN
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
@@ -12,17 +12,17 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================
-   1. GESTIÓN UNIFICADA DE PRODUCTOS REALES
+   1. GESTIÓN DE PRODUCTOS Y TIENDA PÚBLICA
    ========================================== */
 function getStoredProducts() {
     const local = localStorage.getItem('darecore_products');
     if (local) {
         try { 
             const parsed = JSON.parse(local);
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            if (Array.isArray(parsed)) return parsed;
         } catch (e) { /* fallback */ }
     }
-    // Si no hay productos guardados, devuelve una lista vacía o inicial sin fotos de relleno ajenas
+    // Si no hay productos guardados, devuelve una lista vacía para que no aparezcan fotos ajenas
     return [];
 }
 
