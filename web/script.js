@@ -143,6 +143,7 @@ function setupAdminPanel() {
     const loginForm = document.getElementById('loginForm');
     const logoutBtn = document.getElementById('logoutBtn');
     const addProductForm = document.getElementById('addProductForm');
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
 
     if (!loginSection) return;
 
@@ -175,47 +176,151 @@ function setupAdminPanel() {
         window.location.reload();
     });
 
+    // Botón cancelar edición
+    if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', () => {
+            addProductForm.reset();
+            document.getElementById('editingProductId').value = '';
+            document.getElementById('formTitle').innerText = '+ NUEVA PRENDA';
+            document.getElementById('formTitle').style.color = 'var(--accent-color)';
+            document.getElementById('submitBtn').innerText = 'PUBLICAR EN TIENDA';
+            cancelEditBtn.classList.add('hidden');
+        });
+    }
+
+    // Guardar (Crear o Editar Prenda)
     addProductForm.addEventListener('submit', (e) => {
         e.preventDefault();
+        const editingId = document.getElementById('editingProductId').value;
         const fileInput = document.getElementById('prodImageFile');
         const file = fileInput.files[0];
 
-        if (!file) return;
+        const category = document.getElementById('prodCategory').value;
+        const tag = document.getElementById('prodTag').value.toUpperCase();
+        const name = document.getElementById('prodName').value.toUpperCase();
+        const desc = document.getElementById('prodDesc').value;
+        const price = Number(document.getElementById('prodPrice').value);
 
-        const reader = new FileReader();
-        reader.onload = function(event) {
-            const newProduct = {
-                id: Date.now(),
-                category: document.getElementById('prodCategory').value,
-                tag: document.getElementById('prodTag').value.toUpperCase(),
-                name: document.getElementById('prodName').value.toUpperCase(),
-                desc: document.getElementById('prodDesc').value,
-                price: Number(document.getElementById('prodPrice').value),
-                image: event.target.result
-            };
+        const products = getProducts();
 
-            const products = getProducts();
-            products.unshift(newProduct);
-            saveProductsLocal(products);
+        if (editingId) {
+            // --- MODO EDICIÓN ---
+            const index = products.findIndex(p => p.id == editingId || p.firestoreId == editingId);
+            if (index !== -1) {
+                const updateData = {
+                    category,
+                    tag,
+                    name,
+                    desc,
+                    price
+                };
 
-            // Subir a Firebase Firestore para que todos los clientes lo vean
-            if (window.db) {
-                window.db.collection('products').add(newProduct)
-                    .then((docRef) => {
-                        newProduct.firestoreId = docRef.id;
-                        saveProductsLocal(products);
-                        renderAdminList();
-                    })
-                    .catch((error) => console.error("Error al subir a la nube:", error));
+                const saveChanges = (imgData) => {
+                    if (imgData !== undefined) {
+                        updateData.image = imgData;
+                    }
+                    
+                    // Actualizar en arreglo local
+                    products[index] = { ...products[index], ...updateData };
+                    saveProductsLocal(products);
+
+                    // Actualizar en Firebase Firestore
+                    if (window.db && products[index].firestoreId) {
+                        window.db.collection('products').doc(products[index].firestoreId).update(updateData)
+                            .catch(err => console.error("Error al actualizar en la nube:", err));
+                    }
+
+                    // Resetear formulario a estado normal
+                    addProductForm.reset();
+                    document.getElementById('editingProductId').value = '';
+                    document.getElementById('formTitle').innerText = '+ NUEVA PRENDA';
+                    document.getElementById('formTitle').style.color = 'var(--accent-color)';
+                    document.getElementById('submitBtn').innerText = 'PUBLICAR EN TIENDA';
+                    if (cancelEditBtn) cancelEditBtn.classList.add('hidden');
+
+                    renderAdminList();
+                    renderPublicStore();
+                    alert('¡Prenda actualizada exitosamente!');
+                };
+
+                // Si seleccionó nueva foto, la procesamos; si no, mantenemos la anterior
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        saveChanges(event.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    saveChanges(); // Sin nueva foto
+                }
+            }
+        } else {
+            // --- MODO CREACIÓN NUEVA ---
+            if (!file) {
+                alert('Por favor selecciona una foto para la nueva prenda.');
+                return;
             }
 
-            addProductForm.reset();
-            renderAdminList();
-            alert('¡Prenda publicada exitosamente en la tienda y sincronizada en la nube!');
-        };
-        reader.readAsDataURL(file);
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const newProduct = {
+                    id: Date.now(),
+                    category,
+                    tag,
+                    name,
+                    desc,
+                    price,
+                    image: event.target.result
+                };
+
+                products.unshift(newProduct);
+                saveProductsLocal(products);
+
+                if (window.db) {
+                    window.db.collection('products').add(newProduct)
+                        .then((docRef) => {
+                            newProduct.firestoreId = docRef.id;
+                            saveProductsLocal(products);
+                            renderAdminList();
+                            renderPublicStore();
+                        })
+                        .catch((error) => console.error("Error al subir a la nube:", error));
+                }
+
+                addProductForm.reset();
+                renderAdminList();
+                renderPublicStore();
+                alert('¡Prenda publicada exitosamente en la tienda y sincronizada en la nube!');
+            };
+            reader.readAsDataURL(file);
+        }
     });
 }
+
+// Función global para cargar los datos de una prenda en el formulario al dar clic en Editar
+window.prepareEditProduct = function(id) {
+    const products = getProducts();
+    const product = products.find(p => p.id == id || p.firestoreId == id);
+    if (!product) return;
+
+    document.getElementById('editingProductId').value = product.id || product.firestoreId;
+    document.getElementById('prodCategory').value = product.category || 'inicio';
+    document.getElementById('prodTag').value = product.tag || '';
+    document.getElementById('prodName').value = product.name || '';
+    document.getElementById('prodDesc').value = product.desc || '';
+    document.getElementById('prodPrice').value = product.price || '';
+    document.getElementById('prodImageFile').value = ''; // Opcional al editar
+
+    // Cambiar aspecto del panel para indicar que se está editando
+    document.getElementById('formTitle').innerText = '✏️ EDITAR PRENDA';
+    document.getElementById('formTitle').style.color = '#3b82f6';
+    document.getElementById('submitBtn').innerText = 'GUARDAR CAMBIOS';
+    
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    if (cancelEditBtn) cancelEditBtn.classList.remove('hidden');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
 
 function renderAdminList() {
     const listContainer = document.getElementById('adminProductList');
@@ -227,18 +332,21 @@ function renderAdminList() {
 
     listContainer.innerHTML = products.map(prod => `
         <div class="product-item-admin">
-            <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-grow: 1;">
                 ${prod.image 
                     ? `<img src="${prod.image}" alt="${prod.name}">` 
-                    : `<div style="width:60px; height:60px; background:#f5f5f5; display:flex; align-items:center; justify-content:center; font-size:10px; color:#777;">Sin foto</div>`
+                    : `<div style="width:60px; height:60px; background:#202020; display:flex; align-items:center; justify-content:center; font-size:10px; color:#aaa;">Sin foto</div>`
                 }
                 <div>
                     <span style="font-size: 10px; color: var(--accent-color); font-weight: 700; text-transform: uppercase;">[${prod.category}] • ${prod.tag}</span>
-                    <div style="font-size: 13px; font-weight: 700;">${prod.name}</div>
+                    <div style="font-size: 13px; font-weight: 700; color: white;">${prod.name}</div>
                     <div style="font-size: 12px; color: var(--text-secondary);">$${prod.price} MXN</div>
                 </div>
             </div>
-            <button class="btn-delete" onclick="deleteProduct(${prod.id})">Eliminar</button>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+                <button class="btn-edit" onclick="prepareEditProduct('${prod.id || prod.firestoreId}')" style="background: #112233; color: #3b82f6; border: 1px solid #1e3a8a; padding: 5px 10px; font-size: 10px; font-weight: 700; cursor: pointer; text-transform: uppercase;">Editar</button>
+                <button class="btn-delete" onclick="deleteProduct('${prod.id || prod.firestoreId}')">Eliminar</button>
+            </div>
         </div>
     `).join('');
 }
@@ -246,8 +354,8 @@ function renderAdminList() {
 window.deleteProduct = function(id) {
     if (confirm('¿Seguro que deseas eliminar esta prenda de la tienda?')) {
         const currentProducts = getProducts();
-        const target = currentProducts.find(p => p.id === id);
-        const products = currentProducts.filter(p => p.id !== id);
+        const target = currentProducts.find(p => p.id == id || p.firestoreId == id);
+        const products = currentProducts.filter(p => p.id != id && p.firestoreId != id);
         
         saveProductsLocal(products);
 
@@ -258,6 +366,7 @@ window.deleteProduct = function(id) {
         }
 
         renderAdminList();
+        renderPublicStore();
     }
 };
 
