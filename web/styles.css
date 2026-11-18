@@ -409,3 +409,18 @@ footer {
     display: none; 
   }
 }
+/* Forzar tarjetas de productos generales a fondo claro */
+.product-card, 
+.product-item, 
+.product-box {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+  border: 1px solid #e0e0e0 !important;
+}
+
+/* Forzar que el espacio de la imagen dentro de la tarjeta del producto sea claro */
+.product-card img, 
+.product-card div, 
+.product-item div {
+  background-color: #f5f5f5 !important;
+}
