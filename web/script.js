@@ -264,9 +264,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-// --- FUNCIONALIDAD DE BÚSQUEDA EN TIEMPO REAL ---
+// --- BUSCADOR EN TIEMPO REAL DEFINITIVO ---
 document.addEventListener('DOMContentLoaded', () => {
-  const searchInput = document.querySelector('.search-box') || document.getElementById('searchInput');
+  const searchInput = document.querySelector('.search-box');
 
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const allProducts = typeof getProducts === 'function' ? getProducts() : [];
       
-      // Si la barra está vacía, volvemos a renderizar la tienda normal
+      // Si se borra el texto, regresamos a la tienda normal
       if (query === '') {
         if (typeof renderPublicStore === 'function') {
           renderPublicStore();
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Filtramos por nombre o descripción
+      // Filtramos los productos por nombre o descripción
       const filtered = allProducts.filter(p => 
         (p.name && p.name.toLowerCase().includes(query)) || 
         (p.description && p.description.toLowerCase().includes(query))
@@ -295,20 +295,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Pintamos los resultados filtrados en la cuadrícula usando tu misma estructura
+      // Renderizamos los resultados en pantalla con el diseño actual
       grid.innerHTML = filtered.map(prod => `
         <div class="product-card">
           <span class="product-tag">${prod.tag || ''}</span>
           ${prod.image 
             ? `<img src="${prod.image}" alt="${prod.name}" class="product-img" style="object-fit: cover;">`
-            : `<div style="width: 100%; height: 200px; background: #e5e5e5; display: flex; align-items: center; justify-content: center; color: #666;">[ Sin foto asignada ]</div>`
+            : `<div style="width: 100%; height: 200px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #666;">[ Sin foto asignada ]</div>`
           }
           <div class="product-info" style="padding: 15px;">
-            <h3 style="font-size: 16px; margin-bottom: 5px;">${prod.name}</h3>
+            <h3 style="font-size: 16px; margin-bottom: 5px; color: var(--text-primary);">${prod.name}</h3>
             <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">${prod.description}</p>
             <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-weight: bold; font-size: 15px;">$${prod.price} MXN</span>
-              <button class="btn-primary add-to-cart-btn" data-id="${prod.id}" style="padding: 8px 12px; font-size: 12px; background: #000; color: #fff; border: none; cursor: pointer;">AGREGAR AL CARRITO</button>
+              <span style="font-weight: bold; font-size: 15px; color: var(--text-primary);">$${prod.price} MXN</span>
+              <button class="btn-primary add-to-cart-btn" data-id="${prod.id}" style="padding: 8px 12px; font-size: 12px;">AGREGAR AL CARRITO</button>
             </div>
           </div>
         </div>
