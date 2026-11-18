@@ -1,5 +1,5 @@
 /* ==========================================
-   DARECORE - SCRIPT PÚBLICO Y ADMIN DEFINITIVO
+   DARECORE - SCRIPT DEFINITIVO DE PRODUCCIÓN
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
@@ -12,25 +12,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================
-   1. GESTIÓN DE PRODUCTOS Y TIENDA PÚBLica
+   1. GESTIÓN DE PRODUCTOS Y TIENDA PÚBLICA
    ========================================== */
 function getStoredProducts() {
     const local = localStorage.getItem('darecore_products');
     if (local) {
         try { 
             const parsed = JSON.parse(local);
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            if (Array.isArray(parsed)) return parsed; // Respeta lo que tengas guardado, aunque esté vacío
         } catch (e) { /* fallback */ }
     }
-    return getDefaultProducts();
-}
-
-function getDefaultProducts() {
+    // Solo si nunca ha existido nada, carga un catálogo base mínimo
     return [
-        { id: 1, category: 'inicio', tag: 'BEST SELLER', name: 'MONTE CARLO RACING #04', desc: 'Corte boxy, al igual & pesada oblatura...', price: 599, image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80' },
-        { id: 2, category: 'inicio', tag: '400G HEAVYWEIGHT', name: 'DARE CORE CLUB 400G', desc: 'Sudadera de doble capa sin cordón...', price: 1199, image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80' },
-        { id: 3, category: 'inicio', tag: 'GYM PERFORMANCE', name: "GYM TEE 'DISCIPLINE & POWER'", desc: 'Max tela / algodón con alta densidad...', price: 499, image: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=600&q=80' },
-        { id: 4, category: 'inicio', tag: 'EDICIÓN LIMITADA', name: "VARSITY JACKET 'LEÓN'", desc: 'Cuerina de alta gramaje y alta protección...', price: 1899, image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&w=600&q=80' }
+        { id: 1, category: 'inicio', tag: 'BEST SELLER', name: 'MONTE CARLO RACING #04', desc: 'Corte boxy, tela pesada y alta durabilidad.', price: 599, image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80' }
     ];
 }
 
@@ -38,28 +32,8 @@ function initStore() {
     const grid = document.getElementById('productGrid');
     if (!grid) return;
     
-    // Si no hay productos en localStorage, guardamos los por defecto
-    if (!localStorage.getItem('darecore_products')) {
-        localStorage.setItem('darecore_products', JSON.stringify(getDefaultProducts()));
-    }
-
-    renderProducts(getStoredProducts());
-
-    // Sincronización en segundo plano con Firebase
-    if (window.db) {
-        window.db.collection('dare-core-store').get().then(snapshot => {
-            if (!snapshot.empty) {
-                const cloudProducts = [];
-                snapshot.forEach(doc => {
-                    cloudProducts.push({ firestoreId: doc.id, ...doc.data() });
-                });
-                if (cloudProducts.length > 0) {
-                    localStorage.setItem('darecore_products', JSON.stringify(cloudProducts));
-                    renderProducts(cloudProducts);
-                }
-            }
-        }).catch(err => console.warn("Modo local activo:", err));
-    }
+    const products = getStoredProducts();
+    renderProducts(products);
 }
 
 function renderProducts(products) {
@@ -68,7 +42,7 @@ function renderProducts(products) {
     
     grid.innerHTML = '';
     if (!products || products.length === 0) {
-        grid.innerHTML = '<p style="color: #666; grid-column: span 4; text-align: center; padding: 30px;">No hay prendas disponibles en este momento.</p>';
+        grid.innerHTML = '<p style="color: #666; grid-column: span 4; text-align: center; padding: 40px;">No hay prendas disponibles en este momento. Agrega algunas desde el panel de administración.</p>';
         return;
     }
 
@@ -76,22 +50,20 @@ function renderProducts(products) {
         const card = document.createElement('div');
         card.className = 'product-card';
         card.style.cursor = 'pointer';
-        
-        const identifier = p.id ? p.id : `'${p.firestoreId}'`;
 
         card.innerHTML = `
             ${p.tag ? `<span class="product-tag">${p.tag}</span>` : ''}
-            <div class="product-img" style="background-image: url('${p.image || ''}'); background-size: cover; background-position: center; height: 220px; display: flex; align-items: center; justify-content: center; color: #666;">${!p.image || p.image.includes('unsplash') === false ? '[ Imagen Mockup ]' : ''}</div>
+            <div class="product-img" style="background-image: url('${p.image || ''}'); background-size: cover; background-position: center; height: 220px;"></div>
             <div class="product-name" style="font-weight: 700; margin-top: 10px;">${p.name}</div>
             <div class="product-desc" style="font-size: 11px; color: #666; margin-bottom: 10px;">${p.desc}</div>
             <div class="product-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
                 <span class="price" style="font-weight: 800;">$${Number(p.price).toLocaleString('es-MX')} <small>MXN</small></span>
-                <button class="btn-add" onclick="event.stopPropagation(); openProductModal(${identifier})" style="background: #111; color: #fff; border: none; padding: 6px 12px; font-size: 11px; font-weight: 700; cursor: pointer;">Agregar</button>
+                <button class="btn-add" onclick="event.stopPropagation(); openProductModal('${p.id}')">Ver</button>
             </div>
         `;
         
         card.addEventListener('click', () => {
-            openProductModal(p.id || p.firestoreId);
+            openProductModal(p.id);
         });
 
         grid.appendChild(card);
@@ -119,11 +91,11 @@ function setupSearch() {
 }
 
 /* ==========================================
-   3. MODAL DE VISTA RÁPIDA (EN GRANDE)
+   3. MODAL DE VISTA RÁPIDA
    ========================================== */
 function openProductModal(productId) {
     const products = getStoredProducts();
-    const product = products.find(p => p.id == productId || p.firestoreId == productId);
+    const product = products.find(p => p.id == productId);
     if (!product) return;
 
     let modalOverlay = document.getElementById('quickViewModal');
@@ -143,7 +115,7 @@ function openProductModal(productId) {
                 <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
                 <p style="color: #aaaaaa; font-size: 13px; margin-bottom: 15px;">${product.desc}</p>
                 <div style="font-size: 20px; font-weight: 800; color: #ffffff; margin-bottom: 20px;">$${Number(product.price).toLocaleString('es-MX')} MXN</div>
-                <button class="btn-primary" onclick="alert('¡Producto agregado al carrito exitosamente!'); closeProductModal();">Agregar al Carrito</button>
+                <button class="btn-primary" onclick="alert('¡Prenda seleccionada!'); closeProductModal();">Aceptar</button>
             </div>
         </div>
     `;
@@ -166,10 +138,6 @@ function getCustomBases() {
             if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         } catch (e) { /* fallback */ }
     }
-    return getDefaultCustomBases();
-}
-
-function getDefaultCustomBases() {
     return [
         { id: 'b1', name: 'Hoodie Heavyweight Oversized (380g)', price: 1150, desc: 'Algodón premium con fleece afelpado interno.' },
         { id: 'b2', name: 'Playera Boxy Fit Heavy (280g)', price: 550, desc: 'Corte urbano relajado, cuello robusto.' },
@@ -206,8 +174,6 @@ function setupDareLab() {
 
             const resumen = `¡Hola DARECORE! Me gustaría solicitar un Mockup Digital en Dare Lab:\n\n• Prenda Base: ${selectedBase.name}\n• Técnica: ${techName}\n• Archivo: ${fileName}\n• Notas: ${notes}\n• Total Estimado: $${total.toLocaleString('es-MX')} MXN`;
 
-            alert(`¡Cotización lista!\n\nPrenda: ${selectedBase.name}\nTécnica: ${techName}\nTotal Estimado: $${total.toLocaleString('es-MX')} MXN\n\nSe abrirá WhatsApp para enviar tu solicitud directamente al taller.`);
-
             const waUrl = `https://wa.me/5214770000000?text=${encodeURIComponent(resumen)}`;
             window.open(waUrl, '_blank');
         });
@@ -224,7 +190,7 @@ function renderCustomBasesPublic() {
     bases.forEach((base, index) => {
         const card = document.createElement('div');
         card.className = `option-card ${index === selectedCustomBaseIndex ? 'selected' : ''}`;
-        card.style.cssText = "background: #f5f5f5; border: 2px solid #dcdcdc; padding: 15px; cursor: pointer; transition: all 0.2s;";
+        card.style.cssText = "background: #f5f5f5; border: 2px solid #dcdcdc; padding: 15px; cursor: pointer; transition: all 0.2s; border-radius: 6px;";
         
         card.innerHTML = `
             <div style="font-weight: 800; font-size: 14px; color: #111111; margin-bottom: 5px;">${base.name}</div>
@@ -272,7 +238,7 @@ function updateCustomSummary() {
 }
 
 /* ==========================================
-   5. PANEL DE ADMINISTRACIÓN (`admin.html`)
+   5. PANEL DE ADMINISTRACIÓN
    ========================================== */
 function initAdminPanel() {
     const loginForm = document.getElementById('loginForm');
@@ -334,7 +300,6 @@ function loadAdminProducts() {
     products.forEach((p) => {
         const item = document.createElement('div');
         item.className = 'product-item-admin';
-        const pId = p.id ? p.id : `'${p.firestoreId}'`;
         
         item.innerHTML = `
             <img src="${p.image || ''}" alt="${p.name}">
@@ -343,8 +308,8 @@ function loadAdminProducts() {
                 <div style="font-size: 11px; color: #888;">${p.category || 'general'} | $${p.price} MXN</div>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button type="button" class="btn-primary" style="padding: 6px 10px; font-size: 10px;" onclick="editProduct(${pId})">Editar</button>
-                <button type="button" class="btn-delete" onclick="deleteProduct(${pId})">Eliminar</button>
+                <button type="button" class="btn-primary" style="padding: 6px 10px; font-size: 10px;" onclick="editProduct('${p.id}')">Editar</button>
+                <button type="button" class="btn-delete" onclick="deleteProduct('${p.id}')">Eliminar</button>
             </div>
         `;
         container.appendChild(item);
@@ -366,7 +331,7 @@ function handleProductSubmit(e) {
     const saveProductData = (imgUrl) => {
         if (editingId) {
             products = products.map(p => {
-                if (p.id == editingId || p.firestoreId == editingId) {
+                if (p.id == editingId) {
                     return {
                         ...p,
                         name,
@@ -382,7 +347,7 @@ function handleProductSubmit(e) {
             alert('¡Prenda actualizada con éxito!');
         } else {
             const newProduct = {
-                id: Date.now(),
+                id: 'prod_' + Date.now(),
                 category,
                 tag,
                 name,
@@ -407,7 +372,6 @@ function handleProductSubmit(e) {
         if (cancelEditBtn) cancelEditBtn.classList.add('hidden');
 
         loadAdminProducts();
-        renderProducts(getStoredProducts());
     };
 
     if (imageFile) {
@@ -418,7 +382,7 @@ function handleProductSubmit(e) {
         reader.readAsDataURL(imageFile);
     } else {
         if (editingId) {
-            const existing = products.find(p => p.id == editingId || p.firestoreId == editingId);
+            const existing = products.find(p => p.id == editingId);
             saveProductData(existing ? existing.image : null);
         } else {
             saveProductData('https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80');
@@ -428,10 +392,10 @@ function handleProductSubmit(e) {
 
 function editProduct(productId) {
     const products = getStoredProducts();
-    const product = products.find(p => p.id == productId || p.firestoreId == productId);
+    const product = products.find(p => p.id == productId);
     if (!product) return;
 
-    document.getElementById('editingProductId').value = product.id || product.firestoreId;
+    document.getElementById('editingProductId').value = product.id;
     document.getElementById('prodCategory').value = product.category || 'inicio';
     document.getElementById('prodTag').value = product.tag || '';
     document.getElementById('prodName').value = product.name || '';
@@ -452,11 +416,10 @@ function deleteProduct(productId) {
     if (!confirm('¿Estás seguro de eliminar esta prenda?')) return;
     
     let products = getStoredProducts();
-    products = products.filter(p => p.id != productId && p.firestoreId != productId);
+    products = products.filter(p => p.id != productId);
     localStorage.setItem('darecore_products', JSON.stringify(products));
 
     loadAdminProducts();
-    renderProducts(getStoredProducts());
     alert('Prenda eliminada correctamente.');
 }
 
@@ -469,7 +432,7 @@ function loadAdminCustomBases() {
 
     bases.forEach((base, index) => {
         const box = document.createElement('div');
-        box.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 15px;";
+        box.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 15px; border-radius: 6px;";
         box.innerHTML = `
             <div style="margin-bottom: 8px;">
                 <label style="font-size: 10px; color: #888; display: block;">NOMBRE BASE</label>
