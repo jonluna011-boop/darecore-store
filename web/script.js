@@ -1,5 +1,5 @@
 /* ==========================================
-   DARECORE - SCRIPT MAESTRO DEFINITIVO
+   DARECORE - SCRIPT MAESTRO DEFINITIVO (CON PRECARGA)
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
@@ -19,11 +19,43 @@ function getStoredProducts() {
     if (local) {
         try { 
             const parsed = JSON.parse(local);
-            if (Array.isArray(parsed)) return parsed;
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         } catch (e) { /* fallback */ }
     }
-    // Si está vacío, devuelve un array vacío (sin fotos falsas)
-    return [];
+    
+    // PRODUCTOS REALES POR DEFECTO (Cero fotos de IA extrañas, puro estilo DARECORE)
+    const defaultProducts = [
+        { 
+            id: 'prod_1', 
+            category: 'inicio', 
+            tag: 'BEST SELLER', 
+            name: 'MONTE CARLO RACING #04', 
+            desc: 'Corte boxy fit, algodón pesado de 280g con rib robusto en cuello.', 
+            price: 599, 
+            image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80' 
+        },
+        { 
+            id: 'prod_2', 
+            category: 'inicio', 
+            tag: '400G HEAVYWEIGHT', 
+            name: 'DARE CORE CLUB 400G', 
+            desc: 'Sudadera heavyweight de doble capa sin cordón, estructura rígida premium.', 
+            price: 1199, 
+            image: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?auto=format&fit=crop&w=600&q=80' 
+        },
+        { 
+            id: 'prod_3', 
+            category: 'inicio', 
+            tag: 'GYM PERFORMANCE', 
+            name: "GYM TEE 'DISCIPLINE & POWER'", 
+            desc: 'Diseñada para entrenamiento pesado, máxima transpirabilidad y calce atlético.', 
+            price: 499, 
+            image: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=600&q=80' 
+        }
+    ];
+
+    localStorage.setItem('darecore_products', JSON.stringify(defaultProducts));
+    return defaultProducts;
 }
 
 function initStore() {
@@ -60,7 +92,6 @@ function renderProducts(products) {
             </div>
         `;
         
-        // Al hacer clic en cualquier parte de la tarjeta, abre el modal en grande correctamente
         card.addEventListener('click', () => {
             openProductModal(p.id);
         });
@@ -108,7 +139,6 @@ function openProductModal(productId) {
         modalOverlay = document.createElement('div');
         modalOverlay.id = 'quickViewModal';
         modalOverlay.className = 'product-modal-overlay';
-        // Estilos garantizados para que se vea perfectamente en grande al centro
         modalOverlay.style.cssText = "display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;";
         document.body.appendChild(modalOverlay);
     }
