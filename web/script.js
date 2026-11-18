@@ -1,18 +1,19 @@
 /* ==========================================
-   DARECORE - SCRIPT PRINCIPAL & DARE LAB
+   DARECORE - SCRIPT COMPLETO UNIFICADO
    ========================================== */
 
-// Configuración global o estado de la aplicación
 let selectedCustomBaseIndex = 0;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Inicializar funciones principales al cargar la página
     initStore();
     setupSearch();
     setupDareLab();
+    initAdminPanel();
 });
 
-/* --- 1. GESTIÓN DE PRODUCTOS Y TIENDA --- */
+/* ==========================================
+   1. GESTIÓN DE PRODUCTOS Y TIENDA PÚBLICA
+   ========================================== */
 function getStoredProducts() {
     const local = localStorage.getItem('darecore_products');
     if (local) {
@@ -34,7 +35,26 @@ function initStore() {
     const grid = document.getElementById('productGrid');
     if (!grid) return;
     
-    renderProducts(getStoredProducts());
+    // Intentar sincronizar con Firebase si está disponible
+    if (window.db) {
+        window.db.collection('dare-core-store').get().then(snapshot => {
+            if (!snapshot.empty) {
+                const cloudProducts = [];
+                snapshot.forEach(doc => {
+                    cloudProducts.push({ firestoreId: doc.id, ...doc.data() });
+                });
+                localStorage.setItem('darecore_products', JSON.stringify(cloudProducts));
+                renderProducts(cloudProducts);
+            } else {
+                renderProducts(getStoredProducts());
+            }
+        }).catch(err => {
+            console.warn("Usando respaldo local:", err);
+            renderProducts(getStoredProducts());
+        });
+    } else {
+        renderProducts(getStoredProducts());
+    }
 }
 
 function renderProducts(products) {
@@ -47,19 +67,21 @@ function renderProducts(products) {
         card.className = 'product-card';
         card.innerHTML = `
             ${p.tag ? `<span class="product-tag">${p.tag}</span>` : ''}
-            <div class="product-img" style="background-image: url('${p.image}'); background-size: cover; background-position: center;"></div>
+            <div class="product-img" style="background-image: url('${p.image || ''}'); background-size: cover; background-position: center;"></div>
             <div class="product-name">${p.name}</div>
             <div class="product-desc">${p.desc}</div>
             <div class="product-footer">
                 <span class="price">$${Number(p.price).toLocaleString('es-MX')} MXN</span>
-                <button class="btn-add" onclick="openProductModal(${p.id})">Ver / Comprar</button>
+                <button class="btn-add" onclick="openProductModal(${p.id || '\'' + p.firestoreId + '\''})">Ver / Comprar</button>
             </div>
         `;
         grid.appendChild(card);
     });
 }
 
-/* --- 2. BUSCADOR EN VIVO --- */
+/* ==========================================
+   2. BUSCADOR EN VIVO
+   ========================================== */
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
     if (!searchInput) return;
@@ -77,13 +99,14 @@ function setupSearch() {
     });
 }
 
-/* --- 3. MODAL DE VISTA RÁPIDA --- */
+/* ==========================================
+   3. MODAL DE VISTA RÁPIDA
+   ========================================== */
 function openProductModal(productId) {
     const products = getStoredProducts();
-    const product = products.find(p => p.id === productId);
+    const product = products.find(p => p.id === productId || p.firestoreId === productId);
     if (!product) return;
 
-    // Crear modal si no existe
     let modalOverlay = document.getElementById('quickViewModal');
     if (!modalOverlay) {
         modalOverlay = document.createElement('div');
@@ -110,12 +133,12 @@ function openProductModal(productId) {
 
 function closeProductModal() {
     const modalOverlay = document.getElementById('quickViewModal');
-    if (modalOverlay) {
-        modalOverlay.style.display = 'none';
-    }
+    if (modalOverlay) modalOverlay.style.display = 'none';
 }
 
-/* --- 4. DARE LAB (ESTUDIO DE PERSONALIZACIÓN DINÁMICO) --- */
+/* ==========================================
+   4. DARE LAB (PERSONALIZACIÓN DINÁMICA)
+   ========================================== */
 function getCustomBases() {
     const local = localStorage.getItem('darecore_custom_bases');
     if (local) {
@@ -145,7 +168,6 @@ function setupDareLab() {
 
     const mockupBtn = document.getElementById('requestMockupBtn');
     if (mockupBtn) {
-        // Soporte completo para touch y click en celulares y computadoras
         mockupBtn.addEventListener('click', (e) => {
             e.preventDefault();
             const bases = getCustomBases();
@@ -164,7 +186,7 @@ function setupDareLab() {
 
             alert(`¡Cotización lista!\n\nPrenda: ${selectedBase.name}\nTécnica: ${techName}\nTotal Estimado: $${total.toLocaleString('es-MX')} MXN\n\nSe abrirá WhatsApp para enviar tu solicitud directamente al taller.`);
 
-            // Cambia '5214770000000' por tu número real con código de país y LADA
+            // Reemplaza 5214770000000 con tu número real de WhatsApp con código de país
             const waUrl = `https://wa.me/5214770000000?text=${encodeURIComponent(resumen)}`;
             window.open(waUrl, '_blank');
         });
@@ -226,4 +248,188 @@ function updateCustomSummary() {
     if (summaryBase) summaryBase.innerText = selectedBase.name;
     if (summaryTech) summaryTech.innerText = selectedOption.value;
     if (summaryTotal) summaryTotal.innerText = `$${totalPrice.toLocaleString('es-MX')} MXN`;
+}
+
+/* ==========================================
+   5. PANEL DE ADMINISTRACIÓN (`admin.html`)
+   ========================================== */
+function initAdminPanel() {
+    const loginForm = document.getElementById('loginForm');
+    if (!loginForm) return; // Si no estamos en admin.html, salir
+
+    const loginSection = document.getElementById('loginSection');
+    const dashboardSection = document.getElementById('dashboardSection');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    // Comprobar sesión activa previa
+    if (localStorage.getItem('darecore_admin_logged') === 'true') {
+        loginSection.classList.add('hidden');
+        dashboardSection.classList.remove('hidden');
+        logoutBtn.classList.remove('hidden');
+        loadAdminProducts();
+        loadAdminCustomBases();
+    }
+
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const user = document.getElementById('adminUser').value.trim();
+        const pass = document.getElementById('adminPass').value.trim();
+        const errorMsg = document.getElementById('loginError');
+
+        if ((user === 'admin' || user === 'admin@darecore.mx') && pass === 'darecore2026') {
+            localStorage.setItem('darecore_admin_logged', 'true');
+            loginSection.classList.add('hidden');
+            dashboardSection.classList.remove('hidden');
+            logoutBtn.classList.remove('hidden');
+            loadAdminProducts();
+            loadAdminCustomBases();
+        } else {
+            errorMsg.style.display = 'block';
+        }
+    });
+
+    logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        localStorage.removeItem('darecore_admin_logged');
+        window.location.reload();
+    });
+
+    // Manejador del formulario para agregar/editar productos
+    const addProductForm = document.getElementById('addProductForm');
+    if (addProductForm) {
+        addProductForm.addEventListener('submit', handleProductSubmit);
+    }
+}
+
+function loadAdminProducts() {
+    const container = document.getElementById('adminProductList');
+    const countSpan = document.getElementById('totalCount');
+    if (!container) return;
+
+    const products = getStoredProducts();
+    if (countSpan) countSpan.innerText = products.length;
+
+    container.innerHTML = '';
+    products.forEach((p) => {
+        const item = document.createElement('div');
+        item.className = 'product-item-admin';
+        item.innerHTML = `
+            <img src="${p.image}" alt="${p.name}">
+            <div style="flex-grow: 1; color: white;">
+                <div style="font-weight: 700; font-size: 13px;">${p.name}</div>
+                <div style="font-size: 11px; color: #888;">${p.category} | $${p.price} MXN</div>
+            </div>
+            <button class="btn-delete" onclick="deleteProduct(${p.id || '\'' + p.firestoreId + '\''})">Eliminar</button>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function handleProductSubmit(e) {
+    e.preventDefault();
+    const name = document.getElementById('prodName').value;
+    const category = document.getElementById('prodCategory').value;
+    const tag = document.getElementById('prodTag').value;
+    const desc = document.getElementById('prodDesc').value;
+    const price = Number(document.getElementById('prodPrice').value);
+    const imageFile = document.getElementById('prodImageFile').files[0];
+
+    const saveProductData = (imgUrl) => {
+        const products = getStoredProducts();
+        const newProduct = {
+            id: Date.now(),
+            category,
+            tag,
+            name,
+            desc,
+            price,
+            image: imgUrl || 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80'
+        };
+
+        products.unshift(newProduct);
+        localStorage.setItem('darecore_products', JSON.stringify(products));
+
+        if (window.db) {
+            window.db.collection('dare-core-store').add(newProduct).then(() => {
+                alert('¡Prenda publicada y guardada en Firebase con éxito!');
+                document.getElementById('addProductForm').reset();
+                loadAdminProducts();
+            }).catch(err => {
+                console.error(err);
+                alert('Guardado localmente. Error al sincronizar con Firebase.');
+                document.getElementById('addProductForm').reset();
+                loadAdminProducts();
+            });
+        } else {
+            alert('¡Prenda publicada con éxito!');
+            document.getElementById('addProductForm').reset();
+            loadAdminProducts();
+        }
+    };
+
+    if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            saveProductData(event.target.result);
+        };
+        reader.readAsDataURL(imageFile);
+    } else {
+        saveProductData('https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80');
+    }
+}
+
+function deleteProduct(productId) {
+    if (!confirm('¿Estás seguro de eliminar esta prenda?')) return;
+    
+    let products = getStoredProducts();
+    products = products.filter(p => p.id !== productId && p.firestoreId !== productId);
+    localStorage.setItem('darecore_products', JSON.stringify(products));
+
+    if (window.db) {
+        window.db.collection('dare-core-store').where('id', '==', productId).get().then(snapshot => {
+            snapshot.forEach(doc => doc.ref.delete());
+        }).catch(err => console.log(err));
+    }
+
+    loadAdminProducts();
+    alert('Prenda eliminada correctamente.');
+}
+
+function loadAdminCustomBases() {
+    const container = document.getElementById('adminCustomBasesList');
+    if (!container) return;
+
+    const bases = getCustomBases();
+    container.innerHTML = '';
+
+    bases.forEach((base, index) => {
+        const box = document.createElement('div');
+        box.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 15px;";
+        box.innerHTML = `
+            <div style="margin-bottom: 8px;">
+                <label style="font-size: 10px; color: #888; display: block;">NOMBRE BASE</label>
+                <input type="text" id="baseName_${index}" value="${base.name}" class="form-control" style="font-size: 12px; padding: 6px;">
+            </div>
+            <div style="margin-bottom: 8px;">
+                <label style="font-size: 10px; color: #888; display: block;">PRECIO (MXN)</label>
+                <input type="number" id="basePrice_${index}" value="${base.price}" class="form-control" style="font-size: 12px; padding: 6px;">
+            </div>
+            <button type="button" class="btn-primary" style="padding: 6px 10px; font-size: 10px; width: 100%; margin-top: 5px;" onclick="updateCustomBaseItem(${index})">Guardar Cambios</button>
+        `;
+        container.appendChild(box);
+    });
+}
+
+function updateCustomBaseItem(index) {
+    const bases = getCustomBases();
+    const nameInput = document.getElementById(`baseName_${index}`);
+    const priceInput = document.getElementById(`basePrice_${index}`);
+
+    if (nameInput && priceInput) {
+        bases[index].name = nameInput.value;
+        bases[index].price = Number(priceInput.value);
+        localStorage.setItem('darecore_custom_bases', JSON.stringify(bases));
+        alert('¡Base personalizada actualizada con éxito!');
+        loadAdminCustomBases();
+    }
 }
