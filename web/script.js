@@ -50,10 +50,6 @@ function getProducts() {
                 localStorage.setItem('darecore_products', JSON.stringify(cloudProducts));
                 if (typeof renderPublicStore === 'function') renderPublicStore();
                 if (typeof renderAdminList === 'function') renderAdminList();
-            } else {
-                defaultProducts.forEach(prod => {
-                    window.db.collection('products').add(prod);
-                });
             }
         }).catch(err => console.log("Modo offline o error al sincronizar:", err))
           .finally(() => { setTimeout(() => { isSyncing = false; }, 2000); });
@@ -80,7 +76,7 @@ function setupCartButtons() {
 
     addButtons.forEach(button => {
         button.addEventListener('click', (e) => {
-            e.stopPropagation(); // Evita que se abra el modal al dar clic directo al botón rápido
+            e.stopPropagation(); // Evita que se abra el modal al dar clic en el botón rápido
             cartCount++;
             if (badge) badge.textContent = cartCount;
             const originalText = button.textContent;
@@ -96,7 +92,7 @@ function setupCartButtons() {
     });
 }
 
-// --- 3. RENDERIZAR PRODUCTOS EN LA TIENDA PÚBLICA (Con soporte para clic en tarjeta) ---
+// --- 3. RENDERIZAR PRODUCTOS EN LA TIENDA PÚBLICA ---
 function renderPublicStore() {
     const grid = document.querySelector('.product-grid');
     if (!grid) return;
@@ -338,4 +334,128 @@ function renderAdminList() {
 window.deleteProduct = function(id) {
     if (confirm('¿Seguro que deseas eliminar esta prenda de la tienda?')) {
         const currentProducts = getProducts();
-        const target = currentProducts.find(p => p.id == id
+        const target = currentProducts.find(p => p.id == id || p.firestoreId == id);
+        const products = currentProducts.filter(p => p.id != id && p.firestoreId != id);
+        
+        saveProductsLocal(products);
+
+        if (window.db && target && target.firestoreId) {
+            window.db.collection('products').doc(target.firestoreId).delete()
+                .catch(err => console.error("Error al borrar de la nube:", err));
+        }
+
+        renderAdminList();
+        renderPublicStore();
+    }
+};
+
+// --- 5. BUSCADOR EN TIEMPO REAL (Con soporte para clic y modal) ---
+function setupLiveSearch() {
+    const searchInput = document.querySelector('.search-box');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const grid = document.querySelector('.product-grid');
+        if (!grid) return;
+
+        if (query === '') {
+            renderPublicStore();
+            return;
+        }
+
+        const allProducts = getProducts();
+        const filtered = allProducts.filter(p => 
+            (p.name && p.name.toLowerCase().includes(query)) || 
+            (p.desc && p.desc.toLowerCase().includes(query)) ||
+            (p.tag && p.tag.toLowerCase().includes(query))
+        );
+
+        if (filtered.length === 0) {
+            grid.innerHTML = `<p style="color: var(--text-secondary); grid-column: 1/-1; text-align: center; padding: 40px;">No se encontraron productos para "${query}"</p>`;
+            return;
+        }
+
+        grid.innerHTML = filtered.map(prod => `
+            <div class="product-card" onclick="openProductModal('${prod.id || prod.firestoreId}')" style="cursor: pointer;">
+                <span class="product-tag">${prod.tag || ''}</span>
+                ${prod.image 
+                    ? `<img src="${prod.image}" alt="${prod.name}" class="product-img" style="object-fit: cover;">` 
+                    : `<div class="product-img">[ Sin foto asignada ]</div>`
+                }
+                <div class="product-name">${prod.name}</div>
+                <div class="product-desc">${prod.desc}</div>
+                <div class="product-footer">
+                    <span class="price">$${prod.price} <small>MXN</small></span>
+                    <button class="btn-add">Agregar al carrito</button>
+                </div>
+            </div>
+        `).join('');
+
+        setupCartButtons();
+    });
+}
+
+// --- 6. MODAL DE VISTA RÁPIDA DE PRENDAS ---
+window.openProductModal = function(id) {
+    const products = getProducts();
+    const prod = products.find(p => p.id == id || p.firestoreId == id);
+    if (!prod) return;
+
+    const existingModal = document.getElementById('productModal');
+    if (existingModal) existingModal.remove();
+
+    const modalHTML = `
+        <div id="productModal" class="product-modal-overlay" onclick="closeProductModal(event)">
+            <div class="product-modal-content" onclick="event.stopPropagation()">
+                <button class="product-modal-close" onclick="closeProductModal()">×</button>
+                <div>
+                    ${prod.image 
+                        ? `<img src="${prod.image}" alt="${prod.name}" class="product-modal-img">` 
+                        : `<div class="product-modal-img" style="display:flex; align-items:center; justify-content:center; color:#777;">[ Sin foto asignada ]</div>`
+                    }
+                </div>
+                <div style="display: flex; flex-direction: column; justify-content: center;">
+                    <span style="font-size: 11px; color: var(--accent-color); font-weight: 700; text-transform: uppercase; margin-bottom: 8px;">${prod.tag || ''}</span>
+                    <h2 style="font-size: 22px; color: white; margin-bottom: 12px; font-weight: 800;">${prod.name}</h2>
+                    <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 20px;">${prod.desc}</p>
+                    <div style="font-size: 24px; font-weight: 800; color: white; margin-bottom: 25px;">
+                        $${prod.price} <small style="font-size: 14px; color: var(--text-secondary);">MXN</small>
+                    </div>
+                    <button class="btn-primary" id="modalAddBtn" style="width: 100%; padding: 12px; font-weight: 700; cursor: pointer;">AGREGAR AL CARRITO</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    document.getElementById('modalAddBtn').addEventListener('click', () => {
+        cartCount++;
+        const badge = document.querySelector('.cart-badge');
+        if (badge) badge.textContent = cartCount;
+        
+        const btn = document.getElementById('modalAddBtn');
+        btn.textContent = '✓ AGREGADO AL CARRITO';
+        btn.style.background = '#ff3b1b';
+        
+        setTimeout(() => {
+            closeProductModal();
+        }, 800);
+    });
+};
+
+window.closeProductModal = function(event) {
+    if (event && event.target.id !== 'productModal' && !event.target.classList.contains('product-modal-close')) {
+        return;
+    }
+    const modal = document.getElementById('productModal');
+    if (modal) modal.remove();
+};
+
+// --- INICIALIZAR TODO AL CARGAR LA PÁGINA ---
+document.addEventListener('DOMContentLoaded', () => {
+    renderPublicStore();
+    setupAdminPanel();
+    setupLiveSearch();
+});
