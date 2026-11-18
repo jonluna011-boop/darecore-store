@@ -467,3 +467,10 @@ header input[type="text"]::placeholder,
 .search-box::placeholder {
   color: #666666 !important;
 }
+/* Franja superior de anuncios en color naranja icónico DARE CORE */
+.top-bar, 
+div[class*="announcement"], 
+div[class*="top-bar"] {
+  background-color: #ff3b1b !important;
+  color: #ffffff !important;
+}
