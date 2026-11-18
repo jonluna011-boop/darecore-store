@@ -207,7 +207,7 @@ function setupDareLab() {
 
             const resumen = `¡Hola DARECORE! Me gustaría solicitar un Mockup Digital en Dare Lab:\n\n• Prenda Base: ${selectedBase.name}\n• Técnica: ${techName}\n• Archivo: ${fileName}\n• Notas: ${notes}\n• Total Estimado: $${total.toLocaleString('es-MX')} MXN`;
 
-            const waUrl = `https://wa.me/5214770000000?text=${encodeURIComponent(resumen)}`;
+            const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(resumen)}`;
             window.open(waUrl, '_blank');
         });
     }
