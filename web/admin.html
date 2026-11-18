@@ -174,6 +174,7 @@
                     </div>
                 </form>
             </div>
+
             <!-- LISTA DE PRODUCTOS PUBLICADOS -->
             <div class="panel-box">
                 <h3 style="font-size: 15px; margin-bottom: 20px;">PRENDAS PUBLICADAS EN TIENDA (<span id="totalCount">0</span>)</h3>
@@ -182,24 +183,34 @@
                 </div>
             </div>
         </div>
+
+        <!-- SECCIÓN DE GESTIÓN DE BASES Y PRECIOS (DARE LAB - PERSONALIZAR) -->
+        <div class="panel-box" style="margin-top: 35px;">
+            <h3 style="font-size: 15px; color: var(--accent-color); margin-bottom: 8px; text-transform: uppercase;">⚙️ EDITAR BASES & GRAMAJES (DARE LAB PERSONALIZADO)</h3>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">Modifica aquí los nombres, descripciones y precios base que verán los clientes en la sección de Personalizar.</p>
+            <div id="adminCustomBasesList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
+                <!-- Se cargan dinámicamente las bases para editar -->
+            </div>
+        </div>
     </main>
-<!-- Conexión a Firebase Firestore -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyA4Md6MEuvVfNFPoB3lY_WkHa1VdhLNBL8",
-    authDomain: "dare-core-store.firebaseapp.com",
-    projectId: "dare-core-store",
-    storageBucket: "dare-core-store.firebasestorage.app",
-    messagingSenderId: "104855215716",
-    appId: "1:104855215716:web:e6ef3fba67a906bf904971"
-  };
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
-  window.db = firebase.firestore();
-</script>
+
+    <!-- Conexión a Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyA4Md6MEuvVfNFPoB3lY_WkHa1VdhLNBL8",
+        authDomain: "dare-core-store.firebaseapp.com",
+        projectId: "dare-core-store",
+        storageBucket: "dare-core-store.firebasestorage.app",
+        messagingSenderId: "104855215716",
+        appId: "1:104855215716:web:e6ef3fba67a906bf904971"
+      };
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      window.db = firebase.firestore();
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
