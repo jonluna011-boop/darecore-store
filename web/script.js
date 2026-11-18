@@ -1,5 +1,5 @@
 /* ==========================================
-   DARECORE - SCRIPT DEFINITIVO DE PRODUCCIÓN
+   DARECORE - SCRIPT DEFINITIVO DE BÚSQUEDA Y TIENDA
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
@@ -12,20 +12,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================
-   1. GESTIÓN DE PRODUCTOS Y TIENDA PÚBLICA
+   1. GESTIÓN UNIFICADA DE PRODUCTOS REALES
    ========================================== */
 function getStoredProducts() {
     const local = localStorage.getItem('darecore_products');
     if (local) {
         try { 
             const parsed = JSON.parse(local);
-            if (Array.isArray(parsed)) return parsed; // Respeta lo que tengas guardado, aunque esté vacío
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         } catch (e) { /* fallback */ }
     }
-    // Solo si nunca ha existido nada, carga un catálogo base mínimo
-    return [
-        { id: 1, category: 'inicio', tag: 'BEST SELLER', name: 'MONTE CARLO RACING #04', desc: 'Corte boxy, tela pesada y alta durabilidad.', price: 599, image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=600&q=80' }
-    ];
+    // Si no hay productos guardados, devuelve una lista vacía o inicial sin fotos de relleno ajenas
+    return [];
 }
 
 function initStore() {
@@ -42,7 +40,7 @@ function renderProducts(products) {
     
     grid.innerHTML = '';
     if (!products || products.length === 0) {
-        grid.innerHTML = '<p style="color: #666; grid-column: span 4; text-align: center; padding: 40px;">No hay prendas disponibles en este momento. Agrega algunas desde el panel de administración.</p>';
+        grid.innerHTML = '<p style="color: #888; grid-column: span 4; text-align: center; padding: 40px;">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
         return;
     }
 
@@ -54,10 +52,10 @@ function renderProducts(products) {
         card.innerHTML = `
             ${p.tag ? `<span class="product-tag">${p.tag}</span>` : ''}
             <div class="product-img" style="background-image: url('${p.image || ''}'); background-size: cover; background-position: center; height: 220px;"></div>
-            <div class="product-name" style="font-weight: 700; margin-top: 10px;">${p.name}</div>
+            <div class="product-name" style="font-weight: 700; margin-top: 10px; color: #111;">${p.name}</div>
             <div class="product-desc" style="font-size: 11px; color: #666; margin-bottom: 10px;">${p.desc}</div>
             <div class="product-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
-                <span class="price" style="font-weight: 800;">$${Number(p.price).toLocaleString('es-MX')} <small>MXN</small></span>
+                <span class="price" style="font-weight: 800; color: #111;">$${Number(p.price).toLocaleString('es-MX')} <small>MXN</small></span>
                 <button class="btn-add" onclick="event.stopPropagation(); openProductModal('${p.id}')">Ver</button>
             </div>
         `;
@@ -71,7 +69,7 @@ function renderProducts(products) {
 }
 
 /* ==========================================
-   2. BUSCADOR EN VIVO
+   2. BUSCADOR GLOBAL EN TIEMPO REAL
    ========================================== */
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
@@ -80,6 +78,12 @@ function setupSearch() {
     searchInput.addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase().trim();
         const products = getStoredProducts();
+        
+        if (!term) {
+            renderProducts(products);
+            return;
+        }
+
         const filtered = products.filter(p => 
             (p.name && p.name.toLowerCase().includes(term)) || 
             (p.desc && p.desc.toLowerCase().includes(term)) ||
