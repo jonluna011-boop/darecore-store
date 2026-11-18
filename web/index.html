@@ -24,7 +24,8 @@
                 <li><a href="personalizar.html">PERSONALIZAR</a></li>
             </ul>
             <div class="nav-actions">
-                <input type="text" class="search-box" placeholder="Buscar motorsport...">
+                <!-- BUSCADOR CON ID CORREGIDO PARA FUNCIONAR EN VIVO -->
+                <input type="text" id="searchInput" class="search-box" placeholder="Buscar motorsport...">
                 <button class="cart-btn">🛒 <span class="cart-badge">0</span></button>
             </div>
         </div>
@@ -46,51 +47,9 @@
         <h2 class="section-title">DROP ACTIVO: APEX & GYM</h2>
         <p class="section-subtitle">Diseños de alto rendimiento con estética underground.</p>
 
-        <div class="product-grid">
-            <!-- Producto 1 -->
-            <div class="product-card">
-                <span class="product-tag">BEST SELLER</span>
-                <div class="product-img">[ Imagen Mockup ]</div>
-                <div class="product-name">MONTE CARLO RACING #04</div>
-                <div class="product-desc">Corte boxy, al igual & pesada oblatura...</div>
-                <div class="product-footer">
-                    <span class="price">$599 <small>MXN</small></span>
-                    <button class="btn-add">Agregar</button>
-                </div>
-            </div>
-            <!-- Producto 2 -->
-            <div class="product-card">
-                <span class="product-tag">400G HEAVYWEIGHT</span>
-                <div class="product-img">[ Imagen Hoodie ]</div>
-                <div class="product-name">DARE CORE CLUB 400G</div>
-                <div class="product-desc">Sudadera de doble capa sin cordón...</div>
-                <div class="product-footer">
-                    <span class="price">$1,199 <small>MXN</small></span>
-                    <button class="btn-add">Agregar</button>
-                </div>
-            </div>
-            <!-- Producto 3 -->
-            <div class="product-card">
-                <span class="product-tag">GYM PERFORMANCE</span>
-                <div class="product-img">[ Imagen Tee ]</div>
-                <div class="product-name">GYM TEE 'DISCIPLINE & POWER'</div>
-                <div class="product-desc">Max tela / algodón con alta densidad...</div>
-                <div class="product-footer">
-                    <span class="price">$499 <small>MXN</small></span>
-                    <button class="btn-add">Agregar</button>
-                </div>
-            </div>
-            <!-- Producto 4 -->
-            <div class="product-card">
-                <span class="product-tag">EDICIÓN LIMITADA</span>
-                <div class="product-img">[ Imagen Jacket ]</div>
-                <div class="product-name">VARSITY JACKET 'LEÓN'</div>
-                <div class="product-desc">Cuerina de alta gramaje y alta protección...</div>
-                <div class="product-footer">
-                    <span class="price">$1,899 <small>MXN</small></span>
-                    <button class="btn-add">Agregar</button>
-                </div>
-            </div>
+        <!-- CONTENEDOR DONDE EL SCRIPT CARGA DINÁMICAMENTE LOS PRODUCTOS -->
+        <div id="productGrid" class="product-grid">
+            <!-- Los productos se inyectarán aquí automáticamente -->
         </div>
     </main>
 
@@ -136,23 +95,24 @@
             </div>
         </div>
     </footer>
-<!-- Conexión a Firebase Firestore -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyA4Md6MEuvVfNFPoB3lY_WkHa1VdhLNBL8",
-    authDomain: "dare-core-store.firebaseapp.com",
-    projectId: "dare-core-store",
-    storageBucket: "dare-core-store.firebasestorage.app",
-    messagingSenderId: "104855215716",
-    appId: "1:104855215716:web:e6ef3fba67a906bf904971"
-  };
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
-  window.db = firebase.firestore();
-</script>
+
+    <!-- Conexión a Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyA4Md6MEuvVfNFPoB3lY_WkHa1VdhLNBL8",
+        authDomain: "dare-core-store.firebaseapp.com",
+        projectId: "dare-core-store",
+        storageBucket: "dare-core-store.firebasestorage.app",
+        messagingSenderId: "104855215716",
+        appId: "1:104855215716:web:e6ef3fba67a906bf904971"
+      };
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      window.db = firebase.firestore();
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
