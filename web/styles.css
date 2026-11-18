@@ -489,28 +489,56 @@ footer {
   header {
     flex-wrap: wrap;
   }
+  
+  .nav-container {
+    flex-wrap: wrap;
+    padding: 10px 15px;
+  }
+
+  .logo {
+    font-size: 18px;
+    margin-right: auto;
+  }
+
+  .nav-actions {
+    gap: 10px;
+  }
+
+  /* Las categorías se deslizan en horizontal de forma fluida */
   header nav, .nav-links {
     display: flex;
     overflow-x: auto;
     white-space: nowrap;
     -webkit-overflow-scrolling: touch;
     width: 100%;
-    padding: 8px 10px;
+    padding: 6px 0;
+    gap: 15px;
+    order: 3;
   }
+  
   header nav::-webkit-scrollbar, 
   .nav-links::-webkit-scrollbar {
     display: none;
   }
+
+  /* BUSCADOR MÓVIL: En su propia línea, visible y sin estorbar las selecciones */
   header input[type="text"], 
   header .search-bar,
   #searchInput {
-    display: none; 
+    display: block !important;
+    width: 100% !important;
+    margin: 8px 0 4px 0 !important;
+    order: 2;
+    padding: 8px 12px;
+    font-size: 13px;
   }
+
   .product-modal-content {
     grid-template-columns: 1fr;
     max-height: 90vh;
     overflow-y: auto;
   }
+  
   .product-modal-img {
     height: 250px;
   }
