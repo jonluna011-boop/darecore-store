@@ -446,3 +446,24 @@ textarea.form-input {
   border-color: #ff3b1b !important;
   background-color: #ffffff !important;
 }
+/* Estilo limpio para la barra superior de anuncios (franja de arriba) */
+.top-bar, 
+div[class*="announcement"], 
+div[class*="top-bar"] {
+  background-color: #111111 !important; /* Negro elegante (puedes cambiarlo a #ff3b1b si la quieres naranja) */
+  color: #ffffff !important;
+}
+
+/* Estilo para la barra de búsqueda en computadoras */
+header input[type="text"], 
+.search-box, 
+#searchInput {
+  background-color: #f5f5f5 !important;
+  color: #111111 !important;
+  border: 1px solid #dcdcdc !important;
+}
+
+header input[type="text"]::placeholder, 
+.search-box::placeholder {
+  color: #666666 !important;
+}
