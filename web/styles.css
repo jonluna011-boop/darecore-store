@@ -38,10 +38,12 @@ header {
     z-index: 1000;
 }
 
-.top-bar {
-    background-color: #121212;
+.top-bar, 
+div[class*="announcement"], 
+div[class*="top-bar"] {
+    background-color: #ff3b1b !important;
+    color: #ffffff !important;
     font-size: 11px;
-    color: var(--text-secondary);
     text-align: center;
     padding: 6px;
     letter-spacing: 0.5px;
@@ -95,14 +97,21 @@ header {
     gap: 15px;
 }
 
-.search-box {
-    background: #181818;
-    border: 1px solid var(--border-color);
+header input[type="text"], 
+.search-box, 
+#searchInput {
+    background-color: #f5f5f5 !important;
+    color: #111111 !important;
+    border: 1px solid #dcdcdc !important;
     padding: 6px 12px;
     border-radius: 4px;
-    color: var(--text-secondary);
     font-size: 12px;
     width: 180px;
+}
+
+header input[type="text"]::placeholder, 
+.search-box::placeholder {
+    color: #666666 !important;
 }
 
 .cart-btn {
@@ -208,30 +217,40 @@ header {
     margin-bottom: 50px;
 }
 
-.product-card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
+.product-card, 
+.product-item, 
+.product-box {
+    background-color: #ffffff !important;
+    color: #111111 !important;
+    border: 1px solid #e0e0e0 !important;
     padding: 15px;
     display: flex;
     flex-direction: column;
     position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
 .product-tag {
     position: absolute;
     top: 10px;
     left: 10px;
-    background: #000000aa;
+    background: #000000cc;
     color: white;
     font-size: 10px;
     padding: 3px 6px;
     font-weight: 700;
+    z-index: 2;
 }
 
 .product-img {
     width: 100%;
     height: 220px;
-    background: #202020;
+    background-color: #f5f5f5 !important;
     margin-bottom: 12px;
     display: flex;
     align-items: center;
@@ -240,16 +259,24 @@ header {
     font-size: 12px;
 }
 
+.product-card img, 
+.product-card div, 
+.product-item div {
+    background-color: #f5f5f5 !important;
+}
+
 .product-name {
     font-size: 13px;
     font-weight: 700;
     margin-bottom: 5px;
+    background-color: transparent !important;
 }
 
 .product-desc {
     color: var(--text-secondary);
     font-size: 11px;
     margin-bottom: 15px;
+    background-color: transparent !important;
 }
 
 .product-footer {
@@ -257,6 +284,7 @@ header {
     justify-content: space-between;
     align-items: center;
     margin-top: auto;
+    background-color: transparent !important;
 }
 
 .price {
@@ -273,11 +301,69 @@ header {
     font-weight: 700;
     cursor: pointer;
     text-transform: uppercase;
+    transition: background 0.2s;
 }
 
 .btn-add:hover {
     background: var(--accent-color);
     color: white;
+}
+
+/* --- MODAL DE VISTA RÁPIDA DE PRENDA --- */
+.product-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    padding: 20px;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.product-modal-content {
+    background: #141414;
+    border: 1px solid #333333;
+    max-width: 820px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    padding: 30px;
+    position: relative;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+}
+
+.product-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.product-modal-close:hover {
+    color: var(--accent-color);
+}
+
+.product-modal-img {
+    width: 100%;
+    height: 360px;
+    object-fit: cover;
+    background: #0b0b0b;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 /* --- BANNER DE ESPECIFICACIONES --- */
@@ -315,6 +401,40 @@ header {
     text-transform: uppercase;
 }
 
+/* --- TARJETAS DE PERSONALIZACIÓN E INPUTS --- */
+.option-card, 
+.form-input, 
+select.form-input, 
+textarea.form-input {
+  background-color: #f5f5f5 !important;
+  color: #111111 !important;
+  border: 1px solid #dcdcdc !important;
+}
+
+.option-card strong, 
+.option-card span, 
+.option-card p {
+  color: #111111 !important;
+}
+
+.option-card.selected {
+  border-color: #ff3b1b !important;
+  background-color: #ffffff !important;
+}
+
+input, select, textarea {
+  background-color: #ffffff !important;
+  color: #111111 !important;
+  border: 1px solid #dcdcdc !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #111111 !important;
+}
+
 /* --- FOOTER --- */
 footer {
     border-top: 1px solid var(--border-color);
@@ -334,7 +454,7 @@ footer {
 }
 
 .footer-col h4 {
-    color: var(--text-primary);
+    color: #ffffff;
     margin-bottom: 15px;
     font-size: 13px;
     letter-spacing: 0.5px;
@@ -354,39 +474,17 @@ footer {
 }
 
 .footer-col ul li a:hover {
-    color: var(--text-primary);
+    color: #ffffff;
 }
 
+/* --- RESPONSIVE MÓVIL Y TABLET --- */
 @media(max-width: 900px) {
     .product-grid { grid-template-columns: repeat(2, 1fr); }
     .hero { grid-template-columns: 1fr; }
     .specs-banner { grid-template-columns: 1fr; text-align: center; }
     .specs-stat { border: none; text-align: center; padding: 0; }
 }
-/* Ajuste para deslizar el menú en celulares */
-@media (max-width: 768px) {
-  header {
-    flex-wrap: wrap;
-  }
-  
-  /* Permite deslizar las opciones del menú de lado suavemente en la pantalla chica */
-  header nav, .nav-links {
-    display: flex;
-    overflow-x: auto;
-    white-space: nowrap;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
-    padding: 8px 10px;
-  }
-  
-  /* Oculta la barra de scroll para que se vea estético pero funcione el deslizamiento */
-  header nav::-webkit-scrollbar, 
-  .nav-links::-webkit-scrollbar {
-    display: none;
-  }
-}
-/* Oculta o acomoda la barra de búsqueda en celulares para que no estorbe */
-/* Media query para móviles correctamente cerrado */
+
 @media (max-width: 768px) {
   header {
     flex-wrap: wrap;
@@ -408,82 +506,12 @@ footer {
   #searchInput {
     display: none; 
   }
-}
-/* Forzar tarjetas de productos generales a fondo claro */
-.product-card, 
-.product-item, 
-.product-box {
-  background-color: #ffffff !important;
-  color: #111111 !important;
-  border: 1px solid #e0e0e0 !important;
-}
-
-/* Forzar que el espacio de la imagen dentro de la tarjeta del producto sea claro */
-.product-card img, 
-.product-card div, 
-.product-item div {
-  background-color: #f5f5f5 !important;
-}
-/* Forzar tarjetas de selección y campos de texto a un tono claro elegante */
-.option-card, 
-.form-input, 
-select.form-input, 
-textarea.form-input {
-  background-color: #f5f5f5 !important;
-  color: #111111 !important;
-  border: 1px solid #dcdcdc !important;
-}
-
-/* Asegurar que los textos dentro de los cuadros se lean oscuros */
-.option-card strong, 
-.option-card span, 
-.option-card p {
-  color: #111111 !important;
-}
-
-/* Cuando el cliente seleccione una opción (borde naranja de la marca) */
-.option-card.selected {
-  border-color: #ff3b1b !important;
-  background-color: #ffffff !important;
-}
-/* Estilo limpio para la barra superior de anuncios (franja de arriba) */
-.top-bar, 
-div[class*="announcement"], 
-div[class*="top-bar"] {
-  background-color: #111111 !important; /* Negro elegante (puedes cambiarlo a #ff3b1b si la quieres naranja) */
-  color: #ffffff !important;
-}
-
-/* Estilo para la barra de búsqueda en computadoras */
-header input[type="text"], 
-.search-box, 
-#searchInput {
-  background-color: #f5f5f5 !important;
-  color: #111111 !important;
-  border: 1px solid #dcdcdc !important;
-}
-
-header input[type="text"]::placeholder, 
-.search-box::placeholder {
-  color: #666666 !important;
-}
-/* Franja superior de anuncios en color naranja icónico DARE CORE */
-.top-bar, 
-div[class*="announcement"], 
-div[class*="top-bar"] {
-  background-color: #ff3b1b !important;
-  color: #ffffff !important;
-}
-/* --- CORREGIR CAMPOS DE TEXTO E INPUTS EN MODO CLARO --- */
-input, select, textarea {
-  background-color: #ffffff !important;
-  color: #111111 !important;
-  border: 1px solid #dcdcdc !important;
-}
-
-input:-webkit-autofill,
-input:-webkit-autofill:hover, 
-input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0px 1000px #ffffff inset !important;
-  -webkit-text-fill-color: #111111 !important;
+  .product-modal-content {
+    grid-template-columns: 1fr;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .product-modal-img {
+    height: 250px;
+  }
 }
