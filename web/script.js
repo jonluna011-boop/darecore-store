@@ -111,26 +111,27 @@ function generateFolio(prefix) {
 
 function styleBrandLogoInHeader() {
     const isAdminPage = window.location.pathname.toLowerCase().includes('admin');
-    const candidates = document.querySelectorAll('header a, header div, header span, nav a, nav div, nav span, .navbar a, .brand, .logo, h1, h2, .admin-title');
+    const logoLinks = document.querySelectorAll('header a.logo, .navbar a.logo, .site-header a.logo, .logo');
 
-    candidates.forEach(el => {
-        if (el.dataset.darecoreStyled) return;
-        if (el.children.length > 0 && !el.querySelector('.brand-dare')) return;
+    logoLinks.forEach(logo => {
+        if (isAdminPage && logo.closest('.admin-header, [class*="admin"]')) return;
 
-        const rawText = (el.textContent || '').trim();
-
-        if (/^DARECORE\s+ADMIN$/i.test(rawText)) {
-            el.dataset.darecoreStyled = 'true';
-            el.innerHTML = `<span class="brand-dare">DARE</span><span class="brand-core-orange">CORE</span> <span style="color:#6b7280;font-weight:800;letter-spacing:1px;">ADMIN</span>`;
+        const spanInside = logo.querySelector('span');
+        if (spanInside) {
+            const firstTextNode = Array.from(logo.childNodes).find(
+                n => n.nodeType === Node.TEXT_NODE && n.textContent.trim().length > 0
+            );
+            const dareText = firstTextNode ? firstTextNode.textContent.trim() : 'DARE';
+            const coreText = spanInside.textContent.trim() || 'CORE';
+            logo.innerHTML = `<span class="brand-dare" style="color:#0b0b0e !important;font-weight:900;">${dareText}</span><span class="brand-core-orange" style="color:#ff5500 !important;font-weight:900;">${coreText}</span>`;
+            logo.dataset.darecoreStyled = 'true';
             return;
         }
 
+        const rawText = (logo.textContent || '').trim();
         if (/^DARECORE$/i.test(rawText)) {
-            el.dataset.darecoreStyled = 'true';
-            el.innerHTML = `<span class="brand-dare">DARE</span><span class="brand-core-red">CORE</span>`;
-            if (!isAdminPage && el.closest('header, nav, .navbar, .site-header')) {
-                el.dataset.darecoreLogo = 'left';
-            }
+            logo.innerHTML = `<span class="brand-dare" style="color:#0b0b0e !important;font-weight:900;">DARE</span><span class="brand-core-orange" style="color:#ff5500 !important;font-weight:900;">CORE</span>`;
+            logo.dataset.darecoreStyled = 'true';
         }
     });
 }
@@ -141,6 +142,8 @@ function layoutPublicHeaderZones() {
     const header = document.querySelector('header');
     const navContainer = document.querySelector('header .nav-container') || header;
     if (!navContainer) return;
+
+    styleBrandLogoInHeader();
 
     if (window.innerWidth > 1024) {
         navContainer.style.setProperty('display', 'grid', 'important');
@@ -159,6 +162,10 @@ function layoutPublicHeaderZones() {
         if (logo) {
             logo.style.setProperty('grid-column', '1', 'important');
             logo.style.setProperty('justify-self', 'start', 'important');
+            logo.style.setProperty('align-self', 'center', 'important');
+            logo.style.setProperty('display', 'inline-flex', 'important');
+            logo.style.setProperty('align-items', 'center', 'important');
+            logo.style.setProperty('line-height', '1', 'important');
             logo.style.setProperty('margin', '0', 'important');
             logo.style.setProperty('white-space', 'nowrap', 'important');
         }
@@ -166,6 +173,7 @@ function layoutPublicHeaderZones() {
         if (navLinks) {
             navLinks.style.setProperty('grid-column', '2', 'important');
             navLinks.style.setProperty('justify-self', 'center', 'important');
+            navLinks.style.setProperty('align-self', 'center', 'important');
             navLinks.style.setProperty('display', 'flex', 'important');
             navLinks.style.setProperty('flex-direction', 'row', 'important');
             navLinks.style.setProperty('align-items', 'center', 'important');
@@ -191,6 +199,7 @@ function layoutPublicHeaderZones() {
         if (navActions) {
             navActions.style.setProperty('grid-column', '3', 'important');
             navActions.style.setProperty('justify-self', 'end', 'important');
+            navActions.style.setProperty('align-self', 'center', 'important');
             navActions.style.setProperty('display', 'flex', 'important');
             navActions.style.setProperty('flex-direction', 'row', 'important');
             navActions.style.setProperty('align-items', 'center', 'important');
