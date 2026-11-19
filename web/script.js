@@ -538,6 +538,7 @@ function initAdminPanel() {
         loadAdminCustomBases();
         loadAdminUsers();
         loadAdminDareLabOrders();
+        loadAdminOrders();
     }
 
     loginForm.addEventListener('submit', (e) => {
@@ -555,6 +556,7 @@ function initAdminPanel() {
             loadAdminCustomBases();
             loadAdminUsers();
             loadAdminDareLabOrders();
+            loadAdminOrders();
         } else {
             if (errorMsg) errorMsg.style.display = 'block';
         }
@@ -847,4 +849,61 @@ function deleteDareLabOrder(docId) {
     window.db.collection('darelab_orders').doc(docId).delete().then(() => {
         loadAdminDareLabOrders();
     }).catch(err => console.error("Error eliminando solicitud:", err));
+}
+
+function loadAdminOrders() {
+    const container = document.getElementById('adminOrdersList');
+    const countSpan = document.getElementById('ordersCount');
+    if (!container || !window.db) return;
+
+    window.db.collection('orders').orderBy('createdAt', 'desc').get().then((snapshot) => {
+        if (countSpan) countSpan.innerText = snapshot.size;
+        container.innerHTML = '';
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color: #888; font-size: 12px;">Aún no hay compras registradas desde el carrito.</p>';
+            return;
+        }
+
+        snapshot.forEach((doc) => {
+            const order = doc.data();
+            const itemsList = Array.isArray(order.items) && order.items.length > 0
+                ? order.items.map(item => `
+                    <li style="margin-bottom: 4px; color: #ddd;">
+                        <strong>${item.qty}x</strong> ${item.name} — <span style="color: #aaa;">$${Number(item.price).toLocaleString('es-MX')} MXN c/u</span>
+                    </li>
+                  `).join('')
+                : '<li style="color: #888;">Sin detalle de prendas</li>';
+
+            const dateText = order.createdAt ? new Date(order.createdAt).toLocaleString('es-MX') : '';
+
+            const card = document.createElement('div');
+            card.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px;";
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <span style="color: #ff3b1b; font-size: 12px; font-weight: 800;">#${order.purchaseNumber || doc.id}</span>
+                    <span style="color: #666; font-size: 10px;">${dateText}</span>
+                </div>
+                <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName || 'Invitado'} (${order.userEmail || 'Sin correo'})</div>
+                <div style="background: #141414; border: 1px solid #222; padding: 10px; border-radius: 4px;">
+                    <div style="color: #aaa; font-size: 11px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase;">Prendas solicitadas:</div>
+                    <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px;">
+                        ${itemsList}
+                    </ul>
+                </div>
+                <div style="color: #fff; font-size: 13px; font-weight: 800; margin-top: 2px;">
+                    Total: <span style="color: #ff3b1b;">$${Number(order.total || 0).toLocaleString('es-MX')} MXN</span>
+                </div>
+                <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="deleteAdminOrder('${doc.id}')">Eliminar Compra</button>
+            `;
+            container.appendChild(card);
+        });
+    }).catch(err => console.error("Error cargando compras del carrito:", err));
+}
+
+function deleteAdminOrder(docId) {
+    if (!confirm('¿Eliminar este registro de compra?')) return;
+    window.db.collection('orders').doc(docId).delete().then(() => {
+        loadAdminOrders();
+    }).catch(err => console.error("Error eliminando compra:", err));
 }
