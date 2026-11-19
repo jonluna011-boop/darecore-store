@@ -15,8 +15,17 @@ const ORDER_STATUSES = [
     'Enviado'
 ];
 
-// Opcional: Pega aquí tu Webhook (Make / Zapier / Google Apps Script) para envío real de correos
+// Configuración opcional para envío real de correos desde el navegador:
+// Opción A: Webhook (Make, Zapier, n8n o Google Apps Script)
 const EMAIL_WEBHOOK_URL = '';
+
+// Opción B: EmailJS (https://www.emailjs.com/)
+const EMAILJS_CONFIG = {
+    publicKey: 'oPqh5dU4hbXT_uZng',
+    serviceId: 'service_a3uxsit',
+    newProductTemplateId: 'template_gxvi2ue',
+    abandonedCartTemplateId: 'template_gxvi2ue'
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     updateTopAnnouncementBanner();
@@ -34,15 +43,31 @@ function generateFolio(prefix) {
 }
 
 /* ==========================================
-   FRANJA SUPERIOR Y NOTIFICACIÓN FLOTANTE VERDE
+   FRANJA SUPERIOR, TOAST VERDE Y MODAL CONFIRMACIÓN
    ========================================== */
 function updateTopAnnouncementBanner() {
-    const candidates = document.querySelectorAll('.top-banner, .announcement-bar, .promo-bar, header div, body > div');
-    candidates.forEach(el => {
+    const targetText = 'NUEVA COLECCIÓN DISPONIBLE • PERSONALIZA TU PRENDA IDEAL';
+    const allElements = document.querySelectorAll('header *, nav *, section *, div *, p, span, a');
+
+    allElements.forEach(el => {
         if (el.children.length === 0 && el.textContent) {
-            const txt = el.textContent.toUpperCase();
-            if (txt.includes('EDICIÓN LIMITADA') || txt.includes('DARE LAB CUSTOM STUDIO')) {
-                el.textContent = 'NUEVA COLECCIÓN DISPONIBLE • PERSONALIZA TU PRENDA IDEAL';
+            const raw = el.textContent.trim();
+            const upper = raw.toUpperCase();
+            const isPromoStrip =
+                upper.includes('EDICIÓN LIMITADA') ||
+                upper.includes('EDICION LIMITADA') ||
+                upper.includes('HECHO EN MÉXICO') ||
+                upper.includes('HECHO EN MEXICO') ||
+                upper.includes('NUEVA COLECCIÓN DISPONIBLE') ||
+                upper.includes('NUEVA COLECCION DISPONIBLE') ||
+                upper.includes('DARE LAB CUSTOM STUDIO');
+
+            if (isPromoStrip) {
+                el.textContent = targetText;
+                const parent = el.parentElement;
+                if (parent && parent.children.length === 1 && raw.length > 15) {
+                    el.textContent = targetText;
+                }
             }
         }
     });
@@ -88,6 +113,51 @@ function showFloatingToast(message) {
         toast.style.opacity = '0';
         toast.style.transform = 'translate(-50%, -50%) scale(0.95)';
     }, 2400);
+}
+
+function showConfirmModal(message) {
+    return new Promise((resolve) => {
+        let overlay = document.getElementById('darecoreConfirmModal');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'darecoreConfirmModal';
+            overlay.style.cssText = [
+                'display: none',
+                'position: fixed',
+                'inset: 0',
+                'background: rgba(0, 0, 0, 0.72)',
+                'z-index: 100000',
+                'justify-content: center',
+                'align-items: center',
+                'padding: 20px'
+            ].join(';');
+            document.body.appendChild(overlay);
+        }
+
+        overlay.innerHTML = `
+            <div style="background: #0d0d0d; color: #ffffff; border: 1px solid #262626; border-radius: 10px; padding: 24px; max-width: 400px; width: 100%; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75); text-align: center;">
+                <div style="font-size: 11px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">DARECORE</div>
+                <div style="font-size: 15px; font-weight: 700; color: #ffffff; line-height: 1.45; margin-bottom: 22px;">${message}</div>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button id="darecoreConfirmAccept" type="button" style="flex: 1; background: #16a34a; color: #ffffff; border: none; padding: 11px 16px; border-radius: 6px; font-size: 13px; font-weight: 800; cursor: pointer; text-transform: uppercase;">Aceptar</button>
+                    <button id="darecoreConfirmCancel" type="button" style="flex: 1; background: #dc2626; color: #ffffff; border: none; padding: 11px 16px; border-radius: 6px; font-size: 13px; font-weight: 800; cursor: pointer; text-transform: uppercase;">Cancelar</button>
+                </div>
+            </div>
+        `;
+
+        overlay.style.display = 'flex';
+
+        const cleanup = (result) => {
+            overlay.style.display = 'none';
+            resolve(result);
+        };
+
+        document.getElementById('darecoreConfirmAccept').onclick = () => cleanup(true);
+        document.getElementById('darecoreConfirmCancel').onclick = () => cleanup(false);
+        overlay.onclick = (e) => {
+            if (e.target === overlay) cleanup(false);
+        };
+    });
 }
 
 function getStatusBadgeStyle(status) {
@@ -356,7 +426,6 @@ function setupDareLab() {
             const initialStatus = 'Pago pendiente';
             const createdAt = new Date().toISOString();
 
-            // Pre-abrir pestaña de WhatsApp en el clic síncrono para que el navegador no la bloquee
             const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber}`;
             const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
             const waWindow = window.open('about:blank', '_blank');
@@ -402,7 +471,6 @@ function setupDareLab() {
                 createdAt: createdAt
             });
 
-            // Limpiar selección actual en Dare Lab para permitir solicitar otro personalizado
             resetDareLabForm();
             showFloatingToast(`Solicitud #${orderNumber} agregada a Pedido pendiente`);
 
@@ -693,11 +761,41 @@ async function triggerAutomatedEmail(payload) {
     }
 
     if (EMAIL_WEBHOOK_URL) {
-        fetch(EMAIL_WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).catch(err => console.log("Webhook de correo no disponible:", err));
+        try {
+            await fetch(EMAIL_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        } catch (err) {
+            console.log("Webhook de correo no disponible:", err);
+        }
+    }
+
+    const templateId = payload.type === 'abandoned_cart_24h'
+        ? EMAILJS_CONFIG.abandonedCartTemplateId
+        : EMAILJS_CONFIG.newProductTemplateId;
+
+    if (EMAILJS_CONFIG.publicKey && EMAILJS_CONFIG.serviceId && templateId && Array.isArray(payload.recipients)) {
+        await Promise.all(payload.recipients.map(email =>
+            fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    lib_version: '4.4.1',
+                    user_id: EMAILJS_CONFIG.publicKey,
+                    service_id: EMAILJS_CONFIG.serviceId,
+                    template_id: templateId,
+                    template_params: {
+                        to_email: email,
+                        subject: payload.subject,
+                        message: payload.message,
+                        product_name: payload.productName || '',
+                        product_price: payload.productPrice || ''
+                    }
+                })
+            }).catch(() => {})
+        ));
     }
 }
 
@@ -910,7 +1008,6 @@ async function checkoutCart() {
     const initialStatus = 'Pago pendiente';
     const createdAt = new Date().toISOString();
 
-    // Abrir WhatsApp de inmediato dentro del evento de clic para evitar bloqueos del navegador
     const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${purchaseNumber}`;
     const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
     const waWindow = window.open('about:blank', '_blank');
@@ -1252,25 +1349,29 @@ function loadAdminProducts() {
     });
 }
 
-function notifyUsersAboutNewProduct(product) {
+async function notifyUsersAboutNewProduct(product) {
     if (!window.db) return;
-    window.db.collection('users').get().then(snapshot => {
+    try {
+        const snapshot = await window.db.collection('users').get();
         const emails = [];
         snapshot.forEach(doc => {
             const u = doc.data();
-            if (u.email) emails.push(u.email);
+            if (u.email && !emails.includes(u.email)) {
+                emails.push(u.email);
+            }
         });
-        if (emails.length > 0) {
-            triggerAutomatedEmail({
-                type: 'new_product_published',
-                recipients: emails,
-                productName: product.name,
-                productPrice: product.price,
-                subject: `Nuevo drop en DareCore: ${product.name}`,
-                message: `Acabamos de publicar "${product.name}" ($${Number(product.price).toLocaleString('es-MX')} MXN) en DareCore Store. Entra ahora antes de que se agote.`
-            });
-        }
-    }).catch(() => {});
+
+        await triggerAutomatedEmail({
+            type: 'new_product_published',
+            recipients: emails,
+            productName: product.name,
+            productPrice: product.price,
+            subject: `Nuevo drop en DareCore: ${product.name}`,
+            message: `Acabamos de publicar "${product.name}" ($${Number(product.price).toLocaleString('es-MX')} MXN) en DareCore Store. Entra ahora antes de que se agote.`
+        });
+    } catch (err) {
+        console.error("Error enviando correos de nuevo producto:", err);
+    }
 }
 
 function handleProductSubmit(e) {
@@ -1378,8 +1479,9 @@ function editProduct(productId) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function deleteProduct(productId) {
-    if (!confirm('¿Estás seguro de eliminar esta prenda?')) return;
+async function deleteProduct(productId) {
+    const confirmed = await showConfirmModal('¿Estás seguro de eliminar esta prenda?');
+    if (!confirmed) return;
     
     let products = getStoredProducts();
     const target = products.find(p => p.id == productId || p.firestoreId == productId);
@@ -1542,7 +1644,8 @@ function loadAdminDareLabOrders() {
 }
 
 async function deleteDareLabOrder(docId) {
-    if (!confirm('¿Mover esta solicitud a Pedidos Entregados?')) return;
+    const confirmed = await showConfirmModal('¿Mover esta solicitud a Pedidos Entregados?');
+    if (!confirmed) return;
     await archiveOrderAsDelivered('darelab_orders', docId);
     showFloatingToast('Pedido movido a Pedidos Entregados');
     loadAdminDareLabOrders();
@@ -1619,7 +1722,8 @@ function loadAdminOrders() {
 }
 
 async function deleteAdminOrder(docId) {
-    if (!confirm('¿Mover esta compra a Pedidos Entregados?')) return;
+    const confirmed = await showConfirmModal('¿Mover esta compra a Pedidos Entregados?');
+    if (!confirmed) return;
     await archiveOrderAsDelivered('orders', docId);
     showFloatingToast('Pedido movido a Pedidos Entregados');
     loadAdminOrders();
