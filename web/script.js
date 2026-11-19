@@ -75,39 +75,59 @@ function generateFolio(prefix) {
 }
 
 function styleBrandLogoInHeader() {
-    const candidates = document.querySelectorAll('header a, nav a, .navbar a, .brand, .logo');
+    const candidates = document.querySelectorAll('header a, nav a, .navbar a, .brand, .logo, h1, h2, .admin-title');
     candidates.forEach(el => {
         if (el.dataset.darecoreStyled) return;
-        const text = (el.textContent || '').trim();
-        if (/^DARECORE$/i.test(text)) {
+        const rawText = (el.textContent || '').trim();
+
+        if (/^DARECORE\s+ADMIN$/i.test(rawText)) {
             el.dataset.darecoreStyled = 'true';
-            el.innerHTML = `<span style="color:#ffffff;font-weight:900;letter-spacing:1px;">DARE</span><span style="color:#ff2a00;font-weight:900;letter-spacing:1px;">CORE</span>`;
+            el.innerHTML = `<span class="brand-dare">DARE</span><span class="brand-core-orange">CORE</span> <span style="color:#6b7280;font-weight:800;letter-spacing:1px;">ADMIN</span>`;
+            return;
+        }
+
+        if (/^DARECORE$/i.test(rawText)) {
+            el.dataset.darecoreStyled = 'true';
+            el.innerHTML = `<span class="brand-dare">DARE</span><span class="brand-core-red">CORE</span>`;
         }
     });
 }
 
 function cleanExtraHeroBlocks() {
-    const phrasesToHide = [
-        'SPOTLIGHT / DRAG RACE CLUB',
-        'MONTE CARLO RACING #04',
-        'DROP ACTIVO: APEX & GYM',
-        'EXPLORAR COLECCIÓN',
-        'EXPLORAR COLECCION'
-    ];
-
-    document.querySelectorAll('section, div, button, a, p, h1, h2, h3, span').forEach(el => {
-        if (el.id === 'darecoreHeroWrapper' || el.closest('#darecoreHeroWrapper')) return;
-        const txt = (el.textContent || '').trim().toUpperCase();
-        if (!txt) return;
-
-        const matchesExtra = phrasesToHide.some(p => txt === p || (el.children.length === 0 && txt.includes(p)));
-        if (matchesExtra) {
-            const box = el.tagName === 'BUTTON' || el.tagName === 'A'
-                ? el
-                : (el.closest('section') && el.closest('section').innerText.length < 260 ? el.closest('section') : el);
-            box.style.display = 'none';
+    const descTarget = 'NUESTRAS PIEZAS DE HOMBRE SON CONSTRUIDAS CON HILO OPEN-END PEINADO.';
+    document.querySelectorAll('p, span, div').forEach(el => {
+        if (el.children.length === 0) {
+            const txt = (el.textContent || '').trim().toUpperCase();
+            if (txt.includes('CONSTRUIDAS CON HILO OPEN-END PEINADO') || txt === descTarget) {
+                el.style.display = 'none';
+            }
         }
     });
+
+    const headings = Array.from(document.querySelectorAll('h2, h3, h4'));
+    const columnHeads = headings.filter(h => {
+        const t = (h.textContent || '').trim().toUpperCase();
+        return t.includes('COLECCIONES') || t.includes('AYUDA') || t.includes('LEGAL');
+    });
+
+    if (columnHeads.length >= 2) {
+        const boxes = columnHeads.map(h => h.closest('div, section, article') || h.parentElement).filter(Boolean);
+        const uniqueBoxes = Array.from(new Set(boxes));
+
+        if (uniqueBoxes.length >= 2) {
+            const parent = uniqueBoxes[0].parentElement;
+            if (parent && !parent.classList.contains('darecore-cinema-columns-grid')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'darecore-cinema-columns-grid';
+                parent.insertBefore(wrapper, uniqueBoxes[0]);
+
+                uniqueBoxes.forEach(box => {
+                    box.classList.add('darecore-cinema-column-card');
+                    wrapper.appendChild(box);
+                });
+            }
+        }
+    }
 }
 
 /* ==========================================
@@ -435,7 +455,7 @@ function renderProducts(products) {
 
     grid.innerHTML = '';
     if (!products || products.length === 0) {
-        grid.innerHTML = '<p style="color: #9ca3af; grid-column: 1/-1; text-align: center; padding: 48px; background: #111115; border-radius: 24px; border: 1px solid rgba(255,255,255,0.08);">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
+        grid.innerHTML = '<p style="color: #71717a; grid-column: 1/-1; text-align: center; padding: 48px; background: #ffffff; border-radius: 24px; border: 1.5px solid rgba(0,0,0,0.08);">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
         return;
     }
 
@@ -443,8 +463,6 @@ function renderProducts(products) {
         const theme = CINEMA_CARD_THEMES[idx % CINEMA_CARD_THEMES.length];
         const card = document.createElement('div');
         card.className = 'product-card';
-        card.style.setProperty('--card-active-bg', theme.bg);
-        card.style.setProperty('--card-active-glow', theme.glow);
         card.style.setProperty('--dot-color', theme.dot);
 
         card.innerHTML = `
@@ -514,15 +532,15 @@ function openProductModal(productId) {
     }
 
     modalOverlay.innerHTML = `
-        <div class="product-modal-content" style="background:#121217; border:1px solid rgba(255,255,255,0.12); padding:30px; border-radius:28px; max-width:680px; width:100%; position:relative; display:grid; grid-template-columns: 1fr 1fr; gap:24px; box-shadow:0 28px 70px rgba(0,0,0,0.85);">
+        <div class="product-modal-content" style="background:#121217; border:1.5px solid #ff2a00; padding:30px; border-radius:28px; max-width:680px; width:100%; position:relative; display:grid; grid-template-columns: 1fr 1fr; gap:24px; box-shadow:0 28px 70px rgba(0,0,0,0.85);">
             <button onclick="closeProductModal()" class="product-modal-close" style="position:absolute; top:14px; right:18px; background:rgba(255,255,255,0.08); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:20px; cursor:pointer;">&times;</button>
             <div style="background-image: url('${product.image}'); background-size: cover; background-position: center; height:300px; border-radius:20px; background-color:#1e1e24;"></div>
             <div style="display: flex; flex-direction: column; justify-content: center; color: #ffffff;">
-                <span style="color: #ff3b1b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing:1px; margin-bottom: 6px;">${product.tag || 'DARECORE'}</span>
+                <span style="color: #ff2a00; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing:1px; margin-bottom: 6px;">${product.tag || 'DARECORE'}</span>
                 <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
-                <p style="color: #9ca3af; font-size: 13px; margin-bottom: 18px; line-height: 1.5;">${product.desc}</p>
+                <p style="color: #a1a1aa; font-size: 13px; margin-bottom: 18px; line-height: 1.5;">${product.desc}</p>
                 <div style="font-size: 20px; font-weight: 900; color: #ffffff; margin-bottom: 22px;">$${Number(product.price).toLocaleString('es-MX')} MXN</div>
-                <button onclick="addToCart('${product.id || product.firestoreId}'); closeProductModal();" style="background:#ff3b1b; color:#fff; border:none; padding:14px 20px; border-radius:999px; font-weight:800; cursor:pointer; text-transform: uppercase; letter-spacing:0.5px;">Agregar al Carrito</button>
+                <button onclick="addToCart('${product.id || product.firestoreId}'); closeProductModal();" style="background:#ff2a00; color:#fff; border:none; padding:14px 20px; border-radius:999px; font-weight:800; cursor:pointer; text-transform: uppercase; letter-spacing:0.5px;">Agregar al Carrito</button>
             </div>
         </div>
     `;
@@ -707,24 +725,22 @@ function renderCustomBasesPublic() {
         const isSelected = index === selectedCustomBaseIndex;
         const card = document.createElement('div');
         card.className = `option-card ${isSelected ? 'selected' : ''}`;
-        card.style.cssText = `border: 2px solid ${isSelected ? '#ff3b1b' : 'rgba(255,255,255,0.1)'}; padding: 18px; cursor: pointer; transition: all 0.25s ease; border-radius: 22px; background: ${isSelected ? '#1f1415' : '#16161b'};`;
+        card.style.cssText = `border: 1.5px solid ${isSelected ? '#ff2a00' : 'rgba(0,0,0,0.12)'}; padding: 18px; cursor: pointer; transition: all 0.22s ease; border-radius: 22px; background: #ffffff;`;
 
         card.innerHTML = `
-            <div style="font-weight: 800; font-size: 14px; color: #ffffff; margin-bottom: 5px;">${base.name}</div>
-            <div style="font-size: 12px; color: #9ca3af; margin-bottom: 10px;">${base.desc}</div>
-            <div style="font-weight: 900; font-size: 15px; color: #ff3b1b;">$${Number(base.price).toLocaleString('es-MX')} MXN</div>
+            <div style="font-weight: 800; font-size: 14px; color: #0b0b0e; margin-bottom: 5px;">${base.name}</div>
+            <div style="font-size: 12px; color: #52525b; margin-bottom: 10px;">${base.desc}</div>
+            <div style="font-weight: 900; font-size: 15px; color: #ff2a00;">$${Number(base.price).toLocaleString('es-MX')} MXN</div>
         `;
 
         card.addEventListener('click', () => {
             selectedCustomBaseIndex = index;
             document.querySelectorAll('#customBasesContainer .option-card').forEach(c => {
                 c.classList.remove('selected');
-                c.style.borderColor = 'rgba(255,255,255,0.1)';
-                c.style.background = '#16161b';
+                c.style.borderColor = 'rgba(0,0,0,0.12)';
             });
             card.classList.add('selected');
-            card.style.borderColor = '#ff3b1b';
-            card.style.background = '#1f1415';
+            card.style.borderColor = '#ff2a00';
             updateCustomSummary();
         });
 
@@ -1096,11 +1112,11 @@ async function openCartModal(tab = activeCartTab) {
     const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty || 1)), 0);
 
     const cartTabStyle = activeCartTab === 'cart'
-        ? 'background:#ff3b1b; color:#fff; border:1px solid #ff3b1b;'
+        ? 'background:#ff2a00; color:#fff; border:1px solid #ff2a00;'
         : 'background:#1a1a20; color:#bbb; border:1px solid rgba(255,255,255,0.1);';
 
     const pendingTabStyle = activeCartTab === 'pending'
-        ? 'background:#ff3b1b; color:#fff; border:1px solid #ff3b1b;'
+        ? 'background:#ff2a00; color:#fff; border:1px solid #ff2a00;'
         : 'background:#1a1a20; color:#bbb; border:1px solid rgba(255,255,255,0.1);';
 
     let bodyContentHtml = '';
@@ -1124,7 +1140,7 @@ async function openCartModal(tab = activeCartTab) {
                                 <button onclick="changeCartQty(${idx}, 1)" style="background:#26262e; color:#fff; border:1px solid rgba(255,255,255,0.14); width:26px; height:26px; cursor:pointer; font-weight:800; border-radius:50%;" title="Agregar otra pieza igual">+</button>
                             </div>
                         </div>
-                        <button onclick="removeFromCart(${idx})" style="background:none; border:none; color:#ff3b1b; cursor:pointer; font-size:20px; padding:0 6px;" title="Quitar prenda">&times;</button>
+                        <button onclick="removeFromCart(${idx})" style="background:none; border:none; color:#ff2a00; cursor:pointer; font-size:20px; padding:0 6px;" title="Quitar prenda">&times;</button>
                     </div>
                 `;
             }).join('');
@@ -1158,7 +1174,7 @@ async function openCartModal(tab = activeCartTab) {
                         <div style="color:#bbb; font-size:11px; margin-bottom:6px; ${strikeStyle}">${ord.summary || ord.typeLabel || 'Pedido DARECORE'}</div>
                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#888; ${strikeStyle}">
                             <span>${ord.typeLabel || 'Tienda'}</span>
-                            <strong style="color:#ff3b1b; font-size:12px;">$${Number(ord.total || 0).toLocaleString('es-MX')} MXN</strong>
+                            <strong style="color:#ff2a00; font-size:12px;">$${Number(ord.total || 0).toLocaleString('es-MX')} MXN</strong>
                         </div>
                         ${deliveredBannerHtml}
                     </div>
@@ -1171,15 +1187,15 @@ async function openCartModal(tab = activeCartTab) {
         ? `
             <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:15px; margin-bottom:15px; display:flex; justify-content:space-between; color:#fff; font-weight:800; font-size:16px;">
                 <span>Subtotal a Pagar:</span>
-                <span style="color:#ff3b1b;">$${subtotal.toLocaleString('es-MX')} MXN</span>
+                <span style="color:#ff2a00;">$${subtotal.toLocaleString('es-MX')} MXN</span>
             </div>
-            <button onclick="checkoutCart()" style="background:#ff3b1b; color:#fff; border:none; border-radius:999px; width:100%; padding:13px; font-weight:800; cursor:pointer; text-transform:uppercase; margin-bottom:10px;">Proceder al Pago</button>
+            <button onclick="checkoutCart()" style="background:#ff2a00; color:#fff; border:none; border-radius:999px; width:100%; padding:13px; font-weight:800; cursor:pointer; text-transform:uppercase; margin-bottom:10px;">Proceder al Pago</button>
             <button onclick="openGoogleAuthModal()" style="background:#fff; color:#111; border:none; border-radius:999px; width:100%; padding:11px; font-weight:800; cursor:pointer; font-size:12px;">Iniciar Sesión con Google</button>
         `
         : `
             <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:12px; display:flex; flex-direction:column; gap:8px;">
                 <button onclick="openCartModal('pending')" style="background:#222228; color:#fff; border:1px solid rgba(255,255,255,0.12); border-radius:999px; width:100%; padding:11px; font-weight:800; cursor:pointer; font-size:12px;">Actualizar Estatus</button>
-                <button onclick="switchCartTab('cart')" style="background:#ff3b1b; color:#fff; border:none; border-radius:999px; width:100%; padding:12px; font-weight:800; cursor:pointer; font-size:12px; text-transform:uppercase;">Seguir Comprando</button>
+                <button onclick="switchCartTab('cart')" style="background:#ff2a00; color:#fff; border:none; border-radius:999px; width:100%; padding:12px; font-weight:800; cursor:pointer; font-size:12px; text-transform:uppercase;">Seguir Comprando</button>
             </div>
         `;
 
@@ -1395,12 +1411,12 @@ function ensureDeliveredOrdersSection() {
 
     const section = document.createElement('div');
     section.className = 'admin-card';
-    section.style.cssText = 'margin-top: 24px; background: #111115; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 24px;';
+    section.style.cssText = 'margin-top: 24px; background: #ffffff; border: 1.5px solid rgba(0,0,0,0.1); border-radius: 24px; padding: 24px;';
     section.innerHTML = `
-        <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 900; color: #4ade80; text-transform: uppercase;">
+        <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 900; color: #16a34a; text-transform: uppercase;">
             PEDIDOS ENTREGADOS (<span id="deliveredCount">0</span>)
         </h3>
-        <p style="margin: 0 0 16px 0; font-size: 12px; color: #9ca3af;">
+        <p style="margin: 0 0 16px 0; font-size: 12px; color: #52525b;">
             Historial de compras y pedidos Dare Lab entregados. Haz clic en cualquier tarjeta para ver especificaciones completas.
         </p>
         <div id="adminDeliveredList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;"></div>
@@ -1427,7 +1443,7 @@ function openAdminOrderDetailModal(orderData) {
             ${orderData.items.map(i => `
                 <li style="background:#18181e; border:1px solid rgba(255,255,255,0.08); padding:10px 14px; border-radius:16px; display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#fff; font-size:13px;"><strong>${i.qty}x</strong> ${i.name}</span>
-                    <span style="color:#ff3b1b; font-weight:800; font-size:13px;">$${(Number(i.price) * Number(i.qty || 1)).toLocaleString('es-MX')} MXN</span>
+                    <span style="color:#ff2a00; font-weight:800; font-size:13px;">$${(Number(i.price) * Number(i.qty || 1)).toLocaleString('es-MX')} MXN</span>
                 </li>
             `).join('')}
            </ul>`
@@ -1447,9 +1463,9 @@ function openAdminOrderDetailModal(orderData) {
         : '';
 
     modal.innerHTML = `
-        <div style="background:#111115; border:1px solid rgba(255,255,255,0.12); border-radius:28px; max-width:600px; width:100%; max-height:90vh; overflow-y:auto; padding:28px; position:relative; color:#fff;">
+        <div style="background:#111115; border:1.5px solid #ff2a00; border-radius:28px; max-width:600px; width:100%; max-height:90vh; overflow-y:auto; padding:28px; position:relative; color:#fff;">
             <button onclick="document.getElementById('adminOrderDetailModal').style.display='none'" style="position:absolute; top:16px; right:18px; background:rgba(255,255,255,0.08); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:20px; cursor:pointer;">&times;</button>
-            <div style="font-size:11px; font-weight:800; color:#ff3b1b; text-transform:uppercase; margin-bottom:4px;">${orderData.typeLabel || 'PEDIDO DARECORE'}</div>
+            <div style="font-size:11px; font-weight:800; color:#ff2a00; text-transform:uppercase; margin-bottom:4px;">${orderData.typeLabel || 'PEDIDO DARECORE'}</div>
             <h2 style="margin:0 0 14px 0; font-size:22px; font-weight:900;">#${orderData.folio}</h2>
 
             ${imageBlock}
@@ -1466,7 +1482,7 @@ function openAdminOrderDetailModal(orderData) {
 
             <div style="margin-top:18px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-size:14px; color:#bbb; font-weight:700;">Total Cobrado:</span>
-                <span style="font-size:22px; color:#ff3b1b; font-weight:900;">$${Number(orderData.total || 0).toLocaleString('es-MX')} MXN</span>
+                <span style="font-size:22px; color:#ff2a00; font-weight:900;">$${Number(orderData.total || 0).toLocaleString('es-MX')} MXN</span>
             </div>
         </div>
     `;
@@ -1481,8 +1497,8 @@ function renderStatusSelectHtml(collectionName, docId, currentStatus) {
 
     return `
         <div style="margin-top: 4px;" onclick="event.stopPropagation();">
-            <label style="font-size: 10px; color: #9ca3af; display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: 700;">Estatus del pedido:</label>
-            <select onchange="updateOrderStatus('${collectionName}', '${docId}', this.value)" style="width: 100%; background: #1c1c22; color: #fff; border: 1px solid rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 14px; font-size: 12px; cursor: pointer;">
+            <label style="font-size: 10px; color: #52525b; display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: 700;">Estatus del pedido:</label>
+            <select onchange="updateOrderStatus('${collectionName}', '${docId}', this.value)" style="width: 100%; background: #ffffff; color: #0b0b0e; border: 1.5px solid #d4d4d8; padding: 8px 12px; border-radius: 14px; font-size: 12px; cursor: pointer;">
                 ${optionsHtml}
             </select>
         </div>
@@ -1561,9 +1577,9 @@ function loadAdminProducts() {
 
         item.innerHTML = `
             <img src="${p.image || ''}" alt="${p.name}" style="width:52px; height:52px; object-fit:cover;">
-            <div style="flex-grow: 1; color: white;">
+            <div style="flex-grow: 1; color: #0b0b0e;">
                 <div style="font-weight: 700; font-size: 13px;">${p.name}</div>
-                <div style="font-size: 11px; color: #9ca3af;">${p.category || 'general'} | $${p.price} MXN</div>
+                <div style="font-size: 11px; color: #52525b;">${p.category || 'general'} | $${p.price} MXN</div>
             </div>
             <div style="display: flex; gap: 8px;">
                 <button type="button" class="btn-primary" style="padding: 7px 14px; font-size: 11px;" onclick="editProduct('${p.id || p.firestoreId}')">Editar</button>
@@ -1734,14 +1750,14 @@ function loadAdminCustomBases() {
 
     bases.forEach((base, index) => {
         const box = document.createElement('div');
-        box.style.cssText = "background: #16161b; border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 22px;";
+        box.style.cssText = "background: #ffffff; border: 1.5px solid rgba(0,0,0,0.1); padding: 16px; border-radius: 22px;";
         box.innerHTML = `
             <div style="margin-bottom: 8px;">
-                <label style="font-size: 10px; color: #9ca3af; display: block; margin-bottom:4px;">NOMBRE BASE</label>
+                <label style="font-size: 10px; color: #52525b; display: block; margin-bottom:4px; font-weight:700;">NOMBRE BASE</label>
                 <input type="text" id="baseName_${index}" value="${base.name}" class="form-control" style="font-size: 12px;">
             </div>
             <div style="margin-bottom: 10px;">
-                <label style="font-size: 10px; color: #9ca3af; display: block; margin-bottom:4px;">PRECIO (MXN)</label>
+                <label style="font-size: 10px; color: #52525b; display: block; margin-bottom:4px; font-weight:700;">PRECIO (MXN)</label>
                 <input type="number" id="basePrice_${index}" value="${base.price}" class="form-control" style="font-size: 12px;">
             </div>
             <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 11px; width: 100%;" onclick="updateCustomBaseItem(${index})">Guardar Cambios</button>
@@ -1779,21 +1795,21 @@ function loadAdminUsers() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            container.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">Aún no hay usuarios registrados.</p>';
+            container.innerHTML = '<p style="color: #52525b; font-size: 12px;">Aún no hay usuarios registrados.</p>';
             return;
         }
 
         snapshot.forEach((doc) => {
             const u = doc.data();
             const row = document.createElement('div');
-            row.style.cssText = "display: flex; align-items: center; gap: 12px; background: #16161b; border: 1px solid rgba(255,255,255,0.08); padding: 12px 16px; border-radius: 20px;";
+            row.style.cssText = "display: flex; align-items: center; gap: 12px; background: #ffffff; border: 1.5px solid rgba(0,0,0,0.1); padding: 12px 16px; border-radius: 20px;";
             row.innerHTML = `
                 <img src="${u.photoURL || 'https://via.placeholder.com/40'}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover;">
                 <div style="flex-grow: 1;">
-                    <div style="color: #fff; font-weight: 700; font-size: 13px;">${u.name || 'Usuario'}</div>
-                    <div style="color: #9ca3af; font-size: 11px;">${u.email}</div>
+                    <div style="color: #0b0b0e; font-weight: 700; font-size: 13px;">${u.name || 'Usuario'}</div>
+                    <div style="color: #52525b; font-size: 11px;">${u.email}</div>
                 </div>
-                <div style="color: #6b7280; font-size: 10px;">${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('es-MX') : ''}</div>
+                <div style="color: #71717a; font-size: 10px;">${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('es-MX') : ''}</div>
             `;
             container.appendChild(row);
         });
@@ -1810,7 +1826,7 @@ function loadAdminDareLabOrders() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            container.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">No hay solicitudes personalizadas todavía.</p>';
+            container.innerHTML = '<p style="color: #52525b; font-size: 12px;">No hay solicitudes personalizadas todavía.</p>';
             return;
         }
 
@@ -1821,30 +1837,30 @@ function loadAdminDareLabOrders() {
             const folio = order.orderNumber || doc.id;
 
             const card = document.createElement('div');
-            card.style.cssText = "background: #16161b; border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;";
+            card.style.cssText = "background: #ffffff; border: 1.5px solid rgba(0,0,0,0.1); padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; color: #0b0b0e;";
 
             const imgHtml = order.imageData
                 ? `<a href="${order.imageData}" download="${order.fileName || 'diseno-darelab.jpg'}" onclick="event.stopPropagation();" title="Clic para descargar imagen">
-                     <img src="${order.imageData}" style="width: 100%; height: 180px; object-fit: contain; background: #1e1e26; border-radius: 16px; cursor: pointer;">
+                     <img src="${order.imageData}" style="width: 100%; height: 180px; object-fit: contain; background: #f4f4f5; border-radius: 16px; cursor: pointer;">
                    </a>`
-                : `<div style="height: 80px; background: #1e1e26; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 11px;">Sin imagen adjunta</div>`;
+                : `<div style="height: 80px; background: #f4f4f5; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #52525b; font-size: 11px;">Sin imagen adjunta</div>`;
 
             const cleanPhone = (order.whatsapp || '').replace(/\D/g, '');
             const waClientLink = cleanPhone
-                ? `<a href="https://wa.me/${cleanPhone.length === 10 ? '521' + cleanPhone : cleanPhone}" target="_blank" onclick="event.stopPropagation();" style="color: #25d366; text-decoration: underline;">${order.whatsapp}</a>`
-                : `<span style="color: #9ca3af;">${order.whatsapp || 'No proporcionado'}</span>`;
+                ? `<a href="https://wa.me/${cleanPhone.length === 10 ? '521' + cleanPhone : cleanPhone}" target="_blank" onclick="event.stopPropagation();" style="color: #16a34a; font-weight: 700; text-decoration: underline;">${order.whatsapp}</a>`
+                : `<span style="color: #52525b;">${order.whatsapp || 'No proporcionado'}</span>`;
 
             card.innerHTML = `
                 ${imgHtml}
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                    <span style="color: #ff3b1b; font-size: 11px; font-weight: 800;">#${folio}</span>
+                    <span style="color: #ff2a00; font-size: 11px; font-weight: 800;">#${folio}</span>
                     <span style="font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; ${badgeStyle}">${status}</span>
                 </div>
-                <div style="color: #fff; font-size: 13px; font-weight: 700;">${order.baseName}</div>
-                <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName} (${order.userEmail})</div>
-                <div style="color: #fff; font-size: 12px;"><strong>WhatsApp:</strong> ${waClientLink}</div>
-                <div style="color: #9ca3af; font-size: 11px;"><strong>Técnica:</strong> ${order.technique} | <strong>Total:</strong> $${Number(order.total).toLocaleString('es-MX')} MXN</div>
-                <div style="color: #9ca3af; font-size: 11px;"><strong>Notas:</strong> ${order.notes}</div>
+                <div style="color: #0b0b0e; font-size: 13px; font-weight: 700;">${order.baseName}</div>
+                <div style="color: #0b0b0e; font-size: 12px;"><strong>Cliente:</strong> ${order.userName} (${order.userEmail})</div>
+                <div style="color: #0b0b0e; font-size: 12px;"><strong>WhatsApp:</strong> ${waClientLink}</div>
+                <div style="color: #52525b; font-size: 11px;"><strong>Técnica:</strong> ${order.technique} | <strong>Total:</strong> $${Number(order.total).toLocaleString('es-MX')} MXN</div>
+                <div style="color: #52525b; font-size: 11px;"><strong>Notas:</strong> ${order.notes}</div>
                 ${renderStatusSelectHtml('darelab_orders', doc.id, status)}
                 <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="event.stopPropagation(); deleteDareLabOrder('${doc.id}')">Marcar Entregado / Archivar</button>
             `;
@@ -1890,7 +1906,7 @@ function loadAdminOrders() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            container.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">Aún no hay compras registradas desde el carrito.</p>';
+            container.innerHTML = '<p style="color: #52525b; font-size: 12px;">Aún no hay compras registradas desde el carrito.</p>';
             return;
         }
 
@@ -1902,31 +1918,31 @@ function loadAdminOrders() {
 
             const itemsList = Array.isArray(order.items) && order.items.length > 0
                 ? order.items.map(item => `
-                    <li style="margin-bottom: 4px; color: #e5e7eb;">
-                        <strong>${item.qty}x</strong> ${item.name} — <span style="color: #9ca3af;">$${Number(item.price).toLocaleString('es-MX')} MXN c/u</span>
+                    <li style="margin-bottom: 4px; color: #0b0b0e;">
+                        <strong>${item.qty}x</strong> ${item.name} — <span style="color: #52525b;">$${Number(item.price).toLocaleString('es-MX')} MXN c/u</span>
                     </li>
                   `).join('')
-                : '<li style="color: #9ca3af;">Sin detalle de prendas</li>';
+                : '<li style="color: #52525b;">Sin detalle de prendas</li>';
 
             const dateText = order.createdAt ? new Date(order.createdAt).toLocaleString('es-MX') : '';
 
             const card = document.createElement('div');
-            card.style.cssText = "background: #16161b; border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;";
+            card.style.cssText = "background: #ffffff; border: 1.5px solid rgba(0,0,0,0.1); padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; color: #0b0b0e;";
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <span style="color: #ff3b1b; font-size: 12px; font-weight: 800;">#${folio}</span>
+                    <span style="color: #ff2a00; font-size: 12px; font-weight: 800;">#${folio}</span>
                     <span style="font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; ${badgeStyle}">${status}</span>
                 </div>
-                <div style="color: #6b7280; font-size: 10px;">${dateText}</div>
-                <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName || 'Invitado'} (${order.userEmail || 'Sin correo'})</div>
-                <div style="background: #1e1e26; border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 16px;">
-                    <div style="color: #9ca3af; font-size: 11px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase;">Prendas solicitadas:</div>
+                <div style="color: #71717a; font-size: 10px;">${dateText}</div>
+                <div style="color: #0b0b0e; font-size: 12px;"><strong>Cliente:</strong> ${order.userName || 'Invitado'} (${order.userEmail || 'Sin correo'})</div>
+                <div style="background: #f4f4f5; border: 1px solid rgba(0,0,0,0.08); padding: 12px; border-radius: 16px;">
+                    <div style="color: #52525b; font-size: 11px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase;">Prendas solicitadas:</div>
                     <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px;">
                         ${itemsList}
                     </ul>
                 </div>
-                <div style="color: #fff; font-size: 13px; font-weight: 800; margin-top: 2px;">
-                    Total: <span style="color: #ff3b1b;">$${Number(order.total || 0).toLocaleString('es-MX')} MXN</span>
+                <div style="color: #0b0b0e; font-size: 13px; font-weight: 800; margin-top: 2px;">
+                    Total: <span style="color: #ff2a00;">$${Number(order.total || 0).toLocaleString('es-MX')} MXN</span>
                 </div>
                 ${renderStatusSelectHtml('orders', doc.id, status)}
                 <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="event.stopPropagation(); deleteAdminOrder('${doc.id}')">Marcar Entregado / Archivar</button>
@@ -1969,7 +1985,7 @@ function loadAdminDeliveredOrders() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            container.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">Aún no hay pedidos archivados en entregados.</p>';
+            container.innerHTML = '<p style="color: #52525b; font-size: 12px;">Aún no hay pedidos archivados en entregados.</p>';
             return;
         }
 
@@ -1979,19 +1995,19 @@ function loadAdminDeliveredOrders() {
             const dateText = order.deliveredAt ? new Date(order.deliveredAt).toLocaleString('es-MX') : '';
 
             const card = document.createElement('div');
-            card.style.cssText = "background: #16161b; border: 1px solid rgba(74, 222, 128, 0.28); padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;";
+            card.style.cssText = "background: #ffffff; border: 1.5px solid rgba(22, 163, 74, 0.35); padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; color: #0b0b0e;";
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <span style="color: #4ade80; font-size: 12px; font-weight: 800;">#${folio}</span>
-                    <span style="font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: rgba(34, 197, 94, 0.16); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.45);">Entregado</span>
+                    <span style="color: #16a34a; font-size: 12px; font-weight: 800;">#${folio}</span>
+                    <span style="font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: rgba(22, 163, 74, 0.14); color: #15803d; border: 1px solid rgba(22, 163, 74, 0.35);">Entregado</span>
                 </div>
-                <div style="color: #6b7280; font-size: 10px;">Entregado el: ${dateText}</div>
-                <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName || 'Invitado'} (${order.userEmail || 'Sin correo'})</div>
-                <div style="color: #bbb; font-size: 11px;">${order.summary || ''}</div>
-                <div style="color: #fff; font-size: 13px; font-weight: 800; margin-top: 4px;">
-                    Cobrado: <span style="color: #4ade80;">$${Number(order.total || 0).toLocaleString('es-MX')} MXN</span>
+                <div style="color: #71717a; font-size: 10px;">Entregado el: ${dateText}</div>
+                <div style="color: #0b0b0e; font-size: 12px;"><strong>Cliente:</strong> ${order.userName || 'Invitado'} (${order.userEmail || 'Sin correo'})</div>
+                <div style="color: #52525b; font-size: 11px;">${order.summary || ''}</div>
+                <div style="color: #0b0b0e; font-size: 13px; font-weight: 800; margin-top: 4px;">
+                    Cobrado: <span style="color: #16a34a;">$${Number(order.total || 0).toLocaleString('es-MX')} MXN</span>
                 </div>
-                <div style="color: #60a5fa; font-size: 10px; font-weight: 700; margin-top: 4px;">Clic para ver especificaciones completas</div>
+                <div style="color: #2563eb; font-size: 10px; font-weight: 700; margin-top: 4px;">Clic para ver especificaciones completas</div>
             `;
 
             card.addEventListener('click', () => {
