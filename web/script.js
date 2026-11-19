@@ -406,28 +406,86 @@ function saveClientPendingOrder(orderEntry) {
 
 async function fetchClientPendingOrders() {
     const localOrders = getClientPendingOrdersLocal();
-    if (!window.db || localOrders.length === 0) return localOrders;
+    const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+    const mergedMap = new Map();
 
-    const updated = await Promise.all(localOrders.map(async (entry) => {
-        if (!entry.id || !entry.collection) return entry;
-        try {
-            const docSnap = await window.db.collection(entry.collection).doc(entry.id).get();
-            if (docSnap.exists) {
-                const data = docSnap.data();
-                return {
-                    ...entry,
-                    status: data.status || entry.status || 'Pedido pendiente',
-                    total: data.total !== undefined ? data.total : entry.total
-                };
-            }
-        } catch (err) {
-            console.log("No se pudo refrescar estatus de pedido:", err);
+    localOrders.forEach(item => {
+        if (item && item.folio) {
+            mergedMap.set(item.folio, item);
         }
-        return entry;
-    }));
+    });
 
-    localStorage.setItem('darecore_client_orders', JSON.stringify(updated));
-    return updated;
+    if (window.db) {
+        await Promise.all(Array.from(mergedMap.values()).map(async (entry) => {
+            if (!entry.id || !entry.collection) return;
+            try {
+                const docSnap = await window.db.collection(entry.collection).doc(entry.id).get();
+                if (docSnap.exists) {
+                    const data = docSnap.data();
+                    mergedMap.set(entry.folio, {
+                        ...entry,
+                        status: data.status || entry.status || 'Pedido pendiente',
+                        total: data.total !== undefined ? data.total : entry.total
+                    });
+                }
+            } catch (err) {
+                console.log("No se pudo refrescar estatus de pedido:", err);
+            }
+        }));
+
+        if (currentUser && currentUser.email) {
+            try {
+                const [cartSnap, labSnap] = await Promise.all([
+                    window.db.collection('orders').where('userEmail', '==', currentUser.email).get(),
+                    window.db.collection('darelab_orders').where('userEmail', '==', currentUser.email).get()
+                ]);
+
+                cartSnap.forEach(docSnap => {
+                    const d = docSnap.data();
+                    const folio = d.purchaseNumber || docSnap.id;
+                    const summaryText = Array.isArray(d.items)
+                        ? d.items.map(i => `${i.qty}x ${i.name}`).join(', ')
+                        : 'Compra en tienda';
+                    mergedMap.set(folio, {
+                        id: docSnap.id,
+                        collection: 'orders',
+                        folio: folio,
+                        typeLabel: 'Carrito',
+                        summary: summaryText,
+                        total: d.total || 0,
+                        status: d.status || 'Pedido pendiente',
+                        createdAt: d.createdAt || ''
+                    });
+                });
+
+                labSnap.forEach(docSnap => {
+                    const d = docSnap.data();
+                    const folio = d.orderNumber || docSnap.id;
+                    mergedMap.set(folio, {
+                        id: docSnap.id,
+                        collection: 'darelab_orders',
+                        folio: folio,
+                        typeLabel: 'Dare Lab',
+                        summary: `${d.baseName || 'Prenda'} (${d.technique || 'Estándar'})`,
+                        total: d.total || 0,
+                        status: d.status || 'Pedido pendiente',
+                        createdAt: d.createdAt || ''
+                    });
+                });
+            } catch (err) {
+                console.log("No se pudieron sincronizar pedidos por correo:", err);
+            }
+        }
+    }
+
+    const combined = Array.from(mergedMap.values()).sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+    }).slice(0, 25);
+
+    localStorage.setItem('darecore_client_orders', JSON.stringify(combined));
+    return combined;
 }
 
 function addToCart(productId) {
@@ -662,7 +720,6 @@ async function checkoutCart() {
         createdAt: createdAt
     });
 
-    // Vaciar el carrito para que quede listo para solicitar nueva ropa
     cart = [];
     saveCart();
     updateCartUI();
@@ -684,11 +741,11 @@ function openGoogleAuthModal() {
     });
 
     window.auth.signInWithPopup(provider)
-        .then((result) => {
+        .then(async (result) => {
             const user = result.user;
 
             if (window.db && user) {
-                window.db.collection('users').doc(user.uid).set({
+                await window.db.collection('users').doc(user.uid).set({
                     uid: user.uid,
                     name: user.displayName || 'Sin nombre',
                     email: user.email || '',
@@ -697,8 +754,10 @@ function openGoogleAuthModal() {
                 }, { merge: true }).catch(err => console.error("Error guardando usuario:", err));
             }
 
-            alert(`¡Bienvenido, ${user.displayName || user.email}! Sesión iniciada con éxito.`);
-            closeCartModal();
+            await fetchClientPendingOrders();
+
+            alert(`¡Bienvenido, ${user.displayName || user.email}! Sesión iniciada y pedidos sincronizados.`);
+            openCartModal('pending');
         }).catch((error) => {
             console.error("Error en autenticación con Google:", error.message);
             alert("Hubo un error al iniciar sesión con Google: " + error.message);
@@ -785,7 +844,6 @@ function updateOrderStatus(collectionName, docId, newStatus) {
         status: newStatus,
         updatedAt: new Date().toISOString()
     }).then(() => {
-        // También actualizar caché local del cliente si coincide el ID
         const localOrders = getClientPendingOrdersLocal();
         const nextLocal = localOrders.map(item =>
             item.id === docId ? { ...item, status: newStatus } : item
