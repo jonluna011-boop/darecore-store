@@ -317,6 +317,7 @@ function setupDareLab() {
                 summary: `${selectedBase.name} (${techName})`,
                 total: total,
                 status: initialStatus,
+                delivered: false,
                 createdAt: createdAt
             });
 
@@ -404,14 +405,39 @@ function saveClientPendingOrder(orderEntry) {
     localStorage.setItem('darecore_client_orders', JSON.stringify(filtered.slice(0, 25)));
 }
 
+async function getDeliveredFoliosSet() {
+    const deliveredSet = new Set();
+    if (!window.db) return deliveredSet;
+
+    try {
+        const snap = await window.db.collection('delivered_folios').get();
+        snap.forEach(docSnap => {
+            const data = docSnap.data();
+            if (data.folio) deliveredSet.add(data.folio);
+            if (data.orderId) deliveredSet.add(data.orderId);
+            deliveredSet.add(docSnap.id);
+        });
+    } catch (err) {
+        console.log("No se pudieron consultar folios entregados:", err);
+    }
+    return deliveredSet;
+}
+
 async function fetchClientPendingOrders() {
     const localOrders = getClientPendingOrdersLocal();
     const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
     const mergedMap = new Map();
+    const deliveredSet = await getDeliveredFoliosSet();
 
     localOrders.forEach(item => {
         if (item && item.folio) {
-            mergedMap.set(item.folio, item);
+            const isMarkedDelivered = Boolean(item.delivered) ||
+                deliveredSet.has(item.folio) ||
+                (item.id && deliveredSet.has(item.id));
+            mergedMap.set(item.folio, {
+                ...item,
+                delivered: isMarkedDelivered
+            });
         }
     });
 
@@ -424,8 +450,14 @@ async function fetchClientPendingOrders() {
                     const data = docSnap.data();
                     mergedMap.set(entry.folio, {
                         ...entry,
+                        delivered: false,
                         status: data.status || entry.status || 'Pedido pendiente',
                         total: data.total !== undefined ? data.total : entry.total
+                    });
+                } else {
+                    mergedMap.set(entry.folio, {
+                        ...entry,
+                        delivered: true
                     });
                 }
             } catch (err) {
@@ -454,6 +486,7 @@ async function fetchClientPendingOrders() {
                         summary: summaryText,
                         total: d.total || 0,
                         status: d.status || 'Pedido pendiente',
+                        delivered: false,
                         createdAt: d.createdAt || ''
                     });
                 });
@@ -469,6 +502,7 @@ async function fetchClientPendingOrders() {
                         summary: `${d.baseName || 'Prenda'} (${d.technique || 'Estándar'})`,
                         total: d.total || 0,
                         status: d.status || 'Pedido pendiente',
+                        delivered: false,
                         createdAt: d.createdAt || ''
                     });
                 });
@@ -598,19 +632,33 @@ async function openCartModal(tab = activeCartTab) {
             bodyContentHtml = '<p style="color:#888; text-align:center; padding:40px 15px;">Aún no tienes pedidos registrados aquí. Al procesar tu pago aparecerán con su estatus.</p>';
         } else {
             bodyContentHtml = pendingOrders.map((ord) => {
+                const isDelivered = Boolean(ord.delivered);
                 const currentStatus = ord.status || 'Pedido pendiente';
-                const badgeStyle = getStatusBadgeStyle(currentStatus);
+                const badgeStyle = isDelivered
+                    ? 'background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4);'
+                    : getStatusBadgeStyle(currentStatus);
+
+                const strikeStyle = isDelivered ? 'text-decoration: line-through; opacity: 0.65;' : '';
+                const cardBorderStyle = isDelivered
+                    ? 'background:#141414; border:1px solid #262626; opacity:0.85;'
+                    : 'background:#181818; border:1px solid #282828;';
+
+                const deliveredBannerHtml = isDelivered
+                    ? `<div style="margin-top:8px; padding:6px 8px; background:rgba(34, 197, 94, 0.12); border-left:3px solid #4ade80; color:#86efac; font-size:11px; font-weight:800; letter-spacing:0.3px;">ESTE PEDIDO YA TE FUE ENTREGADO</div>`
+                    : '';
+
                 return `
-                    <div style="background:#181818; border:1px solid #282828; padding:12px; border-radius:5px; margin-bottom:10px;">
+                    <div style="${cardBorderStyle} padding:12px; border-radius:5px; margin-bottom:10px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
-                            <span style="color:#fff; font-weight:800; font-size:12px;">#${ord.folio}</span>
-                            <span style="font-size:10px; font-weight:800; padding:3px 8px; border-radius:999px; ${badgeStyle}">${currentStatus}</span>
+                            <span style="color:#fff; font-weight:800; font-size:12px; ${strikeStyle}">#${ord.folio}</span>
+                            <span style="font-size:10px; font-weight:800; padding:3px 8px; border-radius:999px; ${badgeStyle}">${isDelivered ? 'Entregado' : currentStatus}</span>
                         </div>
-                        <div style="color:#bbb; font-size:11px; margin-bottom:6px;">${ord.summary || ord.typeLabel || 'Pedido DARECORE'}</div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#888;">
+                        <div style="color:#bbb; font-size:11px; margin-bottom:6px; ${strikeStyle}">${ord.summary || ord.typeLabel || 'Pedido DARECORE'}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#888; ${strikeStyle}">
                             <span>${ord.typeLabel || 'Tienda'}</span>
                             <strong style="color:#ff3b1b; font-size:12px;">$${Number(ord.total || 0).toLocaleString('es-MX')} MXN</strong>
                         </div>
+                        ${deliveredBannerHtml}
                     </div>
                 `;
             }).join('');
@@ -717,6 +765,7 @@ async function checkoutCart() {
         summary: summaryText,
         total: subtotal,
         status: initialStatus,
+        delivered: false,
         createdAt: createdAt
     });
 
@@ -853,6 +902,26 @@ function updateOrderStatus(collectionName, docId, newStatus) {
         if (collectionName === 'orders') loadAdminOrders();
         if (collectionName === 'darelab_orders') loadAdminDareLabOrders();
     }).catch(err => console.error("Error actualizando estatus:", err));
+}
+
+async function markOrderDeliveredInCloud(collectionName, docId) {
+    if (!window.db || !docId) return;
+    try {
+        const snap = await window.db.collection(collectionName).doc(docId).get();
+        let folio = docId;
+        if (snap.exists) {
+            const d = snap.data();
+            folio = d.purchaseNumber || d.orderNumber || docId;
+        }
+        await window.db.collection('delivered_folios').doc(docId).set({
+            orderId: docId,
+            folio: folio,
+            collection: collectionName,
+            deliveredAt: new Date().toISOString()
+        }, { merge: true });
+    } catch (err) {
+        console.log("No se pudo registrar folio entregado:", err);
+    }
 }
 
 function loadAdminProducts() {
@@ -1131,8 +1200,9 @@ function loadAdminDareLabOrders() {
     }).catch(err => console.error("Error cargando solicitudes Dare Lab:", err));
 }
 
-function deleteDareLabOrder(docId) {
+async function deleteDareLabOrder(docId) {
     if (!confirm('¿Eliminar esta solicitud de Dare Lab?')) return;
+    await markOrderDeliveredInCloud('darelab_orders', docId);
     window.db.collection('darelab_orders').doc(docId).delete().then(() => {
         loadAdminDareLabOrders();
     }).catch(err => console.error("Error eliminando solicitud:", err));
@@ -1193,8 +1263,9 @@ function loadAdminOrders() {
     }).catch(err => console.error("Error cargando compras del carrito:", err));
 }
 
-function deleteAdminOrder(docId) {
+async function deleteAdminOrder(docId) {
     if (!confirm('¿Eliminar este registro de compra?')) return;
+    await markOrderDeliveredInCloud('orders', docId);
     window.db.collection('orders').doc(docId).delete().then(() => {
         loadAdminOrders();
     }).catch(err => console.error("Error eliminando compra:", err));
