@@ -113,6 +113,9 @@
 
                     <label style="font-size: 12px; color: var(--text-secondary);">Instrucciones adicionales</label>
                     <textarea class="form-input" id="customNotes" rows="3" placeholder="Ej: Logo en pecho izquierdo de 10cm y diseño grande en espalda..."></textarea>
+
+                    <label style="font-size: 12px; color: var(--text-secondary);">Número de WhatsApp</label>
+                    <input type="tel" class="form-input" id="customWhatsapp" placeholder="Ej: 477 123 4567" required>
                 </div>
             </div>
 
@@ -171,27 +174,26 @@
         </div>
     </footer>
 
-    <!-- Conexión a Firebase Firestore -->
     <!-- Conexión a Firebase App, Firestore y Auth -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyAVNhtTFpbnbhL9RpQ5rGoK_ZgYTKg74xY",
-        authDomain: "dare-core-store.firebaseapp.com",
-        projectId: "dare-core-store",
-        storageBucket: "dare-core-store.firebasestorage.app",
-        messagingSenderId: "104855215716",
-        appId: "1:104855215716:web:e6ef3fba67a906bf904971",
-        measurementId: "G-Q641EBS6LM"
-    };
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    window.db = firebase.firestore();
-    window.auth = firebase.auth();
-</script>
-<script src="script.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAVNhtTFpbnbhL9RpQ5rGoK_ZgYTKg74xY",
+            authDomain: "dare-core-store.firebaseapp.com",
+            projectId: "dare-core-store",
+            storageBucket: "dare-core-store.firebasestorage.app",
+            messagingSenderId: "104855215716",
+            appId: "1:104855215716:web:e6ef3fba67a906bf904971",
+            measurementId: "G-Q641EBS6LM"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        window.db = firebase.firestore();
+        window.auth = firebase.auth();
+    </script>
+    <script src="script.js"></script>
 </body>
 </html>
