@@ -136,71 +136,74 @@ function styleBrandLogoInHeader() {
 }
 
 function layoutPublicHeaderZones() {
-    const isAdminPage = window.location.pathname.toLowerCase().includes('admin');
-    if (isAdminPage) return;
+    if (window.location.pathname.toLowerCase().includes('admin')) return;
 
-    const header = document.querySelector('header:not(.admin-header):not([class*="admin"]), .navbar:not(.admin-navbar):not([class*="admin"]), .site-header:not(.admin-header):not([class*="admin"])');
-    if (!header) return;
+    const header = document.querySelector('header');
+    const navContainer = document.querySelector('header .nav-container') || header;
+    if (!navContainer) return;
 
-    header.style.setProperty('display', 'flex', 'important');
-    header.style.setProperty('align-items', 'center', 'important');
-    header.style.setProperty('justify-content', 'space-between', 'important');
-    header.style.setProperty('width', '100%', 'important');
-    header.style.setProperty('gap', '28px', 'important');
-    header.style.setProperty('flex-wrap', 'nowrap', 'important');
+    if (window.innerWidth > 1024) {
+        navContainer.style.setProperty('display', 'grid', 'important');
+        navContainer.style.setProperty('grid-template-columns', 'auto minmax(0, 1fr) auto', 'important');
+        navContainer.style.setProperty('align-items', 'center', 'important');
+        navContainer.style.setProperty('width', '100%', 'important');
+        navContainer.style.setProperty('max-width', '1440px', 'important');
+        navContainer.style.setProperty('margin', '0 auto', 'important');
+        navContainer.style.setProperty('padding', '0 24px', 'important');
+        navContainer.style.setProperty('gap', '32px', 'important');
 
-    const children = Array.from(header.children);
-    if (children.length === 0) return;
+        const logo = navContainer.querySelector('.logo, a[href*="index.html"]');
+        const navLinks = navContainer.querySelector('.nav-links, ul');
+        const navActions = navContainer.querySelector('.nav-actions');
 
-    let logoEl = null;
-    let navEl = null;
-    let rightGroupEl = null;
-
-    children.forEach(child => {
-        const txt = (child.textContent || '').replace(/\s+/g, ' ').trim().toUpperCase();
-        const hasSearchOrCart = child.matches('#searchInput, .search-box, .cart-btn, [class*="cart-btn"]') ||
-            Boolean(child.querySelector('#searchInput, .search-box, .cart-btn, [class*="cart-btn"]'));
-        const isNavGroup = txt.includes('INICIO') && (txt.includes('HOMBRE') || txt.includes('MUJER') || txt.includes('OVERSIZE'));
-
-        if (hasSearchOrCart) {
-            rightGroupEl = child;
-        } else if (isNavGroup) {
-            navEl = child;
-        } else if (!logoEl && (txt.includes('DARECORE') || child.querySelector('.brand-dare, img'))) {
-            logoEl = child;
+        if (logo) {
+            logo.style.setProperty('grid-column', '1', 'important');
+            logo.style.setProperty('justify-self', 'start', 'important');
+            logo.style.setProperty('margin', '0', 'important');
+            logo.style.setProperty('white-space', 'nowrap', 'important');
         }
-    });
 
-    if (logoEl) {
-        logoEl.dataset.darecoreLogo = 'left';
-        logoEl.style.setProperty('order', '1', 'important');
-        logoEl.style.setProperty('margin', '0', 'important');
-        logoEl.style.setProperty('margin-right', 'auto', 'important');
-        logoEl.style.setProperty('flex-shrink', '0', 'important');
-    }
+        if (navLinks) {
+            navLinks.style.setProperty('grid-column', '2', 'important');
+            navLinks.style.setProperty('justify-self', 'center', 'important');
+            navLinks.style.setProperty('display', 'flex', 'important');
+            navLinks.style.setProperty('flex-direction', 'row', 'important');
+            navLinks.style.setProperty('align-items', 'center', 'important');
+            navLinks.style.setProperty('gap', '28px', 'important');
+            navLinks.style.setProperty('list-style', 'none', 'important');
+            navLinks.style.setProperty('margin', '0', 'important');
+            navLinks.style.setProperty('padding', '0', 'important');
+            navLinks.style.setProperty('flex-wrap', 'nowrap', 'important');
 
-    if (navEl) {
-        navEl.style.setProperty('order', '2', 'important');
-        navEl.style.setProperty('display', 'flex', 'important');
-        navEl.style.setProperty('align-items', 'center', 'important');
-        navEl.style.setProperty('justify-content', 'center', 'important');
-        navEl.style.setProperty('gap', '24px', 'important');
-        navEl.style.setProperty('margin', '0 auto', 'important');
-        navEl.style.setProperty('flex-wrap', 'nowrap', 'important');
+            navLinks.querySelectorAll('li').forEach(li => {
+                li.style.setProperty('display', 'inline-flex', 'important');
+                li.style.setProperty('align-items', 'center', 'important');
+                li.style.setProperty('margin', '0', 'important');
+                li.style.setProperty('padding', '0', 'important');
+                li.style.setProperty('white-space', 'nowrap', 'important');
+            });
 
-        navEl.querySelectorAll('a').forEach(link => {
-            link.style.setProperty('white-space', 'nowrap', 'important');
-        });
-    }
+            navLinks.querySelectorAll('a').forEach(a => {
+                a.style.setProperty('white-space', 'nowrap', 'important');
+            });
+        }
 
-    if (rightGroupEl) {
-        rightGroupEl.style.setProperty('order', '3', 'important');
-        rightGroupEl.style.setProperty('display', 'flex', 'important');
-        rightGroupEl.style.setProperty('align-items', 'center', 'important');
-        rightGroupEl.style.setProperty('gap', '12px', 'important');
-        rightGroupEl.style.setProperty('margin', '0', 'important');
-        rightGroupEl.style.setProperty('margin-left', 'auto', 'important');
-        rightGroupEl.style.setProperty('flex-shrink', '0', 'important');
+        if (navActions) {
+            navActions.style.setProperty('grid-column', '3', 'important');
+            navActions.style.setProperty('justify-self', 'end', 'important');
+            navActions.style.setProperty('display', 'flex', 'important');
+            navActions.style.setProperty('flex-direction', 'row', 'important');
+            navActions.style.setProperty('align-items', 'center', 'important');
+            navActions.style.setProperty('gap', '12px', 'important');
+            navActions.style.setProperty('margin', '0', 'important');
+            navActions.style.setProperty('flex-shrink', '0', 'important');
+        }
+    } else {
+        navContainer.style.setProperty('display', 'flex', 'important');
+        navContainer.style.setProperty('flex-wrap', 'wrap', 'important');
+        navContainer.style.setProperty('justify-content', 'space-between', 'important');
+        navContainer.style.setProperty('gap', '12px', 'important');
+        navContainer.style.setProperty('padding', '0 16px', 'important');
     }
 }
 
