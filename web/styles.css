@@ -1,6 +1,127 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+:root {
+    --bg-dark: #0b0b0e;
+    --bg-surface: #121217;
+    --bg-light: #f4f4f6;
+    --bg-card: #16161c;
+    --text-dark: #0b0b0e;
+    --text-light: #ffffff;
+    --text-muted: #71717a;
+    --accent-red: #ff2a00;
+    --accent-orange: #ff5500;
+    --border-light: rgba(11, 11, 14, 0.1);
+    --border-dark: rgba(255, 255, 255, 0.1);
+    --radius-sm: 12px;
+    --radius-md: 18px;
+    --radius-lg: 26px;
+    --radius-pill: 999px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.5;
+    overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .brand-title, .hero-title {
+    font-family: 'Bebas Neue', 'Space Grotesk', sans-serif;
+    letter-spacing: 0.6px;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+button, input, select, textarea {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.hidden {
+    display: none !important;
+}
+
 /* ==========================================
-   LOGO DARECORE A LA IZQUIERDA EN PÁGINA PÚBLICA
+   FRANJA SUPERIOR NARANJA COMPACTA
    ========================================== */
+.top-announcement-bar,
+.announcement-bar,
+.promo-bar,
+.top-banner,
+[class*="announcement"],
+[class*="promo-banner"] {
+    background: var(--accent-orange) !important;
+    color: #ffffff !important;
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.9px !important;
+    text-transform: uppercase !important;
+    padding: 5px 12px !important;
+    min-height: 24px !important;
+    line-height: 1.2 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+}
+
+.top-announcement-bar *,
+.announcement-bar *,
+.promo-bar *,
+.top-banner *,
+[class*="announcement"] *,
+[class*="promo-banner"] * {
+    color: #ffffff !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    margin: 0 !important;
+}
+
+/* ==========================================
+   MARCA, NAVEGACIÓN Y LOGO A LA IZQUIERDA
+   ========================================== */
+.brand-dare {
+    color: #0b0b0e !important;
+    font-weight: 900;
+}
+
+.brand-core-red {
+    color: #ff2a00 !important;
+    font-weight: 900;
+}
+
+.brand-core-orange {
+    color: #ff5500 !important;
+    font-weight: 900;
+}
+
+header,
+.navbar,
+.site-header {
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-light);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 900;
+}
+
 header:not(.admin-header):not([class*="admin"]),
 .navbar:not(.admin-navbar):not([class*="admin"]),
 .site-header:not(.admin-header):not([class*="admin"]) {
@@ -18,7 +139,7 @@ header:not(.admin-header):not([class*="admin"]) a:has(.brand-dare),
 .navbar:not(.admin-navbar):not([class*="admin"]) a:has(.brand-dare),
 .site-header:not(.admin-header):not([class*="admin"]) .brand,
 .site-header:not(.admin-header):not([class*="admin"]) .logo,
-.site-header:not(.admin-navbar):not([class*="admin"]) a:has(.brand-dare) {
+.site-header:not(.admin-header):not([class*="admin"]) a:has(.brand-dare) {
     order: -1 !important;
     margin-right: auto !important;
     flex-shrink: 0 !important;
@@ -42,6 +163,563 @@ header:not(.admin-header):not([class*="admin"]) [class*="cart-btn"],
     order: 1 !important;
 }
 
+.nav-links {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.nav-links a {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    transition: color 0.2s ease;
+}
+
+.nav-links a:hover {
+    color: var(--accent-red);
+}
+
+/* ==========================================
+   BUSCADOR + CARRITO A LA DERECHA (CARRITO EN NEGRO)
+   ========================================== */
+.search-box,
+#searchInput {
+    background: #ffffff;
+    color: #0b0b0e;
+    border: 1.5px solid rgba(11, 11, 14, 0.14);
+    border-radius: var(--radius-pill);
+    padding: 9px 16px;
+    font-size: 13px;
+    min-width: 220px;
+    margin-left: auto;
+    margin-right: 10px;
+}
+
+.cart-btn,
+button.cart-btn,
+a.cart-btn,
+[class*="cart-btn"] {
+    background: #0b0b0e !important;
+    background-color: #0b0b0e !important;
+    color: #ffffff !important;
+    border: 1px solid #0b0b0e !important;
+    border-radius: var(--radius-pill);
+    padding: 9px 18px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.search-box + .cart-btn,
+.search-box + button.cart-btn,
+.search-box + a.cart-btn,
+#searchInput + .cart-btn,
+#searchInput + button.cart-btn,
+#searchInput + a.cart-btn,
+[class*="search"] + [class*="cart-btn"] {
+    margin-left: 0;
+}
+
+header > div:has(#searchInput),
+header > div:has(.search-box),
+header > div:has(.cart-btn),
+nav > div:has(#searchInput),
+nav > div:has(.search-box),
+nav > div:has(.cart-btn) {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cart-btn *,
+button.cart-btn *,
+a.cart-btn *,
+[class*="cart-btn"] * {
+    color: #ffffff !important;
+}
+
+.cart-btn:hover,
+button.cart-btn:hover,
+a.cart-btn:hover,
+[class*="cart-btn"]:hover {
+    background: #1c1c24 !important;
+    background-color: #1c1c24 !important;
+    color: #ffffff !important;
+}
+
+/* ==========================================
+   TÍTULO PRINCIPAL "TU ESTILO. TUS REGLAS."
+   ========================================== */
+.hero-editorial-header h1,
+.editorial-header h1,
+.store-intro h1,
+.hero-title,
+h1 {
+    font-size: clamp(46px, 6.2vw, 82px) !important;
+    line-height: 0.96 !important;
+    letter-spacing: 0.8px !important;
+}
+
+/* ==========================================
+   HERO SHOWCASE CAROUSEL (SOLO INICIO)
+   ========================================== */
+.darecore-hero-wrapper {
+    max-width: 1280px;
+    margin: 24px auto 12px;
+    padding: 0 24px;
+}
+
+.darecore-hero-stage {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    padding: 40px 44px;
+    color: #ffffff;
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    align-items: center;
+    gap: 28px;
+    min-height: 320px;
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.25);
+}
+
+.darecore-hero-watermark {
+    position: absolute;
+    right: -12px;
+    bottom: -24px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 132px;
+    line-height: 0.85;
+    color: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+    user-select: none;
+}
+
+.darecore-hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+.darecore-hero-kicker {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #ff9e8a;
+    margin-bottom: 10px;
+}
+
+.darecore-hero-title {
+    font-size: 46px;
+    line-height: 1;
+    color: #ffffff;
+    margin-bottom: 12px;
+}
+
+.darecore-hero-desc {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.82);
+    max-width: 500px;
+    margin-bottom: 22px;
+}
+
+.darecore-hero-cta {
+    background: linear-gradient(135deg, #ff2a00 0%, #ff5500 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 12px 24px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    cursor: pointer;
+}
+
+.darecore-hero-visual {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.darecore-hero-visual img {
+    max-height: 240px;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 18px;
+    filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.55));
+}
+
+.darecore-hero-dots {
+    position: absolute;
+    bottom: 16px;
+    left: 44px;
+    display: flex;
+    gap: 8px;
+    z-index: 3;
+}
+
+.darecore-hero-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+}
+
+.darecore-hero-dot.active {
+    width: 24px;
+    border-radius: 999px;
+    background: var(--accent-red);
+}
+
+/* ==========================================
+   CUADRÍCULA DE PRODUCTOS Y DIFUMINADO MULTICOLOR
+   ========================================== */
+#productGrid,
+.product-grid {
+    max-width: 1280px;
+    margin: 24px auto 48px;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 22px;
+}
+
+.product-card {
+    position: relative;
+    z-index: 1;
+    background: var(--bg-card);
+    color: var(--text-light);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.25s ease, box-shadow 0.28s ease;
+}
+
+.product-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--card-aura, radial-gradient(circle at 80% 18%, rgba(255, 42, 0, 0.38) 0%, rgba(153, 27, 27, 0.22) 45%, rgba(18, 18, 23, 0.96) 85%));
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity 0.32s ease;
+}
+
+.product-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.product-card:hover::before,
+.product-card.touch-pop-active::before,
+.product-card:focus-within::before {
+    opacity: 1;
+}
+
+.product-card:hover,
+.product-card.touch-pop-active,
+.product-card:focus-within {
+    transform: translateY(-6px) scale(1.015);
+    border-color: var(--card-border, #ff2a00);
+    box-shadow: 0 0 0 2px var(--card-glow, rgba(255, 42, 0, 0.35)), 0 20px 42px var(--card-glow, rgba(255, 42, 0, 0.28));
+}
+
+.product-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.product-tag {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #ff7a61;
+    background: rgba(255, 42, 0, 0.14);
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+}
+
+.product-color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--dot-color, #ff2a00);
+}
+
+.product-img {
+    width: 100%;
+    height: 230px;
+    border-radius: 18px;
+    background-size: cover;
+    background-position: center;
+    background-color: #212129;
+}
+
+.product-name {
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.product-desc {
+    font-size: 12px;
+    color: #b4b4be;
+    line-height: 1.45;
+    flex-grow: 1;
+}
+
+.product-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 6px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.price {
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+/* ==========================================
+   BOTONES EN ROJO / NARANJA (SIN PISAR .cart-btn)
+   ========================================== */
+.btn-add,
+.btn-primary,
+button[onclick*="updateCustomBaseItem"] {
+    background: linear-gradient(135deg, #ff2a00 0%, #ff5500 100%) !important;
+    color: #ffffff !important;
+    border: none !important;
+    border-radius: var(--radius-pill);
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.btn-add:hover,
+.btn-primary:hover,
+button[onclick*="updateCustomBaseItem"]:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(255, 85, 0, 0.35);
+}
+
+/* ==========================================
+   BOTÓN EXPLORAR COLECCIÓN
+   ========================================== */
+.hero-editorial-header p,
+.editorial-header p,
+.store-intro p {
+    margin-bottom: 24px;
+    line-height: 1.55;
+}
+
+.hero-editorial-header a,
+.hero-editorial-header button,
+.editorial-header a,
+.editorial-header button,
+.store-intro a,
+.store-intro button,
+.btn-explore,
+.explore-btn,
+[class*="explorar"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 14px;
+}
+
+/* ==========================================
+   OCULTAR DESCRIPCIONES TÉCNICAS EN SECCIONES
+   ========================================== */
+[class*="anatomy"],
+[class*="spec-box"],
+[class*="technical-spec"],
+[class*="fabric-spec"],
+[class*="fit-spec"] {
+    display: none !important;
+}
+
+/* ==========================================
+   DARE LAB & FORMULARIOS
+   ========================================== */
+#customTechniqueSelect,
+#customDesignFile,
+#customNotes,
+#customWhatsapp,
+input[type="file"].form-control,
+select.form-control,
+textarea.form-control {
+    background-color: #ffffff !important;
+    color: #0b0b0e !important;
+    border: 1.5px solid #ff3b1b !important;
+    border-radius: 16px !important;
+    padding: 10px 14px;
+    transition: border-color 0.22s ease, box-shadow 0.22s ease !important;
+}
+
+#customTechniqueSelect:hover,
+#customDesignFile:hover,
+#customNotes:hover,
+#customWhatsapp:hover,
+input[type="file"].form-control:hover,
+select.form-control:hover,
+textarea.form-control:hover {
+    border-color: #ff5500 !important;
+}
+
+#customTechniqueSelect:focus,
+#customDesignFile:focus,
+#customNotes:focus,
+#customWhatsapp:focus,
+input[type="file"].form-control:focus,
+select.form-control:focus,
+textarea.form-control:focus {
+    outline: none !important;
+    border-color: #ff2a00 !important;
+    box-shadow: 0 0 0 3px rgba(255, 59, 27, 0.22) !important;
+}
+
+/* ==========================================
+   PANEL DE ADMINISTRACIÓN
+   ========================================== */
+.admin-container,
+#dashboardSection,
+#loginSection {
+    max-width: 1220px;
+    margin: 28px auto;
+    padding: 0 24px;
+}
+
+.admin-card {
+    background: #ffffff;
+    border: 1.5px solid rgba(11, 11, 14, 0.1);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 22px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+#prodCategory,
+#prodDesc,
+#addProductForm select,
+#addProductForm textarea,
+#addProductForm input[type="text"],
+#addProductForm input[type="number"],
+#addProductForm input[type="file"],
+.admin-card select,
+.admin-card textarea,
+.admin-card input[type="text"],
+.admin-card input[type="number"],
+.admin-card input[type="file"] {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+    color: #0b0b0e !important;
+    -webkit-text-fill-color: #0b0b0e !important;
+    border: 1.5px solid #d4d4d8 !important;
+    border-radius: 16px !important;
+    padding: 10px 14px;
+}
+
+#prodCategory option,
+#addProductForm select option,
+.admin-card select option {
+    background-color: #ffffff !important;
+    color: #0b0b0e !important;
+}
+
+#prodDesc::placeholder,
+#addProductForm textarea::placeholder,
+#addProductForm input::placeholder,
+.admin-card textarea::placeholder,
+.admin-card input::placeholder {
+    color: #71717a !important;
+    -webkit-text-fill-color: #71717a !important;
+    opacity: 1 !important;
+}
+
+.product-item-admin {
+    background: #121217;
+    color: #ffffff;
+    border-radius: 20px;
+    padding: 12px 16px;
+}
+
+.product-item-admin > div {
+    color: #ffffff !important;
+}
+
+.product-item-admin > div > div:last-child {
+    color: #a1a1aa !important;
+}
+
+.btn-delete {
+    background: #dc2626;
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 10px 18px;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+/* ==========================================
+   COLUMNAS INFERIORES (COLECCIONES, AYUDA, LEGAL)
+   ========================================== */
+.darecore-cinema-columns-grid {
+    max-width: 1280px;
+    margin: 28px auto;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.darecore-cinema-column-card {
+    background: #0b0b0e !important;
+    color: #ffffff !important;
+    border-radius: 26px !important;
+    padding: 24px !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.darecore-cinema-column-card:hover {
+    border-color: #ff2a00 !important;
+    transform: translateY(-4px);
+    box-shadow: 0 16px 34px rgba(255, 42, 0, 0.22);
+}
+
 @media (max-width: 820px) {
     header:not(.admin-header):not([class*="admin"]),
     .navbar:not(.admin-navbar):not([class*="admin"]),
@@ -53,5 +731,14 @@ header:not(.admin-header):not([class*="admin"]) [class*="cart-btn"],
     header:not(.admin-header):not([class*="admin"]) .logo,
     header:not(.admin-header):not([class*="admin"]) a:has(.brand-dare) {
         margin-right: auto !important;
+    }
+
+    .darecore-hero-stage {
+        grid-template-columns: 1fr;
+        padding: 28px 22px;
+    }
+
+    .darecore-cinema-columns-grid {
+        grid-template-columns: 1fr;
     }
 }
