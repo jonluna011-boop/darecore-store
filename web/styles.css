@@ -748,6 +748,41 @@ textarea.form-control:focus {
         padding: 28px 22px;
     }
 
+    /* ==========================================
+   SEPARACIÓN REAL: DARECORE IZQUIERDA, MENÚ SEPARADO, BUSCADOR/CARRITO DERECHA
+   ========================================== */
+body:not([class*="admin"]) header,
+body:not([class*="admin"]) nav,
+body:not([class*="admin"]) .navbar,
+body:not([class*="admin"]) .site-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+    gap: 28px !important;
+}
+
+/* Empuja el menú de navegación hacia la derecha del logo para que no se pegue a DARECORE */
+body:not([class*="admin"]) header .nav-links,
+body:not([class*="admin"]) nav .nav-links,
+body:not([class*="admin"]) .navbar .nav-links,
+body:not([class*="admin"]) .site-header .nav-links,
+body:not([class*="admin"]) header nav,
+body:not([class*="admin"]) .navbar nav {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 22px !important;
+}
+
+/* Evita que el buscador absorba todo el margen y deje pegado el menú al logo */
+body:not([class*="admin"]) .search-box,
+body:not([class*="admin"]) #searchInput {
+    margin-left: 0 !important;
+}
     .darecore-cinema-columns-grid {
         grid-template-columns: 1fr;
     }
