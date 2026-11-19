@@ -32,28 +32,40 @@ const EMAILJS_CONFIG = {
 
 const CINEMA_CARD_THEMES = [
     {
-        bg: 'linear-gradient(155deg, #1b0d0e 0%, #681711 55%, #b62816 100%)',
-        glow: 'rgba(255, 59, 27, 0.30)',
-        dot: '#ff3b1b',
+        bg: 'radial-gradient(circle at 80% 18%, rgba(255, 42, 0, 0.38) 0%, rgba(153, 27, 27, 0.22) 45%, rgba(18, 18, 23, 0.96) 85%)',
+        glow: 'rgba(255, 42, 0, 0.34)',
+        dot: '#ff2a00',
         heroBg: 'radial-gradient(circle at 80% 35%, #8f1d14 0%, #2a0c0d 52%, #0a0a0d 100%)'
     },
     {
-        bg: 'linear-gradient(155deg, #11141a 0%, #26303d 55%, #445366 100%)',
-        glow: 'rgba(148, 163, 184, 0.28)',
-        dot: '#94a3b8',
-        heroBg: 'radial-gradient(circle at 80% 35%, #374354 0%, #161b22 55%, #090a0d 100%)'
+        bg: 'radial-gradient(circle at 80% 18%, rgba(59, 130, 246, 0.36) 0%, rgba(30, 58, 138, 0.22) 45%, rgba(18, 18, 23, 0.96) 85%)',
+        glow: 'rgba(59, 130, 246, 0.32)',
+        dot: '#60a5fa',
+        heroBg: 'radial-gradient(circle at 80% 35%, #1e3a8a 0%, #111827 55%, #090a0d 100%)'
     },
     {
-        bg: 'linear-gradient(155deg, #161412 0%, #3b332b 55%, #635547 100%)',
-        glow: 'rgba(214, 195, 165, 0.25)',
-        dot: '#d6c3a5',
-        heroBg: 'radial-gradient(circle at 80% 35%, #4d4237 0%, #1c1815 55%, #09090b 100%)'
+        bg: 'radial-gradient(circle at 80% 18%, rgba(245, 158, 11, 0.34) 0%, rgba(146, 64, 14, 0.22) 45%, rgba(18, 18, 23, 0.96) 85%)',
+        glow: 'rgba(245, 158, 11, 0.32)',
+        dot: '#fbbf24',
+        heroBg: 'radial-gradient(circle at 80% 35%, #78350f 0%, #1c1917 55%, #09090b 100%)'
     },
     {
-        bg: 'linear-gradient(155deg, #0f1314 0%, #1d3538 55%, #2c575c 100%)',
-        glow: 'rgba(56, 189, 248, 0.24)',
-        dot: '#38bdf8',
-        heroBg: 'radial-gradient(circle at 80% 35%, #23464a 0%, #101c1e 55%, #080a0c 100%)'
+        bg: 'radial-gradient(circle at 80% 18%, rgba(6, 182, 212, 0.36) 0%, rgba(21, 94, 117, 0.22) 45%, rgba(18, 18, 23, 0.96) 85%)',
+        glow: 'rgba(6, 182, 212, 0.32)',
+        dot: '#22d3ee',
+        heroBg: 'radial-gradient(circle at 80% 35%, #155e75 0%, #0f172a 55%, #080a0c 100%)'
+    },
+    {
+        bg: 'radial-gradient(circle at 80% 18%, rgba(168, 85, 247, 0.36) 0%, rgba(88, 28, 135, 0.22) 45%, rgba(18, 18, 23, 0.96) 85%)',
+        glow: 'rgba(168, 85, 247, 0.32)',
+        dot: '#c084fc',
+        heroBg: 'radial-gradient(circle at 80% 35%, #581c87 0%, #181024 55%, #09080d 100%)'
+    },
+    {
+        bg: 'radial-gradient(circle at 80% 18%, rgba(16, 185, 129, 0.34) 0%, rgba(6, 95, 70, 0.22) 45%, rgba(18, 18, 23, 0.96) 85%)',
+        glow: 'rgba(16, 185, 129, 0.30)',
+        dot: '#34d399',
+        heroBg: 'radial-gradient(circle at 80% 35%, #065f46 0%, #0d1b18 55%, #080c0b 100%)'
     }
 ];
 
@@ -396,7 +408,7 @@ function getStatusBadgeStyle(status) {
 }
 
 /* ==========================================
-1. GESTIÓN DE PRODUCTOS, TARJETAS POP Y TOUCH MÓVIL
+1. GESTIÓN DE PRODUCTOS, DIFUMINADO MULTICOLOR Y TOUCH MÓVIL
    ========================================== */
 function getStoredProducts() {
     if (window.db && !isSyncing) {
@@ -489,6 +501,9 @@ function renderProducts(products) {
         const card = document.createElement('div');
         card.className = 'product-card';
         card.style.setProperty('--dot-color', theme.dot);
+        card.style.setProperty('--card-border', theme.dot);
+        card.style.setProperty('--card-glow', theme.glow);
+        card.style.setProperty('--card-aura', theme.bg);
 
         card.innerHTML = `
             <div class="product-card-top">
@@ -567,7 +582,7 @@ function openProductModal(productId) {
                 <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
                 <p style="color: #a1a1aa; font-size: 13px; margin-bottom: 18px; line-height: 1.5;">${product.desc}</p>
                 <div style="font-size: 20px; font-weight: 900; color: #ffffff; margin-bottom: 22px;">$${Number(product.price).toLocaleString('es-MX')} MXN</div>
-                <button onclick="addToCart('${product.id || product.firestoreId}'); closeProductModal();" style="background:#ff2a00; color:#fff; border:none; padding:14px 20px; border-radius:999px; font-weight:800; cursor:pointer; text-transform: uppercase; letter-spacing:0.5px;">Agregar al Carrito</button>
+                <button onclick="addToCart('${product.id || product.firestoreId}'); closeProductModal();" style="background:linear-gradient(135deg, #ff2a00 0%, #ff5500 100%); color:#fff; border:none; padding:14px 20px; border-radius:999px; font-weight:800; cursor:pointer; text-transform: uppercase; letter-spacing:0.5px;">Agregar al Carrito</button>
             </div>
         </div>
     `;
@@ -1216,13 +1231,13 @@ async function openCartModal(tab = activeCartTab) {
                 <span>Subtotal a Pagar:</span>
                 <span style="color:#ff2a00;">$${subtotal.toLocaleString('es-MX')} MXN</span>
             </div>
-            <button onclick="checkoutCart()" style="background:#ff2a00; color:#fff; border:none; border-radius:999px; width:100%; padding:13px; font-weight:800; cursor:pointer; text-transform:uppercase; margin-bottom:10px;">Proceder al Pago</button>
+            <button onclick="checkoutCart()" style="background:linear-gradient(135deg, #ff2a00 0%, #ff5500 100%); color:#fff; border:none; border-radius:999px; width:100%; padding:13px; font-weight:800; cursor:pointer; text-transform:uppercase; margin-bottom:10px;">Proceder al Pago</button>
             <button onclick="openGoogleAuthModal()" style="background:#fff; color:#111; border:none; border-radius:999px; width:100%; padding:11px; font-weight:800; cursor:pointer; font-size:12px;">Iniciar Sesión con Google</button>
         `
         : `
             <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:12px; display:flex; flex-direction:column; gap:8px;">
                 <button onclick="openCartModal('pending')" style="background:#222228; color:#fff; border:1px solid rgba(255,255,255,0.12); border-radius:999px; width:100%; padding:11px; font-weight:800; cursor:pointer; font-size:12px;">Actualizar Estatus</button>
-                <button onclick="switchCartTab('cart')" style="background:#ff2a00; color:#fff; border:none; border-radius:999px; width:100%; padding:12px; font-weight:800; cursor:pointer; font-size:12px; text-transform:uppercase;">Seguir Comprando</button>
+                <button onclick="switchCartTab('cart')" style="background:linear-gradient(135deg, #ff2a00 0%, #ff5500 100%); color:#fff; border:none; border-radius:999px; width:100%; padding:12px; font-weight:800; cursor:pointer; font-size:12px; text-transform:uppercase;">Seguir Comprando</button>
             </div>
         `;
 
