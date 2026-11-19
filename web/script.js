@@ -138,7 +138,17 @@ function cleanExtraHeroBlocks() {
         'GRAMAJE POR PIEZA',
         'ANCHO DEL RIB DE CUELLO',
         'DEFORMACIÓN GARANTIZADA',
-        'DEFORMACION GARANTIZADA'
+        'DEFORMACION GARANTIZADA',
+        'ANATOMÍA DEL CORTE BOXY',
+        'ANATOMIA DEL CORTE BOXY',
+        'DROP SHOULDER 25 CM+',
+        'SQUAT-PROOF & SEAMLESS',
+        'ALTA COMPRESIÓN Y SOPORTE',
+        'ALTA COMPRESION Y SOPORTE',
+        'ESPECIFICACIÓN TÉCNICA',
+        'ESPECIFICACION TECNICA',
+        'ALGODÓN PEINADO 240G - 400G',
+        'ALGODON PEINADO 240G - 400G'
     ];
 
     document.querySelectorAll('p, span, div, h1, h2, h3, h4, section, article').forEach(el => {
@@ -150,9 +160,18 @@ function cleanExtraHeroBlocks() {
         const isExtraBlockText = extraTexts.some(item => txt === item || (el.children.length === 0 && txt.includes(item)));
 
         if (isCottonDesc || isExtraBlockText) {
+            if (el.children.length === 0) {
+                el.textContent = '';
+            }
             el.style.display = 'none';
             const smallContainer = el.closest('section, article, div');
-            if (smallContainer && smallContainer.id !== 'darecoreHeroWrapper' && smallContainer.innerText.trim().length < 350) {
+            if (
+                smallContainer &&
+                smallContainer.id !== 'darecoreHeroWrapper' &&
+                smallContainer.id !== 'productGrid' &&
+                !smallContainer.classList.contains('product-grid') &&
+                smallContainer.innerText.trim().length < 350
+            ) {
                 smallContainer.style.display = 'none';
             }
         }
