@@ -15,6 +15,9 @@ const ORDER_STATUSES = [
     'Enviado'
 ];
 
+const STORE_URL = 'https://darecore-store-web.vercel.app';
+const AVATAR_URL = 'https://i.ibb.co/cSm45r2D/darecorelogo.png';
+
 // Configuración opcional para envío real de correos desde el navegador:
 // Opción A: Webhook (Make, Zapier, n8n o Google Apps Script)
 const EMAIL_WEBHOOK_URL = '';
@@ -718,8 +721,10 @@ function syncAbandonedCartState() {
             items: cart.map(i => ({ name: i.name, qty: Number(i.qty || 1), price: Number(i.price) })),
             updatedAt: nowIso,
             remindAt: remindAt,
+            storeUrl: STORE_URL,
+            avatarUrl: AVATAR_URL,
             emailSubject: 'Tienes un carrito pendiente en DareCore Store',
-            emailBody: 'Tienes un carrito pendiente en DareCore Store. No pierdas la oportunidad de lucir con estilo a donde vayas.'
+            emailBody: `Tienes un carrito pendiente en DareCore Store. No pierdas la oportunidad de lucir con estilo a donde vayas. Visita la tienda: ${STORE_URL}`
         }, { merge: true }).catch(() => {});
     }
 }
@@ -741,7 +746,7 @@ function checkAbandonedCartReminder() {
                 type: 'abandoned_cart_24h',
                 recipients: [currentUser.email],
                 subject: 'Tienes un carrito pendiente en DareCore Store',
-                message: 'Tienes un carrito pendiente en DareCore Store. No pierdas la oportunidad de lucir con estilo a donde vayas.'
+                message: `Tienes un carrito pendiente en DareCore Store. No pierdas la oportunidad de lucir con estilo a donde vayas.\n\nIr a la tienda: ${STORE_URL}`
             });
         }
     }
@@ -752,6 +757,8 @@ async function triggerAutomatedEmail(payload) {
         try {
             await window.db.collection('mail_queue').add({
                 ...payload,
+                storeUrl: STORE_URL,
+                avatarUrl: AVATAR_URL,
                 createdAt: new Date().toISOString(),
                 status: 'queued'
             });
@@ -765,7 +772,11 @@ async function triggerAutomatedEmail(payload) {
             await fetch(EMAIL_WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    ...payload,
+                    storeUrl: STORE_URL,
+                    avatarUrl: AVATAR_URL
+                })
             });
         } catch (err) {
             console.log("Webhook de correo no disponible:", err);
@@ -791,7 +802,9 @@ async function triggerAutomatedEmail(payload) {
                         subject: payload.subject,
                         message: payload.message,
                         product_name: payload.productName || '',
-                        product_price: payload.productPrice || ''
+                        product_price: payload.productPrice || '',
+                        store_url: STORE_URL,
+                        avatar_url: AVATAR_URL
                     }
                 })
             }).catch(() => {})
@@ -1367,7 +1380,7 @@ async function notifyUsersAboutNewProduct(product) {
             productName: product.name,
             productPrice: product.price,
             subject: `Nuevo drop en DareCore: ${product.name}`,
-            message: `Acabamos de publicar "${product.name}" ($${Number(product.price).toLocaleString('es-MX')} MXN) en DareCore Store. Entra ahora antes de que se agote.`
+            message: `Acabamos de publicar "${product.name}" ($${Number(product.price).toLocaleString('es-MX')} MXN) en DareCore Store. Entra ahora antes de que se agote.\n\nVer tienda: ${STORE_URL}`
         });
     } catch (err) {
         console.error("Error enviando correos de nuevo producto:", err);
