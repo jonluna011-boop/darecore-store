@@ -72,6 +72,7 @@ const CINEMA_CARD_THEMES = [
 document.addEventListener('DOMContentLoaded', () => {
     updateTopAnnouncementBanner();
     styleBrandLogoInHeader();
+    layoutPublicHeaderZones();
     cleanExtraHeroBlocks();
     initHeroShowcase();
     initStore();
@@ -81,6 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initCartSystem();
     checkAbandonedCartReminder();
 });
+
+window.addEventListener('resize', layoutPublicHeaderZones);
 
 function isHomePageSection() {
     const path = window.location.pathname.toLowerCase();
@@ -127,11 +130,78 @@ function styleBrandLogoInHeader() {
             el.innerHTML = `<span class="brand-dare">DARE</span><span class="brand-core-red">CORE</span>`;
             if (!isAdminPage && el.closest('header, nav, .navbar, .site-header')) {
                 el.dataset.darecoreLogo = 'left';
-                el.style.order = '-10';
-                el.style.marginRight = 'auto';
             }
         }
     });
+}
+
+function layoutPublicHeaderZones() {
+    const isAdminPage = window.location.pathname.toLowerCase().includes('admin');
+    if (isAdminPage) return;
+
+    const header = document.querySelector('header:not(.admin-header):not([class*="admin"]), .navbar:not(.admin-navbar):not([class*="admin"]), .site-header:not(.admin-header):not([class*="admin"])');
+    if (!header) return;
+
+    header.style.setProperty('display', 'flex', 'important');
+    header.style.setProperty('align-items', 'center', 'important');
+    header.style.setProperty('justify-content', 'space-between', 'important');
+    header.style.setProperty('width', '100%', 'important');
+    header.style.setProperty('gap', '28px', 'important');
+    header.style.setProperty('flex-wrap', 'nowrap', 'important');
+
+    const children = Array.from(header.children);
+    if (children.length === 0) return;
+
+    let logoEl = null;
+    let navEl = null;
+    let rightGroupEl = null;
+
+    children.forEach(child => {
+        const txt = (child.textContent || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        const hasSearchOrCart = child.matches('#searchInput, .search-box, .cart-btn, [class*="cart-btn"]') ||
+            Boolean(child.querySelector('#searchInput, .search-box, .cart-btn, [class*="cart-btn"]'));
+        const isNavGroup = txt.includes('INICIO') && (txt.includes('HOMBRE') || txt.includes('MUJER') || txt.includes('OVERSIZE'));
+
+        if (hasSearchOrCart) {
+            rightGroupEl = child;
+        } else if (isNavGroup) {
+            navEl = child;
+        } else if (!logoEl && (txt.includes('DARECORE') || child.querySelector('.brand-dare, img'))) {
+            logoEl = child;
+        }
+    });
+
+    if (logoEl) {
+        logoEl.dataset.darecoreLogo = 'left';
+        logoEl.style.setProperty('order', '1', 'important');
+        logoEl.style.setProperty('margin', '0', 'important');
+        logoEl.style.setProperty('margin-right', 'auto', 'important');
+        logoEl.style.setProperty('flex-shrink', '0', 'important');
+    }
+
+    if (navEl) {
+        navEl.style.setProperty('order', '2', 'important');
+        navEl.style.setProperty('display', 'flex', 'important');
+        navEl.style.setProperty('align-items', 'center', 'important');
+        navEl.style.setProperty('justify-content', 'center', 'important');
+        navEl.style.setProperty('gap', '24px', 'important');
+        navEl.style.setProperty('margin', '0 auto', 'important');
+        navEl.style.setProperty('flex-wrap', 'nowrap', 'important');
+
+        navEl.querySelectorAll('a').forEach(link => {
+            link.style.setProperty('white-space', 'nowrap', 'important');
+        });
+    }
+
+    if (rightGroupEl) {
+        rightGroupEl.style.setProperty('order', '3', 'important');
+        rightGroupEl.style.setProperty('display', 'flex', 'important');
+        rightGroupEl.style.setProperty('align-items', 'center', 'important');
+        rightGroupEl.style.setProperty('gap', '12px', 'important');
+        rightGroupEl.style.setProperty('margin', '0', 'important');
+        rightGroupEl.style.setProperty('margin-left', 'auto', 'important');
+        rightGroupEl.style.setProperty('flex-shrink', '0', 'important');
+    }
 }
 
 function cleanExtraHeroBlocks() {
