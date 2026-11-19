@@ -4,7 +4,15 @@
 
 let selectedCustomBaseIndex = 0;
 let cart = JSON.parse(localStorage.getItem('darecore_cart')) || [];
+let activeCartTab = 'cart'; // 'cart' | 'pending'
 let isSyncing = false;
+
+const ORDER_STATUSES = [
+    'Pedido pendiente',
+    'En proceso',
+    'Listo para enviar',
+    'Enviado'
+];
 
 document.addEventListener('DOMContentLoaded', () => {
     initStore();
@@ -17,6 +25,20 @@ document.addEventListener('DOMContentLoaded', () => {
 function generateFolio(prefix) {
     const randomPart = Math.floor(100000 + Math.random() * 900000);
     return `${prefix}-${randomPart}`;
+}
+
+function getStatusBadgeStyle(status) {
+    switch (status) {
+        case 'En proceso':
+            return 'background: rgba(255, 193, 7, 0.16); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.45);';
+        case 'Listo para enviar':
+            return 'background: rgba(59, 130, 246, 0.18); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.45);';
+        case 'Enviado':
+            return 'background: rgba(34, 197, 94, 0.16); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.45);';
+        case 'Pedido pendiente':
+        default:
+            return 'background: rgba(255, 59, 27, 0.16); color: #ff6b52; border: 1px solid rgba(255, 59, 27, 0.45);';
+    }
 }
 
 /* ==========================================
@@ -152,7 +174,7 @@ function openProductModal(productId) {
                 <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
                 <p style="color: #aaaaaa; font-size: 12px; margin-bottom: 15px; line-height: 1.4;">${product.desc}</p>
                 <div style="font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 20px;">$${Number(product.price).toLocaleString('es-MX')} MXN</div>
-                <button onclick="addToCart('${product.id || product.firestoreId}'); closeProductModal();" style="background:#ff3b1b; color:#fff; border:none; padding:12px; font-weight:700; cursor:pointer; text-transform: uppercase;">Agregar al Carrito</button>
+                <button onclick="addToCart('${product.id || p.firestoreId}'); closeProductModal();" style="background:#ff3b1b; color:#fff; border:none; padding:12px; font-weight:700; cursor:pointer; text-transform: uppercase;">Agregar al Carrito</button>
             </div>
         </div>
     `;
@@ -255,17 +277,21 @@ function setupDareLab() {
 
             const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
             const orderNumber = generateFolio('PEDIDO');
+            const initialStatus = 'Pedido pendiente';
+            const createdAt = new Date().toISOString();
 
             let compressedImageBase64 = '';
             if (fileObj) {
                 compressedImageBase64 = (await compressImageFile(fileObj)) || '';
             }
 
+            let docId = null;
             if (window.db) {
                 try {
-                    await window.db.collection('darelab_orders').add({
+                    const docRef = await window.db.collection('darelab_orders').add({
                         orderNumber: orderNumber,
                         orderType: 'pedido_darelab',
+                        status: initialStatus,
                         userEmail: currentUser ? currentUser.email : 'Invitado (sin sesión)',
                         userName: currentUser ? currentUser.displayName : 'Invitado',
                         whatsapp: whatsapp,
@@ -275,12 +301,24 @@ function setupDareLab() {
                         imageData: compressedImageBase64,
                         notes: notes,
                         total: total,
-                        createdAt: new Date().toISOString()
+                        createdAt: createdAt
                     });
+                    docId = docRef.id;
                 } catch (err) {
                     console.error("Error guardando solicitud de Dare Lab:", err);
                 }
             }
+
+            saveClientPendingOrder({
+                id: docId || orderNumber,
+                collection: 'darelab_orders',
+                folio: orderNumber,
+                typeLabel: 'Dare Lab',
+                summary: `${selectedBase.name} (${techName})`,
+                total: total,
+                status: initialStatus,
+                createdAt: createdAt
+            });
 
             const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber}`;
             const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
@@ -347,8 +385,51 @@ function updateCustomSummary() {
 }
 
 /* ==========================================
-5. SISTEMA DE CARRITO Y PAGOS
+5. SISTEMA DE CARRITO, ESTATUS Y PAGOS
    ========================================== */
+function getClientPendingOrdersLocal() {
+    try {
+        const raw = localStorage.getItem('darecore_client_orders');
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveClientPendingOrder(orderEntry) {
+    const list = getClientPendingOrdersLocal();
+    const filtered = list.filter(item => item.folio !== orderEntry.folio);
+    filtered.unshift(orderEntry);
+    localStorage.setItem('darecore_client_orders', JSON.stringify(filtered.slice(0, 25)));
+}
+
+async function fetchClientPendingOrders() {
+    const localOrders = getClientPendingOrdersLocal();
+    if (!window.db || localOrders.length === 0) return localOrders;
+
+    const updated = await Promise.all(localOrders.map(async (entry) => {
+        if (!entry.id || !entry.collection) return entry;
+        try {
+            const docSnap = await window.db.collection(entry.collection).doc(entry.id).get();
+            if (docSnap.exists) {
+                const data = docSnap.data();
+                return {
+                    ...entry,
+                    status: data.status || entry.status || 'Pedido pendiente',
+                    total: data.total !== undefined ? data.total : entry.total
+                };
+            }
+        } catch (err) {
+            console.log("No se pudo refrescar estatus de pedido:", err);
+        }
+        return entry;
+    }));
+
+    localStorage.setItem('darecore_client_orders', JSON.stringify(updated));
+    return updated;
+}
+
 function addToCart(productId) {
     const products = getStoredProducts();
     const product = products.find(p => p.id == productId || p.firestoreId == productId);
@@ -366,13 +447,26 @@ function addToCart(productId) {
     alert(`¡"${product.name}" agregado al carrito!`);
 }
 
+function changeCartQty(index, delta) {
+    if (!cart[index]) return;
+    const nextQty = Number(cart[index].qty || 1) + delta;
+    if (nextQty <= 0) {
+        cart.splice(index, 1);
+    } else {
+        cart[index].qty = nextQty;
+    }
+    saveCart();
+    updateCartUI();
+    openCartModal('cart');
+}
+
 function saveCart() {
     localStorage.setItem('darecore_cart', JSON.stringify(cart));
 }
 
 function updateCartUI() {
     const badges = document.querySelectorAll('.cart-badge');
-    const totalCount = cart.reduce((sum, item) => sum + item.qty, 0);
+    const totalCount = cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
     badges.forEach(b => b.innerText = totalCount);
 }
 
@@ -383,12 +477,19 @@ function initCartSystem() {
     cartBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            openCartModal();
+            openCartModal(activeCartTab);
         });
     });
 }
 
-function openCartModal() {
+function switchCartTab(tabName) {
+    activeCartTab = tabName;
+    openCartModal(tabName);
+}
+
+async function openCartModal(tab = activeCartTab) {
+    activeCartTab = tab;
+
     let modalOverlay = document.getElementById('cartModalOverlay');
     if (!modalOverlay) {
         modalOverlay = document.createElement('div');
@@ -397,42 +498,102 @@ function openCartModal() {
         document.body.appendChild(modalOverlay);
     }
 
-    let subtotal = cart.reduce((sum, item) => sum + (Number(item.price) * item.qty), 0);
+    const pendingOrders = await fetchClientPendingOrders();
+    const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty || 1)), 0);
 
-    let itemsHtml = '';
-    if (cart.length === 0) {
-        itemsHtml = '<p style="color:#888; text-align:center; padding:40px;">Tu carrito está vacío.</p>';
+    const cartTabStyle = activeCartTab === 'cart'
+        ? 'background:#ff3b1b; color:#fff; border:1px solid #ff3b1b;'
+        : 'background:#1a1a1a; color:#bbb; border:1px solid #2b2b2b;';
+
+    const pendingTabStyle = activeCartTab === 'pending'
+        ? 'background:#ff3b1b; color:#fff; border:1px solid #ff3b1b;'
+        : 'background:#1a1a1a; color:#bbb; border:1px solid #2b2b2b;';
+
+    let bodyContentHtml = '';
+
+    if (activeCartTab === 'cart') {
+        if (cart.length === 0) {
+            bodyContentHtml = '<p style="color:#888; text-align:center; padding:40px 15px;">Tu carrito está vacío. Agrega prendas o revisa la pestaña <strong>Pedido pendiente</strong>.</p>';
+        } else {
+            bodyContentHtml = cart.map((item, idx) => {
+                const qty = Number(item.qty || 1);
+                const lineTotal = Number(item.price) * qty;
+                return `
+                    <div style="display:flex; gap:10px; align-items:center; background:#1a1a1a; padding:10px; border-radius:4px; margin-bottom:10px; border:1px solid #252525;">
+                        <img src="${item.image || ''}" style="width:52px; height:52px; object-fit:cover; border-radius:4px; background:#242424;">
+                        <div style="flex-grow:1; min-width:0;">
+                            <div style="font-weight:700; font-size:12px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
+                            <div style="font-size:11px; color:#999;">$${Number(item.price).toLocaleString('es-MX')} MXN c/u • <strong style="color:#fff;">$${lineTotal.toLocaleString('es-MX')} MXN</strong></div>
+                            <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+                                <button onclick="changeCartQty(${idx}, -1)" style="background:#262626; color:#fff; border:1px solid #3a3a3a; width:24px; height:24px; cursor:pointer; font-weight:800; border-radius:3px;">-</button>
+                                <span style="color:#fff; font-size:12px; font-weight:800; min-width:18px; text-align:center;">${qty}</span>
+                                <button onclick="changeCartQty(${idx}, 1)" style="background:#262626; color:#fff; border:1px solid #3a3a3a; width:24px; height:24px; cursor:pointer; font-weight:800; border-radius:3px;" title="Agregar otra pieza igual">+</button>
+                            </div>
+                        </div>
+                        <button onclick="removeFromCart(${idx})" style="background:none; border:none; color:#ff3b1b; cursor:pointer; font-size:18px; padding:0 4px;" title="Quitar prenda">&times;</button>
+                    </div>
+                `;
+            }).join('');
+        }
     } else {
-        itemsHtml = cart.map((item, idx) => `
-            <div style="display:flex; gap:12px; align-items:center; background:#1a1a1a; padding:10px; border-radius:4px; margin-bottom:10px;">
-                <img src="${item.image}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;">
-                <div style="flex-grow:1;">
-                    <div style="font-weight:700; font-size:12px; color:#fff;">${item.name}</div>
-                    <div style="font-size:11px; color:#888;">$${item.price} MXN x ${item.qty}</div>
-                </div>
-                <button onclick="removeFromCart(${idx})" style="background:none; border:none; color:#ff3b1b; cursor:pointer; font-size:16px;">&times;</button>
-            </div>
-        `).join('');
+        if (pendingOrders.length === 0) {
+            bodyContentHtml = '<p style="color:#888; text-align:center; padding:40px 15px;">Aún no tienes pedidos registrados aquí. Al procesar tu pago aparecerán con su estatus.</p>';
+        } else {
+            bodyContentHtml = pendingOrders.map((ord) => {
+                const currentStatus = ord.status || 'Pedido pendiente';
+                const badgeStyle = getStatusBadgeStyle(currentStatus);
+                return `
+                    <div style="background:#181818; border:1px solid #282828; padding:12px; border-radius:5px; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+                            <span style="color:#fff; font-weight:800; font-size:12px;">#${ord.folio}</span>
+                            <span style="font-size:10px; font-weight:800; padding:3px 8px; border-radius:999px; ${badgeStyle}">${currentStatus}</span>
+                        </div>
+                        <div style="color:#bbb; font-size:11px; margin-bottom:6px;">${ord.summary || ord.typeLabel || 'Pedido DARECORE'}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#888;">
+                            <span>${ord.typeLabel || 'Tienda'}</span>
+                            <strong style="color:#ff3b1b; font-size:12px;">$${Number(ord.total || 0).toLocaleString('es-MX')} MXN</strong>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
     }
 
+    const footerHtml = activeCartTab === 'cart'
+        ? `
+            <div style="border-top:1px solid #222; padding-top:15px; margin-bottom:15px; display:flex; justify-content:space-between; color:#fff; font-weight:800; font-size:16px;">
+                <span>Subtotal a Pagar:</span>
+                <span style="color:#ff3b1b;">$${subtotal.toLocaleString('es-MX')} MXN</span>
+            </div>
+            <button onclick="checkoutCart()" style="background:#ff3b1b; color:#fff; border:none; width:100%; padding:12px; font-weight:700; cursor:pointer; text-transform:uppercase; margin-bottom:10px;">Proceder al Pago</button>
+            <button onclick="openGoogleAuthModal()" style="background:#fff; color:#111; border:none; width:100%; padding:10px; font-weight:700; cursor:pointer; font-size:12px;">Iniciar Sesión con Google</button>
+        `
+        : `
+            <div style="border-top:1px solid #222; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
+                <button onclick="openCartModal('pending')" style="background:#222; color:#fff; border:1px solid #333; width:100%; padding:10px; font-weight:700; cursor:pointer; font-size:12px;">Actualizar Estatus</button>
+                <button onclick="switchCartTab('cart')" style="background:#ff3b1b; color:#fff; border:none; width:100%; padding:11px; font-weight:700; cursor:pointer; font-size:12px; text-transform:uppercase;">Seguir Comprando</button>
+            </div>
+        `;
+
     modalOverlay.innerHTML = `
-        <div style="background:#111; width:400px; max-width:100%; padding:25px; display:flex; flex-direction:column; justify-content:space-between; box-shadow: -5px 0 15px rgba(0,0,0,0.5);">
+        <div style="background:#111; width:410px; max-width:100%; padding:25px; display:flex; flex-direction:column; justify-content:space-between; box-shadow: -5px 0 15px rgba(0,0,0,0.5);">
             <div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #222; padding-bottom:10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #222; padding-bottom:10px;">
                     <h3 style="color:#fff; font-size:16px; margin:0;">CARRITO DE COMPRAS</h3>
                     <button onclick="closeCartModal()" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
                 </div>
-                <div style="max-height:50vh; overflow-y:auto;">
-                    ${itemsHtml}
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:16px;">
+                    <button onclick="switchCartTab('cart')" style="padding:8px; font-size:11px; font-weight:800; cursor:pointer; border-radius:4px; text-transform:uppercase; ${cartTabStyle}">Carrito (${cart.reduce((s, i) => s + Number(i.qty || 1), 0)})</button>
+                    <button onclick="switchCartTab('pending')" style="padding:8px; font-size:11px; font-weight:800; cursor:pointer; border-radius:4px; text-transform:uppercase; ${pendingTabStyle}">Pedido pendiente (${pendingOrders.length})</button>
+                </div>
+
+                <div style="max-height:52vh; overflow-y:auto;">
+                    ${bodyContentHtml}
                 </div>
             </div>
             <div>
-                <div style="border-top:1px solid #222; padding-top:15px; margin-bottom:15px; display:flex; justify-content:space-between; color:#fff; font-weight:800; font-size:16px;">
-                    <span>Subtotal a Pagar:</span>
-                    <span style="color:#ff3b1b;">$${subtotal.toLocaleString('es-MX')} MXN</span>
-                </div>
-                <button onclick="checkoutCart()" style="background:#ff3b1b; color:#fff; border:none; width:100%; padding:12px; font-weight:700; cursor:pointer; text-transform:uppercase; margin-bottom:10px;">Proceder al Pago</button>
-                <button onclick="openGoogleAuthModal()" style="background:#fff; color:#111; border:none; width:100%; padding:10px; font-weight:700; cursor:pointer; font-size:12px;">Iniciar Sesión con Google</button>
+                ${footerHtml}
             </div>
         </div>
     `;
@@ -448,7 +609,7 @@ function removeFromCart(index) {
     cart.splice(index, 1);
     saveCart();
     updateCartUI();
-    openCartModal();
+    openCartModal('cart');
 }
 
 async function checkoutCart() {
@@ -458,29 +619,54 @@ async function checkoutCart() {
     }
 
     const purchaseNumber = generateFolio('COMPRA');
-    const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) * item.qty), 0);
+    const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty || 1)), 0);
     const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+    const initialStatus = 'Pedido pendiente';
+    const createdAt = new Date().toISOString();
 
+    const cleanItems = cart.map(item => ({
+        id: item.id || item.firestoreId || '',
+        name: item.name,
+        price: Number(item.price),
+        qty: Number(item.qty || 1)
+    }));
+
+    let docId = null;
     if (window.db) {
         try {
-            await window.db.collection('orders').add({
+            const docRef = await window.db.collection('orders').add({
                 purchaseNumber: purchaseNumber,
                 orderType: 'compra_carrito',
+                status: initialStatus,
                 userEmail: currentUser ? currentUser.email : 'Invitado (sin sesión)',
                 userName: currentUser ? currentUser.displayName : 'Invitado',
-                items: cart.map(item => ({
-                    id: item.id || item.firestoreId || '',
-                    name: item.name,
-                    price: Number(item.price),
-                    qty: Number(item.qty)
-                })),
+                items: cleanItems,
                 total: subtotal,
-                createdAt: new Date().toISOString()
+                createdAt: createdAt
             });
+            docId = docRef.id;
         } catch (err) {
             console.error("Error guardando compra:", err);
         }
     }
+
+    const summaryText = cleanItems.map(i => `${i.qty}x ${i.name}`).join(', ');
+    saveClientPendingOrder({
+        id: docId || purchaseNumber,
+        collection: 'orders',
+        folio: purchaseNumber,
+        typeLabel: 'Carrito',
+        summary: summaryText,
+        total: subtotal,
+        status: initialStatus,
+        createdAt: createdAt
+    });
+
+    // Vaciar el carrito para que quede listo para solicitar nueva ropa
+    cart = [];
+    saveCart();
+    updateCartUI();
+    openCartModal('pending');
 
     const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${purchaseNumber}`;
     window.open(`https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`, '_blank');
@@ -574,6 +760,41 @@ function initAdminPanel() {
     if (addProductForm) {
         addProductForm.addEventListener('submit', handleProductSubmit);
     }
+}
+
+function renderStatusSelectHtml(collectionName, docId, currentStatus) {
+    const active = currentStatus || 'Pedido pendiente';
+    const optionsHtml = ORDER_STATUSES.map(st =>
+        `<option value="${st}" ${st === active ? 'selected' : ''}>${st}</option>`
+    ).join('');
+
+    return `
+        <div style="margin-top: 4px;">
+            <label style="font-size: 10px; color: #aaa; display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: 700;">Estatus del pedido:</label>
+            <select onchange="updateOrderStatus('${collectionName}', '${docId}', this.value)" style="width: 100%; background: #141414; color: #fff; border: 1px solid #333; padding: 7px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                ${optionsHtml}
+            </select>
+        </div>
+    `;
+}
+
+function updateOrderStatus(collectionName, docId, newStatus) {
+    if (!window.db || !docId) return;
+
+    window.db.collection(collectionName).doc(docId).update({
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+    }).then(() => {
+        // También actualizar caché local del cliente si coincide el ID
+        const localOrders = getClientPendingOrdersLocal();
+        const nextLocal = localOrders.map(item =>
+            item.id === docId ? { ...item, status: newStatus } : item
+        );
+        localStorage.setItem('darecore_client_orders', JSON.stringify(nextLocal));
+
+        if (collectionName === 'orders') loadAdminOrders();
+        if (collectionName === 'darelab_orders') loadAdminDareLabOrders();
+    }).catch(err => console.error("Error actualizando estatus:", err));
 }
 
 function loadAdminProducts() {
@@ -816,6 +1037,9 @@ function loadAdminDareLabOrders() {
 
         snapshot.forEach((doc) => {
             const order = doc.data();
+            const status = order.status || 'Pedido pendiente';
+            const badgeStyle = getStatusBadgeStyle(status);
+
             const card = document.createElement('div');
             card.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px;";
             
@@ -832,11 +1056,16 @@ function loadAdminDareLabOrders() {
 
             card.innerHTML = `
                 ${imgHtml}
-                <div style="color: #ff3b1b; font-size: 11px; font-weight: 800;">${order.orderNumber ? '#' + order.orderNumber + ' • ' : ''}${order.baseName}</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+                    <span style="color: #ff3b1b; font-size: 11px; font-weight: 800;">${order.orderNumber ? '#' + order.orderNumber : 'DARE LAB'}</span>
+                    <span style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; ${badgeStyle}">${status}</span>
+                </div>
+                <div style="color: #fff; font-size: 12px; font-weight: 700;">${order.baseName}</div>
                 <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName} (${order.userEmail})</div>
                 <div style="color: #fff; font-size: 12px;"><strong>WhatsApp:</strong> ${waClientLink}</div>
                 <div style="color: #aaa; font-size: 11px;"><strong>Técnica:</strong> ${order.technique} | <strong>Total:</strong> $${Number(order.total).toLocaleString('es-MX')} MXN</div>
                 <div style="color: #888; font-size: 11px;"><strong>Notas:</strong> ${order.notes}</div>
+                ${renderStatusSelectHtml('darelab_orders', doc.id, status)}
                 <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="deleteDareLabOrder('${doc.id}')">Eliminar Solicitud</button>
             `;
             container.appendChild(card);
@@ -867,6 +1096,9 @@ function loadAdminOrders() {
 
         snapshot.forEach((doc) => {
             const order = doc.data();
+            const status = order.status || 'Pedido pendiente';
+            const badgeStyle = getStatusBadgeStyle(status);
+
             const itemsList = Array.isArray(order.items) && order.items.length > 0
                 ? order.items.map(item => `
                     <li style="margin-bottom: 4px; color: #ddd;">
@@ -882,8 +1114,9 @@ function loadAdminOrders() {
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                     <span style="color: #ff3b1b; font-size: 12px; font-weight: 800;">#${order.purchaseNumber || doc.id}</span>
-                    <span style="color: #666; font-size: 10px;">${dateText}</span>
+                    <span style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; ${badgeStyle}">${status}</span>
                 </div>
+                <div style="color: #666; font-size: 10px;">${dateText}</div>
                 <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName || 'Invitado'} (${order.userEmail || 'Sin correo'})</div>
                 <div style="background: #141414; border: 1px solid #222; padding: 10px; border-radius: 4px;">
                     <div style="color: #aaa; font-size: 11px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase;">Prendas solicitadas:</div>
@@ -894,6 +1127,7 @@ function loadAdminOrders() {
                 <div style="color: #fff; font-size: 13px; font-weight: 800; margin-top: 2px;">
                     Total: <span style="color: #ff3b1b;">$${Number(order.total || 0).toLocaleString('es-MX')} MXN</span>
                 </div>
+                ${renderStatusSelectHtml('orders', doc.id, status)}
                 <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="deleteAdminOrder('${doc.id}')">Eliminar Compra</button>
             `;
             container.appendChild(card);
