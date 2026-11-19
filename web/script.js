@@ -1,5 +1,5 @@
 /* ==========================================
-   DARECORE - SCRIPT MAESTRO CINEMATOGRÁFICO
+   DARECORE - SCRIPT MAESTRO COMPLETO
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
@@ -29,7 +29,6 @@ const EMAILJS_CONFIG = {
     abandonedCartTemplateId: 'template_gxvi2ue'
 };
 
-// Paleta cinematográfica underground para tarjetas y carrusel principal
 const CINEMA_CARD_THEMES = [
     {
         bg: 'linear-gradient(155deg, #1b0d0e 0%, #681711 55%, #b62816 100%)',
@@ -59,6 +58,8 @@ const CINEMA_CARD_THEMES = [
 
 document.addEventListener('DOMContentLoaded', () => {
     updateTopAnnouncementBanner();
+    styleBrandLogoInHeader();
+    cleanExtraHeroBlocks();
     initHeroShowcase();
     initStore();
     setupSearch();
@@ -73,8 +74,44 @@ function generateFolio(prefix) {
     return `${prefix}-${randomPart}`;
 }
 
+function styleBrandLogoInHeader() {
+    const candidates = document.querySelectorAll('header a, nav a, .navbar a, .brand, .logo');
+    candidates.forEach(el => {
+        if (el.dataset.darecoreStyled) return;
+        const text = (el.textContent || '').trim();
+        if (/^DARECORE$/i.test(text)) {
+            el.dataset.darecoreStyled = 'true';
+            el.innerHTML = `<span style="color:#ffffff;font-weight:900;letter-spacing:1px;">DARE</span><span style="color:#ff2a00;font-weight:900;letter-spacing:1px;">CORE</span>`;
+        }
+    });
+}
+
+function cleanExtraHeroBlocks() {
+    const phrasesToHide = [
+        'SPOTLIGHT / DRAG RACE CLUB',
+        'MONTE CARLO RACING #04',
+        'DROP ACTIVO: APEX & GYM',
+        'EXPLORAR COLECCIÓN',
+        'EXPLORAR COLECCION'
+    ];
+
+    document.querySelectorAll('section, div, button, a, p, h1, h2, h3, span').forEach(el => {
+        if (el.id === 'darecoreHeroWrapper' || el.closest('#darecoreHeroWrapper')) return;
+        const txt = (el.textContent || '').trim().toUpperCase();
+        if (!txt) return;
+
+        const matchesExtra = phrasesToHide.some(p => txt === p || (el.children.length === 0 && txt.includes(p)));
+        if (matchesExtra) {
+            const box = el.tagName === 'BUTTON' || el.tagName === 'A'
+                ? el
+                : (el.closest('section') && el.closest('section').innerText.length < 260 ? el.closest('section') : el);
+            box.style.display = 'none';
+        }
+    });
+}
+
 /* ==========================================
-   HERO CAROUSEL AUTOMÁTICO (ESTILO MEZQUITE CINEMA)
+   HERO CAROUSEL AUTOMÁTICO
    ========================================== */
 function getHeroSlides() {
     const products = getStoredProducts().filter(p => p && p.image);
@@ -381,7 +418,6 @@ function setupTouchPopCards() {
         }, { passive: true });
     });
 
-    // Detecta cuando el dedo pasa por encima de las tarjetas en pantalla táctil
     document.addEventListener('touchmove', (e) => {
         const touch = e.touches[0];
         if (!touch) return;
@@ -462,7 +498,7 @@ function setupSearch() {
 }
 
 /* ==========================================
-3. MODAL DE VISTA RÁPIDA (REDONDEADO)
+3. MODAL DE VISTA RÁPIDA
    ========================================== */
 function openProductModal(productId) {
     const products = getStoredProducts();
@@ -1288,7 +1324,7 @@ function openGoogleAuthModal() {
 }
 
 /* ==========================================
-6. PANEL DE ADMINISTRACIÓN (ESQUINAS CIRCULARES)
+6. PANEL DE ADMINISTRACIÓN
    ========================================== */
 function initAdminPanel() {
     const loginForm = document.getElementById('loginForm');
