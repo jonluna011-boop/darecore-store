@@ -89,7 +89,7 @@ button, input, select, textarea {
 }
 
 /* ==========================================
-   MARCA, NAVEGACIÓN Y LOGO A LA IZQUIERDA
+   MARCA, NAVEGACIÓN Y LOGO HASTA LA ESQUINA IZQUIERDA
    ========================================== */
 .brand-dare {
     color: #0b0b0e !important;
@@ -115,7 +115,7 @@ header,
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 20px;
     flex-wrap: wrap;
     position: sticky;
     top: 0;
@@ -128,20 +128,24 @@ header:not(.admin-header):not([class*="admin"]),
     display: flex !important;
     align-items: center !important;
     justify-content: space-between !important;
-    gap: 16px !important;
+    width: 100% !important;
+    gap: 20px !important;
 }
 
+header:not(.admin-header):not([class*="admin"]) > a:first-child,
+header:not(.admin-header):not([class*="admin"]) > div:first-child:not(.nav-links):not(:has(#searchInput)):not(:has(.search-box)):not(:has(.cart-btn)),
 header:not(.admin-header):not([class*="admin"]) .brand,
 header:not(.admin-header):not([class*="admin"]) .logo,
-header:not(.admin-header):not([class*="admin"]) a:has(.brand-dare),
-.navbar:not(.admin-navbar):not([class*="admin"]) .brand,
-.navbar:not(.admin-navbar):not([class*="admin"]) .logo,
-.navbar:not(.admin-navbar):not([class*="admin"]) a:has(.brand-dare),
-.site-header:not(.admin-header):not([class*="admin"]) .brand,
-.site-header:not(.admin-header):not([class*="admin"]) .logo,
-.site-header:not(.admin-header):not([class*="admin"]) a:has(.brand-dare) {
-    order: -1 !important;
+header:not(.admin-header):not([class*="admin"]) [data-darecore-logo="left"],
+.navbar:not(.admin-navbar):not([class*="admin"]) > a:first-child,
+.navbar:not(.admin-navbar):not([class*="admin"]) > div:first-child:not(.nav-links):not(:has(#searchInput)):not(:has(.search-box)):not(:has(.cart-btn)),
+.navbar:not(.admin-navbar):not([class*="admin"]) [data-darecore-logo="left"],
+.site-header:not(.admin-header):not([class*="admin"]) > a:first-child,
+.site-header:not(.admin-header):not([class*="admin"]) > div:first-child:not(.nav-links):not(:has(#searchInput)):not(:has(.search-box)):not(:has(.cart-btn)),
+.site-header:not(.admin-header):not([class*="admin"]) [data-darecore-logo="left"] {
+    order: -10 !important;
     margin-right: auto !important;
+    margin-left: 0 !important;
     flex-shrink: 0 !important;
 }
 
@@ -149,18 +153,35 @@ header:not(.admin-header):not([class*="admin"]) .nav-links,
 .navbar:not(.admin-navbar):not([class*="admin"]) .nav-links,
 .site-header:not(.admin-header):not([class*="admin"]) .nav-links {
     order: 0 !important;
-    margin-left: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
 header:not(.admin-header):not([class*="admin"]) .search-box,
 header:not(.admin-header):not([class*="admin"]) #searchInput,
+.navbar:not(.admin-navbar):not([class*="admin"]) .search-box,
+.navbar:not(.admin-navbar):not([class*="admin"]) #searchInput {
+    order: 10 !important;
+    margin-left: 0 !important;
+    margin-right: 10px !important;
+}
+
 header:not(.admin-header):not([class*="admin"]) .cart-btn,
 header:not(.admin-header):not([class*="admin"]) [class*="cart-btn"],
-.navbar:not(.admin-navbar):not([class*="admin"]) .search-box,
-.navbar:not(.admin-navbar):not([class*="admin"]) #searchInput,
 .navbar:not(.admin-navbar):not([class*="admin"]) .cart-btn,
 .navbar:not(.admin-navbar):not([class*="admin"]) [class*="cart-btn"] {
-    order: 1 !important;
+    order: 11 !important;
+    margin-left: 0 !important;
+}
+
+header:not(.admin-header):not([class*="admin"]) > div:has(#searchInput),
+header:not(.admin-header):not([class*="admin"]) > div:has(.search-box),
+header:not(.admin-header):not([class*="admin"]) > div:has(.cart-btn),
+.navbar:not(.admin-navbar):not([class*="admin"]) > div:has(#searchInput),
+.navbar:not(.admin-navbar):not([class*="admin"]) > div:has(.search-box),
+.navbar:not(.admin-navbar):not([class*="admin"]) > div:has(.cart-btn) {
+    order: 10 !important;
+    margin-left: 0 !important;
 }
 
 .nav-links {
@@ -727,9 +748,11 @@ textarea.form-control:focus {
         justify-content: flex-start !important;
     }
 
+    header:not(.admin-header):not([class*="admin"]) > a:first-child,
+    header:not(.admin-header):not([class*="admin"]) > div:first-child:not(.nav-links):not(:has(#searchInput)):not(:has(.search-box)):not(:has(.cart-btn)),
     header:not(.admin-header):not([class*="admin"]) .brand,
     header:not(.admin-header):not([class*="admin"]) .logo,
-    header:not(.admin-header):not([class*="admin"]) a:has(.brand-dare) {
+    header:not(.admin-header):not([class*="admin"]) [data-darecore-logo="left"] {
         margin-right: auto !important;
     }
 
