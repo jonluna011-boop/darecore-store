@@ -192,6 +192,24 @@
                 <!-- Se cargan dinámicamente las bases para editar -->
             </div>
         </div>
+
+        <!-- SECCIÓN: SOLICITUDES DARE LAB (FOTOS Y DISEÑOS) -->
+        <div class="panel-box" style="margin-top: 35px;">
+            <h3 style="font-size: 15px; color: var(--accent-color); margin-bottom: 8px; text-transform: uppercase;">🎨 SOLICITUDES DARE LAB // FOTOS Y DISEÑOS (<span id="dareLabCount">0</span>)</h3>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">Haz clic en cualquier imagen subida por un cliente para descargarla en tu equipo.</p>
+            <div id="adminDareLabList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px;">
+                <!-- Se cargan dinámicamente las solicitudes de Dare Lab -->
+            </div>
+        </div>
+
+        <!-- SECCIÓN: CLIENTES REGISTRADOS CON GOOGLE -->
+        <div class="panel-box" style="margin-top: 35px;">
+            <h3 style="font-size: 15px; color: var(--accent-color); margin-bottom: 8px; text-transform: uppercase;">👤 CLIENTES REGISTRADOS (<span id="usersCount">0</span>)</h3>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">Usuarios que han iniciado sesión con Google en la tienda.</p>
+            <div id="adminUsersList" style="display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto;">
+                <!-- Se cargan dinámicamente los clientes registrados -->
+            </div>
+        </div>
     </main>
 
     <!-- Conexión a Firebase Firestore -->
