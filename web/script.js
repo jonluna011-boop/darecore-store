@@ -1,11 +1,13 @@
 /* ==========================================
-   DARECORE - SCRIPT MAESTRO DEFINITIVO Y UNIFICADO
+   DARECORE - SCRIPT MAESTRO CINEMATOGRÁFICO
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
 let cart = JSON.parse(localStorage.getItem('darecore_cart')) || [];
-let activeCartTab = 'cart'; // 'cart' | 'pending'
+let activeCartTab = 'cart';
 let isSyncing = false;
+let heroSlideIndex = 0;
+let heroAutoTimer = null;
 
 const ORDER_STATUSES = [
     'Pago pendiente',
@@ -18,11 +20,8 @@ const ORDER_STATUSES = [
 const STORE_URL = 'https://darecore-store-web.vercel.app';
 const AVATAR_URL = 'https://i.ibb.co/cSm45r2D/darecorelogo.png';
 
-// Configuración opcional para envío real de correos desde el navegador:
-// Opción A: Webhook (Make, Zapier, n8n o Google Apps Script)
 const EMAIL_WEBHOOK_URL = '';
 
-// Opción B: EmailJS (https://www.emailjs.com/)
 const EMAILJS_CONFIG = {
     publicKey: 'oPqh5dU4hbXT_uZng',
     serviceId: 'service_a3uxsit',
@@ -30,8 +29,37 @@ const EMAILJS_CONFIG = {
     abandonedCartTemplateId: 'template_gxvi2ue'
 };
 
+// Paleta cinematográfica underground para tarjetas y carrusel principal
+const CINEMA_CARD_THEMES = [
+    {
+        bg: 'linear-gradient(155deg, #1b0d0e 0%, #681711 55%, #b62816 100%)',
+        glow: 'rgba(255, 59, 27, 0.30)',
+        dot: '#ff3b1b',
+        heroBg: 'radial-gradient(circle at 80% 35%, #8f1d14 0%, #2a0c0d 52%, #0a0a0d 100%)'
+    },
+    {
+        bg: 'linear-gradient(155deg, #11141a 0%, #26303d 55%, #445366 100%)',
+        glow: 'rgba(148, 163, 184, 0.28)',
+        dot: '#94a3b8',
+        heroBg: 'radial-gradient(circle at 80% 35%, #374354 0%, #161b22 55%, #090a0d 100%)'
+    },
+    {
+        bg: 'linear-gradient(155deg, #161412 0%, #3b332b 55%, #635547 100%)',
+        glow: 'rgba(214, 195, 165, 0.25)',
+        dot: '#d6c3a5',
+        heroBg: 'radial-gradient(circle at 80% 35%, #4d4237 0%, #1c1815 55%, #09090b 100%)'
+    },
+    {
+        bg: 'linear-gradient(155deg, #0f1314 0%, #1d3538 55%, #2c575c 100%)',
+        glow: 'rgba(56, 189, 248, 0.24)',
+        dot: '#38bdf8',
+        heroBg: 'radial-gradient(circle at 80% 35%, #23464a 0%, #101c1e 55%, #080a0c 100%)'
+    }
+];
+
 document.addEventListener('DOMContentLoaded', () => {
     updateTopAnnouncementBanner();
+    initHeroShowcase();
     initStore();
     setupSearch();
     setupDareLab();
@@ -43,6 +71,117 @@ document.addEventListener('DOMContentLoaded', () => {
 function generateFolio(prefix) {
     const randomPart = Math.floor(100000 + Math.random() * 900000);
     return `${prefix}-${randomPart}`;
+}
+
+/* ==========================================
+   HERO CAROUSEL AUTOMÁTICO (ESTILO MEZQUITE CINEMA)
+   ========================================== */
+function getHeroSlides() {
+    const products = getStoredProducts().filter(p => p && p.image);
+    if (products.length > 0) {
+        return products.slice(0, 5).map((p, idx) => {
+            const theme = CINEMA_CARD_THEMES[idx % CINEMA_CARD_THEMES.length];
+            return {
+                id: p.id || p.firestoreId,
+                kicker: p.tag || 'DROP UNDERGROUND • EDICIÓN LIMITADA',
+                title: p.name,
+                desc: p.desc || 'Corte boxy heavyweight diseñado para destacar en la escena urbana.',
+                watermark: (p.category || 'DARECORE').toUpperCase(),
+                image: p.image,
+                price: p.price,
+                heroBg: theme.heroBg
+            };
+        });
+    }
+
+    return [
+        {
+            id: null,
+            kicker: 'DROP 01 • HEAVYWEIGHT 280G',
+            title: 'Boxy Tee Nocturne',
+            desc: 'Algodón de alto gramaje con caída estructurada y estética cinematográfica oscura.',
+            watermark: 'DARECORE',
+            image: AVATAR_URL,
+            price: 550,
+            heroBg: CINEMA_CARD_THEMES[0].heroBg
+        },
+        {
+            id: null,
+            kicker: 'DARE LAB • CUSTOM STUDIO',
+            title: 'Oversized Graphite',
+            desc: 'Tonos carbón y silueta amplia lista para personalizar con tu propio arte.',
+            watermark: 'UNDERGROUND',
+            image: AVATAR_URL,
+            price: 620,
+            heroBg: CINEMA_CARD_THEMES[1].heroBg
+        }
+    ];
+}
+
+function initHeroShowcase() {
+    const grid = document.getElementById('productGrid') || document.querySelector('.product-grid');
+    if (!grid) return;
+
+    let heroWrapper = document.getElementById('darecoreHeroWrapper');
+    if (!heroWrapper) {
+        heroWrapper = document.createElement('section');
+        heroWrapper.id = 'darecoreHeroWrapper';
+        heroWrapper.className = 'darecore-hero-wrapper';
+        const anchor = grid.closest('section') || grid;
+        anchor.parentNode.insertBefore(heroWrapper, anchor);
+    }
+
+    renderHeroSlide(0);
+    startHeroAutoPlay();
+}
+
+function renderHeroSlide(index) {
+    const heroWrapper = document.getElementById('darecoreHeroWrapper');
+    if (!heroWrapper) return;
+
+    const slides = getHeroSlides();
+    heroSlideIndex = ((index % slides.length) + slides.length) % slides.length;
+    const current = slides[heroSlideIndex];
+
+    const dotsHtml = slides.map((_, idx) =>
+        `<button type="button" class="darecore-hero-dot ${idx === heroSlideIndex ? 'active' : ''}" onclick="goToHeroSlide(${idx})" aria-label="Slide ${idx + 1}"></button>`
+    ).join('');
+
+    const ctaAction = current.id
+        ? `openProductModal('${current.id}')`
+        : `document.getElementById('productGrid')?.scrollIntoView({ behavior: 'smooth' })`;
+
+    heroWrapper.innerHTML = `
+        <div class="darecore-hero-stage" style="background: ${current.heroBg};">
+            <div class="darecore-hero-watermark">${current.watermark}</div>
+            <div class="darecore-hero-content">
+                <span class="darecore-hero-kicker">${current.kicker}</span>
+                <h1 class="darecore-hero-title">${current.title}</h1>
+                <p class="darecore-hero-desc">${current.desc}</p>
+                <div class="darecore-hero-actions">
+                    <button type="button" class="darecore-hero-cta" onclick="${ctaAction}">
+                        Ver prenda • $${Number(current.price || 550).toLocaleString('es-MX')} MXN
+                    </button>
+                </div>
+            </div>
+            <div class="darecore-hero-visual">
+                <img src="${current.image}" alt="${current.title}">
+            </div>
+            <div class="darecore-hero-dots">${dotsHtml}</div>
+        </div>
+    `;
+}
+
+function goToHeroSlide(index) {
+    renderHeroSlide(index);
+    startHeroAutoPlay();
+}
+
+function startHeroAutoPlay() {
+    clearInterval(heroAutoTimer);
+    heroAutoTimer = setInterval(() => {
+        renderHeroSlide(heroSlideIndex + 1);
+    }, 4500);
 }
 
 /* ==========================================
@@ -67,10 +206,6 @@ function updateTopAnnouncementBanner() {
 
             if (isPromoStrip) {
                 el.textContent = targetText;
-                const parent = el.parentElement;
-                if (parent && parent.children.length === 1 && raw.length > 15) {
-                    el.textContent = targetText;
-                }
             }
         }
     });
@@ -88,12 +223,12 @@ function showFloatingToast(message) {
             'transform: translate(-50%, -50%) scale(0.95)',
             'background: #16a34a',
             'color: #ffffff',
-            'padding: 14px 24px',
+            'padding: 14px 26px',
             'border-radius: 999px',
             'font-size: 13px',
             'font-weight: 800',
             'letter-spacing: 0.4px',
-            'box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45)',
+            'box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55)',
             'border: 1px solid rgba(255, 255, 255, 0.25)',
             'z-index: 99999',
             'opacity: 0',
@@ -128,7 +263,8 @@ function showConfirmModal(message) {
                 'display: none',
                 'position: fixed',
                 'inset: 0',
-                'background: rgba(0, 0, 0, 0.72)',
+                'background: rgba(0, 0, 0, 0.78)',
+                'backdrop-filter: blur(8px)',
                 'z-index: 100000',
                 'justify-content: center',
                 'align-items: center',
@@ -138,12 +274,12 @@ function showConfirmModal(message) {
         }
 
         overlay.innerHTML = `
-            <div style="background: #0d0d0d; color: #ffffff; border: 1px solid #262626; border-radius: 10px; padding: 24px; max-width: 400px; width: 100%; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75); text-align: center;">
-                <div style="font-size: 11px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">DARECORE</div>
-                <div style="font-size: 15px; font-weight: 700; color: #ffffff; line-height: 1.45; margin-bottom: 22px;">${message}</div>
+            <div style="background: #121216; color: #ffffff; border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; padding: 28px; max-width: 400px; width: 100%; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8); text-align: center;">
+                <div style="font-size: 11px; font-weight: 800; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">DARECORE</div>
+                <div style="font-size: 15px; font-weight: 700; color: #ffffff; line-height: 1.45; margin-bottom: 24px;">${message}</div>
                 <div style="display: flex; gap: 12px; justify-content: center;">
-                    <button id="darecoreConfirmAccept" type="button" style="flex: 1; background: #16a34a; color: #ffffff; border: none; padding: 11px 16px; border-radius: 6px; font-size: 13px; font-weight: 800; cursor: pointer; text-transform: uppercase;">Aceptar</button>
-                    <button id="darecoreConfirmCancel" type="button" style="flex: 1; background: #dc2626; color: #ffffff; border: none; padding: 11px 16px; border-radius: 6px; font-size: 13px; font-weight: 800; cursor: pointer; text-transform: uppercase;">Cancelar</button>
+                    <button id="darecoreConfirmAccept" type="button" style="flex: 1; background: #16a34a; color: #ffffff; border: none; padding: 12px 16px; border-radius: 999px; font-size: 13px; font-weight: 800; cursor: pointer; text-transform: uppercase;">Aceptar</button>
+                    <button id="darecoreConfirmCancel" type="button" style="flex: 1; background: #dc2626; color: #ffffff; border: none; padding: 12px 16px; border-radius: 999px; font-size: 13px; font-weight: 800; cursor: pointer; text-transform: uppercase;">Cancelar</button>
                 </div>
             </div>
         `;
@@ -180,7 +316,7 @@ function getStatusBadgeStyle(status) {
 }
 
 /* ==========================================
-1. GESTIÓN DE PRODUCTOS Y SINCRONIZACIÓN
+1. GESTIÓN DE PRODUCTOS, TARJETAS POP Y TOUCH MÓVIL
    ========================================== */
 function getStoredProducts() {
     if (window.db && !isSyncing) {
@@ -190,6 +326,7 @@ function getStoredProducts() {
                 const cloudProducts = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
                 localStorage.setItem('darecore_products', JSON.stringify(cloudProducts));
                 initStore();
+                renderHeroSlide(heroSlideIndex);
             }
         }).catch(err => console.log("Modo offline:", err))
           .finally(() => { setTimeout(() => { isSyncing = false; }, 2000); });
@@ -197,7 +334,7 @@ function getStoredProducts() {
 
     const local = localStorage.getItem('darecore_products');
     if (local) {
-        try { 
+        try {
             const parsed = JSON.parse(local);
             if (Array.isArray(parsed)) return parsed;
         } catch (e) { /* fallback */ }
@@ -212,7 +349,7 @@ function saveProductsLocal(products) {
 function initStore() {
     const grid = document.getElementById('productGrid') || document.querySelector('.product-grid');
     if (!grid) return;
-    
+
     const path = window.location.pathname.toLowerCase();
     let currentCategory = 'inicio';
     if (path.includes('hombre')) currentCategory = 'hombre';
@@ -220,45 +357,82 @@ function initStore() {
     else if (path.includes('oversize')) currentCategory = 'oversize';
 
     const allProducts = getStoredProducts();
-    const filtered = currentCategory === 'inicio' 
-        ? allProducts 
+    const filtered = currentCategory === 'inicio'
+        ? allProducts
         : allProducts.filter(p => p.category === currentCategory || p.category === 'inicio');
 
     renderProducts(filtered);
 }
 
+function setupTouchPopCards() {
+    const cards = document.querySelectorAll('.product-card');
+    if (!cards.length) return;
+
+    const activateCard = (targetCard) => {
+        cards.forEach(c => {
+            if (c !== targetCard) c.classList.remove('touch-pop-active');
+        });
+        if (targetCard) targetCard.classList.add('touch-pop-active');
+    };
+
+    cards.forEach(card => {
+        card.addEventListener('touchstart', () => {
+            activateCard(card);
+        }, { passive: true });
+    });
+
+    // Detecta cuando el dedo pasa por encima de las tarjetas en pantalla táctil
+    document.addEventListener('touchmove', (e) => {
+        const touch = e.touches[0];
+        if (!touch) return;
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        const hoveredCard = el ? el.closest('.product-card') : null;
+        if (hoveredCard) {
+            activateCard(hoveredCard);
+        }
+    }, { passive: true });
+}
+
 function renderProducts(products) {
     const grid = document.getElementById('productGrid') || document.querySelector('.product-grid');
     if (!grid) return;
-    
+
     grid.innerHTML = '';
     if (!products || products.length === 0) {
-        grid.innerHTML = '<p style="color: var(--text-secondary, #888); grid-column: 1/-1; text-align: center; padding: 40px;">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
+        grid.innerHTML = '<p style="color: #9ca3af; grid-column: 1/-1; text-align: center; padding: 48px; background: #111115; border-radius: 24px; border: 1px solid rgba(255,255,255,0.08);">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
         return;
     }
 
-    products.forEach(p => {
+    products.forEach((p, idx) => {
+        const theme = CINEMA_CARD_THEMES[idx % CINEMA_CARD_THEMES.length];
         const card = document.createElement('div');
         card.className = 'product-card';
-        card.style.cursor = 'pointer';
+        card.style.setProperty('--card-active-bg', theme.bg);
+        card.style.setProperty('--card-active-glow', theme.glow);
+        card.style.setProperty('--dot-color', theme.dot);
 
         card.innerHTML = `
-            ${p.tag ? `<span class="product-tag">${p.tag}</span>` : ''}
-            <div class="product-img" style="background-image: url('${p.image || ''}'); background-size: cover; background-position: center; height: 220px; background-color: #1a1a1a;"></div>
-            <div class="product-name" style="font-weight: 700; margin-top: 10px; color: #111;">${p.name}</div>
-            <div class="product-desc" style="font-size: 11px; color: #666; margin-bottom: 10px;">${p.desc}</div>
-            <div class="product-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
-                <span class="price" style="font-weight: 800; color: #111;">$${Number(p.price).toLocaleString('es-MX')} <small>MXN</small></span>
+            <div class="product-card-top">
+                <span class="product-tag">${p.tag || 'DARECORE'}</span>
+                <span class="product-color-dot"></span>
+            </div>
+            <div class="product-img" style="background-image: url('${p.image || ''}');"></div>
+            <div class="product-name">${p.name}</div>
+            <div class="product-desc">${p.desc}</div>
+            <div class="product-footer">
+                <span class="price">$${Number(p.price).toLocaleString('es-MX')} <small style="font-weight:600; opacity:0.75;">MXN</small></span>
                 <button class="btn-add" onclick="event.stopPropagation(); addToCart('${p.id || p.firestoreId}')">Agregar</button>
             </div>
         `;
-        
+
         card.addEventListener('click', () => {
             openProductModal(p.id || p.firestoreId);
         });
 
         grid.appendChild(card);
     });
+
+    setupTouchPopCards();
 }
 
 /* ==========================================
@@ -271,14 +445,14 @@ function setupSearch() {
     searchInput.addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase().trim();
         const products = getStoredProducts();
-        
+
         if (!term) {
             initStore();
             return;
         }
 
-        const filtered = products.filter(p => 
-            (p.name && p.name.toLowerCase().includes(term)) || 
+        const filtered = products.filter(p =>
+            (p.name && p.name.toLowerCase().includes(term)) ||
             (p.desc && p.desc.toLowerCase().includes(term)) ||
             (p.category && p.category.toLowerCase().includes(term)) ||
             (p.tag && p.tag.toLowerCase().includes(term))
@@ -288,7 +462,7 @@ function setupSearch() {
 }
 
 /* ==========================================
-3. MODAL DE VISTA RÁPIDA (EN GRANDE)
+3. MODAL DE VISTA RÁPIDA (REDONDEADO)
    ========================================== */
 function openProductModal(productId) {
     const products = getStoredProducts();
@@ -299,20 +473,20 @@ function openProductModal(productId) {
     if (!modalOverlay) {
         modalOverlay = document.createElement('div');
         modalOverlay.id = 'quickViewModal';
-        modalOverlay.style.cssText = "display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:center; align-items:center;";
+        modalOverlay.style.cssText = "display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px); z-index:9999; justify-content:center; align-items:center; padding:20px;";
         document.body.appendChild(modalOverlay);
     }
 
     modalOverlay.innerHTML = `
-        <div class="product-modal-content" style="background:#111; padding:30px; border-radius:8px; max-width:650px; width:90%; position:relative; display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
-            <button onclick="closeProductModal()" class="product-modal-close" style="position:absolute; top:10px; right:15px; background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
-            <div style="background-image: url('${product.image}'); background-size: cover; background-position: center; height:280px; border-radius:4px; background-color:#222;"></div>
+        <div class="product-modal-content" style="background:#121217; border:1px solid rgba(255,255,255,0.12); padding:30px; border-radius:28px; max-width:680px; width:100%; position:relative; display:grid; grid-template-columns: 1fr 1fr; gap:24px; box-shadow:0 28px 70px rgba(0,0,0,0.85);">
+            <button onclick="closeProductModal()" class="product-modal-close" style="position:absolute; top:14px; right:18px; background:rgba(255,255,255,0.08); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:20px; cursor:pointer;">&times;</button>
+            <div style="background-image: url('${product.image}'); background-size: cover; background-position: center; height:300px; border-radius:20px; background-color:#1e1e24;"></div>
             <div style="display: flex; flex-direction: column; justify-content: center; color: #ffffff;">
-                <span style="color: #ff3b1b; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;">${product.tag || 'DARECORE'}</span>
-                <h2 style="font-size: 20px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
-                <p style="color: #aaaaaa; font-size: 12px; margin-bottom: 15px; line-height: 1.4;">${product.desc}</p>
-                <div style="font-size: 18px; font-weight: 800; color: #ffffff; margin-bottom: 20px;">$${Number(product.price).toLocaleString('es-MX')} MXN</div>
-                <button onclick="addToCart('${product.id || p.firestoreId}'); closeProductModal();" style="background:#ff3b1b; color:#fff; border:none; padding:12px; font-weight:700; cursor:pointer; text-transform: uppercase;">Agregar al Carrito</button>
+                <span style="color: #ff3b1b; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing:1px; margin-bottom: 6px;">${product.tag || 'DARECORE'}</span>
+                <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
+                <p style="color: #9ca3af; font-size: 13px; margin-bottom: 18px; line-height: 1.5;">${product.desc}</p>
+                <div style="font-size: 20px; font-weight: 900; color: #ffffff; margin-bottom: 22px;">$${Number(product.price).toLocaleString('es-MX')} MXN</div>
+                <button onclick="addToCart('${product.id || product.firestoreId}'); closeProductModal();" style="background:#ff3b1b; color:#fff; border:none; padding:14px 20px; border-radius:999px; font-weight:800; cursor:pointer; text-transform: uppercase; letter-spacing:0.5px;">Agregar al Carrito</button>
             </div>
         </div>
     `;
@@ -330,7 +504,7 @@ function closeProductModal() {
 function getCustomBases() {
     const local = localStorage.getItem('darecore_custom_bases');
     if (local) {
-        try { 
+        try {
             const parsed = JSON.parse(local);
             if (Array.isArray(parsed) && parsed.length > 0) return parsed;
         } catch (e) { /* fallback */ }
@@ -494,13 +668,14 @@ function renderCustomBasesPublic() {
     container.innerHTML = '';
 
     bases.forEach((base, index) => {
+        const isSelected = index === selectedCustomBaseIndex;
         const card = document.createElement('div');
-        card.className = `option-card ${index === selectedCustomBaseIndex ? 'selected' : ''}`;
-        card.style.cssText = "border: 2px solid #ddd; padding: 15px; cursor: pointer; transition: all 0.2s; border-radius: 4px; background: #fff;";
-        
+        card.className = `option-card ${isSelected ? 'selected' : ''}`;
+        card.style.cssText = `border: 2px solid ${isSelected ? '#ff3b1b' : 'rgba(255,255,255,0.1)'}; padding: 18px; cursor: pointer; transition: all 0.25s ease; border-radius: 22px; background: ${isSelected ? '#1f1415' : '#16161b'};`;
+
         card.innerHTML = `
-            <div style="font-weight: 800; font-size: 14px; color: #111; margin-bottom: 5px;">${base.name}</div>
-            <div style="font-size: 12px; color: #666; margin-bottom: 10px;">${base.desc}</div>
+            <div style="font-weight: 800; font-size: 14px; color: #ffffff; margin-bottom: 5px;">${base.name}</div>
+            <div style="font-size: 12px; color: #9ca3af; margin-bottom: 10px;">${base.desc}</div>
             <div style="font-weight: 900; font-size: 15px; color: #ff3b1b;">$${Number(base.price).toLocaleString('es-MX')} MXN</div>
         `;
 
@@ -508,12 +683,12 @@ function renderCustomBasesPublic() {
             selectedCustomBaseIndex = index;
             document.querySelectorAll('#customBasesContainer .option-card').forEach(c => {
                 c.classList.remove('selected');
-                c.style.borderColor = '#ddd';
-                c.style.background = '#fff';
+                c.style.borderColor = 'rgba(255,255,255,0.1)';
+                c.style.background = '#16161b';
             });
             card.classList.add('selected');
             card.style.borderColor = '#ff3b1b';
-            card.style.background = '#fafafa';
+            card.style.background = '#1f1415';
             updateCustomSummary();
         });
 
@@ -526,7 +701,7 @@ function renderCustomBasesPublic() {
 function updateCustomSummary() {
     const bases = getCustomBases();
     const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
-    
+
     const techSelect = document.getElementById('customTechniqueSelect');
     if (!techSelect) return;
 
@@ -877,7 +1052,7 @@ async function openCartModal(tab = activeCartTab) {
     if (!modalOverlay) {
         modalOverlay = document.createElement('div');
         modalOverlay.id = 'cartModalOverlay';
-        modalOverlay.style.cssText = "display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; justify-content:flex-end; align-items:stretch;";
+        modalOverlay.style.cssText = "display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:9999; justify-content:flex-end; align-items:stretch;";
         document.body.appendChild(modalOverlay);
     }
 
@@ -886,41 +1061,41 @@ async function openCartModal(tab = activeCartTab) {
 
     const cartTabStyle = activeCartTab === 'cart'
         ? 'background:#ff3b1b; color:#fff; border:1px solid #ff3b1b;'
-        : 'background:#1a1a1a; color:#bbb; border:1px solid #2b2b2b;';
+        : 'background:#1a1a20; color:#bbb; border:1px solid rgba(255,255,255,0.1);';
 
     const pendingTabStyle = activeCartTab === 'pending'
         ? 'background:#ff3b1b; color:#fff; border:1px solid #ff3b1b;'
-        : 'background:#1a1a1a; color:#bbb; border:1px solid #2b2b2b;';
+        : 'background:#1a1a20; color:#bbb; border:1px solid rgba(255,255,255,0.1);';
 
     let bodyContentHtml = '';
 
     if (activeCartTab === 'cart') {
         if (cart.length === 0) {
-            bodyContentHtml = '<p style="color:#888; text-align:center; padding:40px 15px;">Tu carrito está vacío. Agrega prendas o revisa la pestaña <strong>Pedido pendiente</strong>.</p>';
+            bodyContentHtml = '<p style="color:#9ca3af; text-align:center; padding:40px 15px;">Tu carrito está vacío. Agrega prendas o revisa la pestaña <strong>Pedido pendiente</strong>.</p>';
         } else {
             bodyContentHtml = cart.map((item, idx) => {
                 const qty = Number(item.qty || 1);
                 const lineTotal = Number(item.price) * qty;
                 return `
-                    <div style="display:flex; gap:10px; align-items:center; background:#1a1a1a; padding:10px; border-radius:4px; margin-bottom:10px; border:1px solid #252525;">
-                        <img src="${item.image || ''}" style="width:52px; height:52px; object-fit:cover; border-radius:4px; background:#242424;">
+                    <div style="display:flex; gap:12px; align-items:center; background:#18181e; padding:12px; border-radius:20px; margin-bottom:10px; border:1px solid rgba(255,255,255,0.08);">
+                        <img src="${item.image || ''}" style="width:56px; height:56px; object-fit:cover; border-radius:14px; background:#24242c;">
                         <div style="flex-grow:1; min-width:0;">
-                            <div style="font-weight:700; font-size:12px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
-                            <div style="font-size:11px; color:#999;">$${Number(item.price).toLocaleString('es-MX')} MXN c/u • <strong style="color:#fff;">$${lineTotal.toLocaleString('es-MX')} MXN</strong></div>
+                            <div style="font-weight:700; font-size:13px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
+                            <div style="font-size:11px; color:#9ca3af;">$${Number(item.price).toLocaleString('es-MX')} MXN c/u • <strong style="color:#fff;">$${lineTotal.toLocaleString('es-MX')} MXN</strong></div>
                             <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
-                                <button onclick="changeCartQty(${idx}, -1)" style="background:#262626; color:#fff; border:1px solid #3a3a3a; width:24px; height:24px; cursor:pointer; font-weight:800; border-radius:3px;">-</button>
+                                <button onclick="changeCartQty(${idx}, -1)" style="background:#26262e; color:#fff; border:1px solid rgba(255,255,255,0.14); width:26px; height:26px; cursor:pointer; font-weight:800; border-radius:50%;">-</button>
                                 <span style="color:#fff; font-size:12px; font-weight:800; min-width:18px; text-align:center;">${qty}</span>
-                                <button onclick="changeCartQty(${idx}, 1)" style="background:#262626; color:#fff; border:1px solid #3a3a3a; width:24px; height:24px; cursor:pointer; font-weight:800; border-radius:3px;" title="Agregar otra pieza igual">+</button>
+                                <button onclick="changeCartQty(${idx}, 1)" style="background:#26262e; color:#fff; border:1px solid rgba(255,255,255,0.14); width:26px; height:26px; cursor:pointer; font-weight:800; border-radius:50%;" title="Agregar otra pieza igual">+</button>
                             </div>
                         </div>
-                        <button onclick="removeFromCart(${idx})" style="background:none; border:none; color:#ff3b1b; cursor:pointer; font-size:18px; padding:0 4px;" title="Quitar prenda">&times;</button>
+                        <button onclick="removeFromCart(${idx})" style="background:none; border:none; color:#ff3b1b; cursor:pointer; font-size:20px; padding:0 6px;" title="Quitar prenda">&times;</button>
                     </div>
                 `;
             }).join('');
         }
     } else {
         if (pendingOrders.length === 0) {
-            bodyContentHtml = '<p style="color:#888; text-align:center; padding:40px 15px;">Aún no tienes pedidos registrados aquí. Al procesar tu pago aparecerán con su estatus.</p>';
+            bodyContentHtml = '<p style="color:#9ca3af; text-align:center; padding:40px 15px;">Aún no tienes pedidos registrados aquí. Al procesar tu pago aparecerán con su estatus.</p>';
         } else {
             bodyContentHtml = pendingOrders.map((ord) => {
                 const isDelivered = Boolean(ord.delivered);
@@ -931,18 +1106,18 @@ async function openCartModal(tab = activeCartTab) {
 
                 const strikeStyle = isDelivered ? 'text-decoration: line-through; opacity: 0.65;' : '';
                 const cardBorderStyle = isDelivered
-                    ? 'background:#141414; border:1px solid #262626; opacity:0.88;'
-                    : 'background:#181818; border:1px solid #282828;';
+                    ? 'background:#141418; border:1px solid rgba(255,255,255,0.08); opacity:0.88;'
+                    : 'background:#18181e; border:1px solid rgba(255,255,255,0.1);';
 
                 const deliveredBannerHtml = isDelivered
-                    ? `<div style="margin-top:8px; padding:6px 8px; background:rgba(34, 197, 94, 0.12); border-left:3px solid #4ade80; color:#86efac; font-size:11px; font-weight:800; letter-spacing:0.3px;">ESTE PEDIDO YA TE FUE ENTREGADO</div>`
+                    ? `<div style="margin-top:8px; padding:6px 12px; border-radius:999px; background:rgba(34, 197, 94, 0.12); color:#86efac; font-size:11px; font-weight:800; letter-spacing:0.3px;">ESTE PEDIDO YA TE FUE ENTREGADO</div>`
                     : '';
 
                 return `
-                    <div style="${cardBorderStyle} padding:12px; border-radius:5px; margin-bottom:10px;">
+                    <div style="${cardBorderStyle} padding:14px; border-radius:20px; margin-bottom:10px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
                             <span style="color:#fff; font-weight:800; font-size:12px; ${strikeStyle}">#${ord.folio}</span>
-                            <span style="font-size:10px; font-weight:800; padding:3px 8px; border-radius:999px; ${badgeStyle}">${isDelivered ? 'Entregado' : currentStatus}</span>
+                            <span style="font-size:10px; font-weight:800; padding:3px 10px; border-radius:999px; ${badgeStyle}">${isDelivered ? 'Entregado' : currentStatus}</span>
                         </div>
                         <div style="color:#bbb; font-size:11px; margin-bottom:6px; ${strikeStyle}">${ord.summary || ord.typeLabel || 'Pedido DARECORE'}</div>
                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#888; ${strikeStyle}">
@@ -958,31 +1133,31 @@ async function openCartModal(tab = activeCartTab) {
 
     const footerHtml = activeCartTab === 'cart'
         ? `
-            <div style="border-top:1px solid #222; padding-top:15px; margin-bottom:15px; display:flex; justify-content:space-between; color:#fff; font-weight:800; font-size:16px;">
+            <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:15px; margin-bottom:15px; display:flex; justify-content:space-between; color:#fff; font-weight:800; font-size:16px;">
                 <span>Subtotal a Pagar:</span>
                 <span style="color:#ff3b1b;">$${subtotal.toLocaleString('es-MX')} MXN</span>
             </div>
-            <button onclick="checkoutCart()" style="background:#ff3b1b; color:#fff; border:none; width:100%; padding:12px; font-weight:700; cursor:pointer; text-transform:uppercase; margin-bottom:10px;">Proceder al Pago</button>
-            <button onclick="openGoogleAuthModal()" style="background:#fff; color:#111; border:none; width:100%; padding:10px; font-weight:700; cursor:pointer; font-size:12px;">Iniciar Sesión con Google</button>
+            <button onclick="checkoutCart()" style="background:#ff3b1b; color:#fff; border:none; border-radius:999px; width:100%; padding:13px; font-weight:800; cursor:pointer; text-transform:uppercase; margin-bottom:10px;">Proceder al Pago</button>
+            <button onclick="openGoogleAuthModal()" style="background:#fff; color:#111; border:none; border-radius:999px; width:100%; padding:11px; font-weight:800; cursor:pointer; font-size:12px;">Iniciar Sesión con Google</button>
         `
         : `
-            <div style="border-top:1px solid #222; padding-top:12px; display:flex; flex-direction:column; gap:8px;">
-                <button onclick="openCartModal('pending')" style="background:#222; color:#fff; border:1px solid #333; width:100%; padding:10px; font-weight:700; cursor:pointer; font-size:12px;">Actualizar Estatus</button>
-                <button onclick="switchCartTab('cart')" style="background:#ff3b1b; color:#fff; border:none; width:100%; padding:11px; font-weight:700; cursor:pointer; font-size:12px; text-transform:uppercase;">Seguir Comprando</button>
+            <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:12px; display:flex; flex-direction:column; gap:8px;">
+                <button onclick="openCartModal('pending')" style="background:#222228; color:#fff; border:1px solid rgba(255,255,255,0.12); border-radius:999px; width:100%; padding:11px; font-weight:800; cursor:pointer; font-size:12px;">Actualizar Estatus</button>
+                <button onclick="switchCartTab('cart')" style="background:#ff3b1b; color:#fff; border:none; border-radius:999px; width:100%; padding:12px; font-weight:800; cursor:pointer; font-size:12px; text-transform:uppercase;">Seguir Comprando</button>
             </div>
         `;
 
     modalOverlay.innerHTML = `
-        <div style="background:#111; width:410px; max-width:100%; padding:25px; display:flex; flex-direction:column; justify-content:space-between; box-shadow: -5px 0 15px rgba(0,0,0,0.5);">
+        <div style="background:#111115; width:420px; max-width:100%; padding:26px; border-top-left-radius:28px; border-bottom-left-radius:28px; display:flex; flex-direction:column; justify-content:space-between; box-shadow: -8px 0 30px rgba(0,0,0,0.65);">
             <div>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid #222; padding-bottom:10px;">
-                    <h3 style="color:#fff; font-size:16px; margin:0;">CARRITO DE COMPRAS</h3>
-                    <button onclick="closeCartModal()" style="background:none; border:none; color:#fff; font-size:24px; cursor:pointer;">&times;</button>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:12px;">
+                    <h3 style="color:#fff; font-size:16px; margin:0; font-weight:900;">CARRITO DE COMPRAS</h3>
+                    <button onclick="closeCartModal()" style="background:rgba(255,255,255,0.08); border:none; color:#fff; width:32px; height:32px; border-radius:50%; font-size:20px; cursor:pointer;">&times;</button>
                 </div>
 
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:16px;">
-                    <button onclick="switchCartTab('cart')" style="padding:8px; font-size:11px; font-weight:800; cursor:pointer; border-radius:4px; text-transform:uppercase; ${cartTabStyle}">Carrito (${cart.reduce((s, i) => s + Number(i.qty || 1), 0)})</button>
-                    <button onclick="switchCartTab('pending')" style="padding:8px; font-size:11px; font-weight:800; cursor:pointer; border-radius:4px; text-transform:uppercase; ${pendingTabStyle}">Pedido pendiente (${pendingOrders.length})</button>
+                    <button onclick="switchCartTab('cart')" style="padding:9px; font-size:11px; font-weight:800; cursor:pointer; border-radius:999px; text-transform:uppercase; ${cartTabStyle}">Carrito (${cart.reduce((s, i) => s + Number(i.qty || 1), 0)})</button>
+                    <button onclick="switchCartTab('pending')" style="padding:9px; font-size:11px; font-weight:800; cursor:pointer; border-radius:999px; text-transform:uppercase; ${pendingTabStyle}">Pedido pendiente (${pendingOrders.length})</button>
                 </div>
 
                 <div style="max-height:52vh; overflow-y:auto;">
@@ -1081,7 +1256,7 @@ function openGoogleAuthModal() {
         showFloatingToast('Firebase Auth no está inicializado');
         return;
     }
-    
+
     const provider = new firebase.auth.GoogleAuthProvider();
     provider.setCustomParameters({
         'prompt': 'select_account'
@@ -1113,7 +1288,7 @@ function openGoogleAuthModal() {
 }
 
 /* ==========================================
-6. PANEL DE ADMINISTRACIÓN
+6. PANEL DE ADMINISTRACIÓN (ESQUINAS CIRCULARES)
    ========================================== */
 function initAdminPanel() {
     const loginForm = document.getElementById('loginForm');
@@ -1184,13 +1359,13 @@ function ensureDeliveredOrdersSection() {
 
     const section = document.createElement('div');
     section.className = 'admin-card';
-    section.style.cssText = 'margin-top: 24px; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 24px;';
+    section.style.cssText = 'margin-top: 24px; background: #111115; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; padding: 24px;';
     section.innerHTML = `
-        <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 900; color: #16a34a; text-transform: uppercase;">
-            ✅ PEDIDOS ENTREGADOS (<span id="deliveredCount">0</span>)
+        <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 900; color: #4ade80; text-transform: uppercase;">
+            PEDIDOS ENTREGADOS (<span id="deliveredCount">0</span>)
         </h3>
-        <p style="margin: 0 0 16px 0; font-size: 12px; color: #666;">
-            Historial de compras y pedidos Dare Lab entregados. Haz clic en cualquier pedido para ver sus especificaciones en grande.
+        <p style="margin: 0 0 16px 0; font-size: 12px; color: #9ca3af;">
+            Historial de compras y pedidos Dare Lab entregados. Haz clic en cualquier tarjeta para ver especificaciones completas.
         </p>
         <div id="adminDeliveredList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;"></div>
     `;
@@ -1207,28 +1382,28 @@ function openAdminOrderDetailModal(orderData) {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'adminOrderDetailModal';
-        modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:99999; justify-content:center; align-items:center; padding:20px;';
+        modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); backdrop-filter:blur(8px); z-index:99999; justify-content:center; align-items:center; padding:20px;';
         document.body.appendChild(modal);
     }
 
     const itemsHtml = Array.isArray(orderData.items) && orderData.items.length > 0
         ? `<ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px;">
             ${orderData.items.map(i => `
-                <li style="background:#181818; border:1px solid #2a2a2a; padding:10px 12px; border-radius:5px; display:flex; justify-content:space-between; align-items:center;">
+                <li style="background:#18181e; border:1px solid rgba(255,255,255,0.08); padding:10px 14px; border-radius:16px; display:flex; justify-content:space-between; align-items:center;">
                     <span style="color:#fff; font-size:13px;"><strong>${i.qty}x</strong> ${i.name}</span>
                     <span style="color:#ff3b1b; font-weight:800; font-size:13px;">$${(Number(i.price) * Number(i.qty || 1)).toLocaleString('es-MX')} MXN</span>
                 </li>
             `).join('')}
            </ul>`
-        : `<div style="background:#181818; border:1px solid #2a2a2a; padding:12px; border-radius:5px; color:#ddd; font-size:13px; line-height:1.5;">
+        : `<div style="background:#18181e; border:1px solid rgba(255,255,255,0.08); padding:14px; border-radius:18px; color:#ddd; font-size:13px; line-height:1.5;">
             <div><strong>Prenda base:</strong> ${orderData.baseName || orderData.summary || 'N/A'}</div>
             ${orderData.technique ? `<div><strong>Técnica:</strong> ${orderData.technique}</div>` : ''}
             ${orderData.notes ? `<div><strong>Notas del cliente:</strong> ${orderData.notes}</div>` : ''}
            </div>`;
 
     const imageBlock = orderData.imageData
-        ? `<div style="margin-bottom:14px; text-align:center; background:#141414; padding:10px; border-radius:6px; border:1px solid #262626;">
-            <img src="${orderData.imageData}" style="max-width:100%; max-height:260px; object-fit:contain; border-radius:4px;">
+        ? `<div style="margin-bottom:14px; text-align:center; background:#16161b; padding:12px; border-radius:20px; border:1px solid rgba(255,255,255,0.08);">
+            <img src="${orderData.imageData}" style="max-width:100%; max-height:260px; object-fit:contain; border-radius:14px;">
             <div style="margin-top:8px;">
                 <a href="${orderData.imageData}" download="${orderData.fileName || 'diseno-darecore.jpg'}" style="color:#60a5fa; font-size:12px; font-weight:700; text-decoration:underline;">Descargar archivo adjunto</a>
             </div>
@@ -1236,14 +1411,14 @@ function openAdminOrderDetailModal(orderData) {
         : '';
 
     modal.innerHTML = `
-        <div style="background:#111; border:1px solid #2a2a2a; border-radius:8px; max-width:600px; width:100%; max-height:90vh; overflow-y:auto; padding:26px; position:relative; color:#fff;">
-            <button onclick="document.getElementById('adminOrderDetailModal').style.display='none'" style="position:absolute; top:14px; right:18px; background:none; border:none; color:#fff; font-size:26px; cursor:pointer;">&times;</button>
+        <div style="background:#111115; border:1px solid rgba(255,255,255,0.12); border-radius:28px; max-width:600px; width:100%; max-height:90vh; overflow-y:auto; padding:28px; position:relative; color:#fff;">
+            <button onclick="document.getElementById('adminOrderDetailModal').style.display='none'" style="position:absolute; top:16px; right:18px; background:rgba(255,255,255,0.08); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:20px; cursor:pointer;">&times;</button>
             <div style="font-size:11px; font-weight:800; color:#ff3b1b; text-transform:uppercase; margin-bottom:4px;">${orderData.typeLabel || 'PEDIDO DARECORE'}</div>
             <h2 style="margin:0 0 14px 0; font-size:22px; font-weight:900;">#${orderData.folio}</h2>
 
             ${imageBlock}
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; background:#161616; padding:12px; border-radius:6px; border:1px solid #252525; margin-bottom:16px; font-size:12px;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; background:#16161b; padding:14px; border-radius:20px; border:1px solid rgba(255,255,255,0.08); margin-bottom:16px; font-size:12px;">
                 <div><span style="color:#888;">Cliente:</span><br><strong>${orderData.userName || 'Invitado'}</strong></div>
                 <div><span style="color:#888;">Correo:</span><br><strong>${orderData.userEmail || 'Sin correo'}</strong></div>
                 <div><span style="color:#888;">WhatsApp:</span><br><strong>${orderData.whatsapp || 'No registrado'}</strong></div>
@@ -1253,7 +1428,7 @@ function openAdminOrderDetailModal(orderData) {
             <div style="font-size:11px; font-weight:800; color:#aaa; text-transform:uppercase; margin-bottom:8px;">Especificaciones del pedido</div>
             ${itemsHtml}
 
-            <div style="margin-top:18px; padding-top:14px; border-top:1px solid #262626; display:flex; justify-content:space-between; align-items:center;">
+            <div style="margin-top:18px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-size:14px; color:#bbb; font-weight:700;">Total Cobrado:</span>
                 <span style="font-size:22px; color:#ff3b1b; font-weight:900;">$${Number(orderData.total || 0).toLocaleString('es-MX')} MXN</span>
             </div>
@@ -1270,8 +1445,8 @@ function renderStatusSelectHtml(collectionName, docId, currentStatus) {
 
     return `
         <div style="margin-top: 4px;" onclick="event.stopPropagation();">
-            <label style="font-size: 10px; color: #aaa; display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: 700;">Estatus del pedido:</label>
-            <select onchange="updateOrderStatus('${collectionName}', '${docId}', this.value)" style="width: 100%; background: #141414; color: #fff; border: 1px solid #333; padding: 7px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+            <label style="font-size: 10px; color: #9ca3af; display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: 700;">Estatus del pedido:</label>
+            <select onchange="updateOrderStatus('${collectionName}', '${docId}', this.value)" style="width: 100%; background: #1c1c22; color: #fff; border: 1px solid rgba(255,255,255,0.12); padding: 8px 12px; border-radius: 14px; font-size: 12px; cursor: pointer;">
                 ${optionsHtml}
             </select>
         </div>
@@ -1346,16 +1521,17 @@ function loadAdminProducts() {
     products.forEach((p) => {
         const item = document.createElement('div');
         item.className = 'product-item-admin';
-        
+        item.style.cssText = 'display:flex; align-items:center; gap:12px; margin-bottom:10px;';
+
         item.innerHTML = `
-            <img src="${p.image || ''}" alt="${p.name}">
+            <img src="${p.image || ''}" alt="${p.name}" style="width:52px; height:52px; object-fit:cover;">
             <div style="flex-grow: 1; color: white;">
                 <div style="font-weight: 700; font-size: 13px;">${p.name}</div>
-                <div style="font-size: 11px; color: #888;">${p.category || 'general'} | $${p.price} MXN</div>
+                <div style="font-size: 11px; color: #9ca3af;">${p.category || 'general'} | $${p.price} MXN</div>
             </div>
             <div style="display: flex; gap: 8px;">
-                <button type="button" class="btn-primary" style="padding: 6px 10px; font-size: 10px;" onclick="editProduct('${p.id || p.firestoreId}')">Editar</button>
-                <button type="button" class="btn-delete" onclick="deleteProduct('${p.id || p.firestoreId}')">Eliminar</button>
+                <button type="button" class="btn-primary" style="padding: 7px 14px; font-size: 11px;" onclick="editProduct('${p.id || p.firestoreId}')">Editar</button>
+                <button type="button" class="btn-delete" style="padding: 7px 14px; font-size: 11px;" onclick="deleteProduct('${p.id || p.firestoreId}')">Eliminar</button>
             </div>
         `;
         container.appendChild(item);
@@ -1424,13 +1600,14 @@ function handleProductSubmit(e) {
                 image: imgUrl || ''
             };
             products.unshift(newProduct);
-            
+
             if (window.db) {
                 window.db.collection('products').add(newProduct).then(docRef => {
                     newProduct.firestoreId = docRef.id;
                     saveProductsLocal(products);
                     loadAdminProducts();
                     initStore();
+                    renderHeroSlide(0);
                 }).catch(err => console.log(err));
             }
 
@@ -1440,7 +1617,7 @@ function handleProductSubmit(e) {
 
         saveProductsLocal(products);
         document.getElementById('addProductForm').reset();
-        
+
         const editingInput = document.getElementById('editingProductId');
         if (editingInput) editingInput.value = '';
         const formTitle = document.getElementById('formTitle');
@@ -1452,6 +1629,7 @@ function handleProductSubmit(e) {
 
         loadAdminProducts();
         initStore();
+        renderHeroSlide(0);
     };
 
     if (imageFile) {
@@ -1483,7 +1661,7 @@ function editProduct(productId) {
     document.getElementById('prodPrice').value = product.price || '';
 
     const formTitle = document.getElementById('formTitle');
-    if (formTitle) formTitle.innerText = '✏️ EDITAR PRENDA';
+    if (formTitle) formTitle.innerText = 'EDITAR PRENDA';
     const submitBtn = document.getElementById('submitBtn');
     if (submitBtn) submitBtn.innerText = 'GUARDAR CAMBIOS';
     const cancelEditBtn = document.getElementById('cancelEditBtn');
@@ -1495,7 +1673,7 @@ function editProduct(productId) {
 async function deleteProduct(productId) {
     const confirmed = await showConfirmModal('¿Estás seguro de eliminar esta prenda?');
     if (!confirmed) return;
-    
+
     let products = getStoredProducts();
     const target = products.find(p => p.id == productId || p.firestoreId == productId);
     products = products.filter(p => p.id != productId && p.firestoreId != productId);
@@ -1507,6 +1685,7 @@ async function deleteProduct(productId) {
 
     loadAdminProducts();
     initStore();
+    renderHeroSlide(0);
     showFloatingToast('Prenda eliminada correctamente');
 }
 
@@ -1519,17 +1698,17 @@ function loadAdminCustomBases() {
 
     bases.forEach((base, index) => {
         const box = document.createElement('div');
-        box.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 15px; border-radius: 6px;";
+        box.style.cssText = "background: #16161b; border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 22px;";
         box.innerHTML = `
             <div style="margin-bottom: 8px;">
-                <label style="font-size: 10px; color: #888; display: block;">NOMBRE BASE</label>
-                <input type="text" id="baseName_${index}" value="${base.name}" class="form-control" style="font-size: 12px; padding: 6px;">
+                <label style="font-size: 10px; color: #9ca3af; display: block; margin-bottom:4px;">NOMBRE BASE</label>
+                <input type="text" id="baseName_${index}" value="${base.name}" class="form-control" style="font-size: 12px;">
             </div>
-            <div style="margin-bottom: 8px;">
-                <label style="font-size: 10px; color: #888; display: block;">PRECIO (MXN)</label>
-                <input type="number" id="basePrice_${index}" value="${base.price}" class="form-control" style="font-size: 12px; padding: 6px;">
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 10px; color: #9ca3af; display: block; margin-bottom:4px;">PRECIO (MXN)</label>
+                <input type="number" id="basePrice_${index}" value="${base.price}" class="form-control" style="font-size: 12px;">
             </div>
-            <button type="button" class="btn-primary" style="padding: 6px 10px; font-size: 10px; width: 100%; margin-top: 5px;" onclick="updateCustomBaseItem(${index})">Guardar Cambios</button>
+            <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 11px; width: 100%;" onclick="updateCustomBaseItem(${index})">Guardar Cambios</button>
         `;
         container.appendChild(box);
     });
@@ -1544,7 +1723,7 @@ function updateCustomBaseItem(index) {
         bases[index].name = nameInput.value;
         bases[index].price = Number(priceInput.value);
         localStorage.setItem('darecore_custom_bases', JSON.stringify(bases));
-        
+
         if (window.db) {
             window.db.collection('settings').doc('customBases').set({ items: bases }).catch(err => console.log(err));
         }
@@ -1564,21 +1743,21 @@ function loadAdminUsers() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            container.innerHTML = '<p style="color: #888; font-size: 12px;">Aún no hay usuarios registrados.</p>';
+            container.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">Aún no hay usuarios registrados.</p>';
             return;
         }
 
         snapshot.forEach((doc) => {
             const u = doc.data();
             const row = document.createElement('div');
-            row.style.cssText = "display: flex; align-items: center; gap: 12px; background: #0b0b0b; border: 1px solid #222; padding: 10px; border-radius: 6px;";
+            row.style.cssText = "display: flex; align-items: center; gap: 12px; background: #16161b; border: 1px solid rgba(255,255,255,0.08); padding: 12px 16px; border-radius: 20px;";
             row.innerHTML = `
-                <img src="${u.photoURL || 'https://via.placeholder.com/40'}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                <img src="${u.photoURL || 'https://via.placeholder.com/40'}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover;">
                 <div style="flex-grow: 1;">
                     <div style="color: #fff; font-weight: 700; font-size: 13px;">${u.name || 'Usuario'}</div>
-                    <div style="color: #aaa; font-size: 11px;">${u.email}</div>
+                    <div style="color: #9ca3af; font-size: 11px;">${u.email}</div>
                 </div>
-                <div style="color: #666; font-size: 10px;">${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('es-MX') : ''}</div>
+                <div style="color: #6b7280; font-size: 10px;">${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('es-MX') : ''}</div>
             `;
             container.appendChild(row);
         });
@@ -1595,7 +1774,7 @@ function loadAdminDareLabOrders() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            container.innerHTML = '<p style="color: #888; font-size: 12px;">No hay solicitudes personalizadas todavía.</p>';
+            container.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">No hay solicitudes personalizadas todavía.</p>';
             return;
         }
 
@@ -1606,30 +1785,30 @@ function loadAdminDareLabOrders() {
             const folio = order.orderNumber || doc.id;
 
             const card = document.createElement('div');
-            card.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;";
-            
+            card.style.cssText = "background: #16161b; border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;";
+
             const imgHtml = order.imageData
                 ? `<a href="${order.imageData}" download="${order.fileName || 'diseno-darelab.jpg'}" onclick="event.stopPropagation();" title="Clic para descargar imagen">
-                     <img src="${order.imageData}" style="width: 100%; height: 180px; object-fit: contain; background: #161616; border-radius: 4px; cursor: pointer;">
+                     <img src="${order.imageData}" style="width: 100%; height: 180px; object-fit: contain; background: #1e1e26; border-radius: 16px; cursor: pointer;">
                    </a>`
-                : `<div style="height: 80px; background: #161616; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666; font-size: 11px;">Sin imagen adjunta</div>`;
+                : `<div style="height: 80px; background: #1e1e26; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: #9ca3af; font-size: 11px;">Sin imagen adjunta</div>`;
 
             const cleanPhone = (order.whatsapp || '').replace(/\D/g, '');
             const waClientLink = cleanPhone
                 ? `<a href="https://wa.me/${cleanPhone.length === 10 ? '521' + cleanPhone : cleanPhone}" target="_blank" onclick="event.stopPropagation();" style="color: #25d366; text-decoration: underline;">${order.whatsapp}</a>`
-                : `<span style="color: #888;">${order.whatsapp || 'No proporcionado'}</span>`;
+                : `<span style="color: #9ca3af;">${order.whatsapp || 'No proporcionado'}</span>`;
 
             card.innerHTML = `
                 ${imgHtml}
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
                     <span style="color: #ff3b1b; font-size: 11px; font-weight: 800;">#${folio}</span>
-                    <span style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; ${badgeStyle}">${status}</span>
+                    <span style="font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; ${badgeStyle}">${status}</span>
                 </div>
-                <div style="color: #fff; font-size: 12px; font-weight: 700;">${order.baseName}</div>
+                <div style="color: #fff; font-size: 13px; font-weight: 700;">${order.baseName}</div>
                 <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName} (${order.userEmail})</div>
                 <div style="color: #fff; font-size: 12px;"><strong>WhatsApp:</strong> ${waClientLink}</div>
-                <div style="color: #aaa; font-size: 11px;"><strong>Técnica:</strong> ${order.technique} | <strong>Total:</strong> $${Number(order.total).toLocaleString('es-MX')} MXN</div>
-                <div style="color: #888; font-size: 11px;"><strong>Notas:</strong> ${order.notes}</div>
+                <div style="color: #9ca3af; font-size: 11px;"><strong>Técnica:</strong> ${order.technique} | <strong>Total:</strong> $${Number(order.total).toLocaleString('es-MX')} MXN</div>
+                <div style="color: #9ca3af; font-size: 11px;"><strong>Notas:</strong> ${order.notes}</div>
                 ${renderStatusSelectHtml('darelab_orders', doc.id, status)}
                 <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="event.stopPropagation(); deleteDareLabOrder('${doc.id}')">Marcar Entregado / Archivar</button>
             `;
@@ -1675,7 +1854,7 @@ function loadAdminOrders() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            container.innerHTML = '<p style="color: #888; font-size: 12px;">Aún no hay compras registradas desde el carrito.</p>';
+            container.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">Aún no hay compras registradas desde el carrito.</p>';
             return;
         }
 
@@ -1687,25 +1866,25 @@ function loadAdminOrders() {
 
             const itemsList = Array.isArray(order.items) && order.items.length > 0
                 ? order.items.map(item => `
-                    <li style="margin-bottom: 4px; color: #ddd;">
-                        <strong>${item.qty}x</strong> ${item.name} — <span style="color: #aaa;">$${Number(item.price).toLocaleString('es-MX')} MXN c/u</span>
+                    <li style="margin-bottom: 4px; color: #e5e7eb;">
+                        <strong>${item.qty}x</strong> ${item.name} — <span style="color: #9ca3af;">$${Number(item.price).toLocaleString('es-MX')} MXN c/u</span>
                     </li>
                   `).join('')
-                : '<li style="color: #888;">Sin detalle de prendas</li>';
+                : '<li style="color: #9ca3af;">Sin detalle de prendas</li>';
 
             const dateText = order.createdAt ? new Date(order.createdAt).toLocaleString('es-MX') : '';
 
             const card = document.createElement('div');
-            card.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;";
+            card.style.cssText = "background: #16161b; border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;";
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                     <span style="color: #ff3b1b; font-size: 12px; font-weight: 800;">#${folio}</span>
-                    <span style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; ${badgeStyle}">${status}</span>
+                    <span style="font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; ${badgeStyle}">${status}</span>
                 </div>
-                <div style="color: #666; font-size: 10px;">${dateText}</div>
+                <div style="color: #6b7280; font-size: 10px;">${dateText}</div>
                 <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName || 'Invitado'} (${order.userEmail || 'Sin correo'})</div>
-                <div style="background: #141414; border: 1px solid #222; padding: 10px; border-radius: 4px;">
-                    <div style="color: #aaa; font-size: 11px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase;">Prendas solicitadas:</div>
+                <div style="background: #1e1e26; border: 1px solid rgba(255,255,255,0.06); padding: 12px; border-radius: 16px;">
+                    <div style="color: #9ca3af; font-size: 11px; font-weight: 700; margin-bottom: 6px; text-transform: uppercase;">Prendas solicitadas:</div>
                     <ul style="list-style: none; padding: 0; margin: 0; font-size: 12px;">
                         ${itemsList}
                     </ul>
@@ -1754,7 +1933,7 @@ function loadAdminDeliveredOrders() {
         container.innerHTML = '';
 
         if (snapshot.empty) {
-            container.innerHTML = '<p style="color: #888; font-size: 12px;">Aún no hay pedidos archivados en entregados.</p>';
+            container.innerHTML = '<p style="color: #9ca3af; font-size: 12px;">Aún no hay pedidos archivados en entregados.</p>';
             return;
         }
 
@@ -1764,13 +1943,13 @@ function loadAdminDeliveredOrders() {
             const dateText = order.deliveredAt ? new Date(order.deliveredAt).toLocaleString('es-MX') : '';
 
             const card = document.createElement('div');
-            card.style.cssText = "background: #0b0b0b; border: 1px solid #1f3d2b; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;";
+            card.style.cssText = "background: #16161b; border: 1px solid rgba(74, 222, 128, 0.28); padding: 16px; border-radius: 24px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;";
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
                     <span style="color: #4ade80; font-size: 12px; font-weight: 800;">#${folio}</span>
-                    <span style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: rgba(34, 197, 94, 0.16); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.45);">Entregado</span>
+                    <span style="font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; background: rgba(34, 197, 94, 0.16); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.45);">Entregado</span>
                 </div>
-                <div style="color: #666; font-size: 10px;">Entregado el: ${dateText}</div>
+                <div style="color: #6b7280; font-size: 10px;">Entregado el: ${dateText}</div>
                 <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName || 'Invitado'} (${order.userEmail || 'Sin correo'})</div>
                 <div style="color: #bbb; font-size: 11px;">${order.summary || ''}</div>
                 <div style="color: #fff; font-size: 13px; font-weight: 800; margin-top: 4px;">
