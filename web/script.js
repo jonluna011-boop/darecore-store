@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* ==========================================
-   1. GESTIÓN DE PRODUCTOS Y SINCRONIZACIÓN
+1. GESTIÓN DE PRODUCTOS Y SINCRONIZACIÓN
    ========================================== */
 function getStoredProducts() {
     if (window.db && !isSyncing) {
@@ -97,7 +97,7 @@ function renderProducts(products) {
 }
 
 /* ==========================================
-   2. BUSCADOR GLOBAL INTELIGENTE
+2. BUSCADOR GLOBAL INTELIGENTE
    ========================================== */
 function setupSearch() {
     const searchInput = document.getElementById('searchInput') || document.querySelector('.search-box');
@@ -123,7 +123,7 @@ function setupSearch() {
 }
 
 /* ==========================================
-   3. MODAL DE VISTA RÁPIDA (EN GRANDE)
+3. MODAL DE VISTA RÁPIDA (EN GRANDE)
    ========================================== */
 function openProductModal(productId) {
     const products = getStoredProducts();
@@ -160,7 +160,7 @@ function closeProductModal() {
 }
 
 /* ==========================================
-   4. DARE LAB (PERSONALIZACIÓN Y COTIZACIÓN)
+4. DARE LAB (PERSONALIZACIÓN Y COTIZACIÓN)
    ========================================== */
 function getCustomBases() {
     const local = localStorage.getItem('darecore_custom_bases');
@@ -178,6 +178,39 @@ function getCustomBases() {
     ];
 }
 
+function compressImageFile(file, maxWidth = 800, quality = 0.7) {
+    return new Promise((resolve) => {
+        if (!file || !file.type.startsWith('image/')) {
+            resolve(null);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => resolve(null);
+            img.src = event.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+}
+
 function setupDareLab() {
     const container = document.getElementById('customBasesContainer');
     if (!container) return;
@@ -191,7 +224,7 @@ function setupDareLab() {
 
     const mockupBtn = document.getElementById('requestMockupBtn');
     if (mockupBtn) {
-        mockupBtn.addEventListener('click', (e) => {
+        mockupBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             const bases = getCustomBases();
             const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
@@ -202,8 +235,34 @@ function setupDareLab() {
             const total = Number(selectedBase.price) + extraCost;
 
             const fileInput = document.getElementById('customDesignFile');
-            const fileName = fileInput && fileInput.files[0] ? fileInput.files[0].name : 'Lo enviaré por chat';
+            const fileObj = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
+            const fileName = fileObj ? fileObj.name : 'Lo enviaré por chat';
             const notes = document.getElementById('customNotes')?.value.trim() || 'Sin notas adicionales';
+
+            const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+
+            let compressedImageBase64 = '';
+            if (fileObj) {
+                compressedImageBase64 = (await compressImageFile(fileObj)) || '';
+            }
+
+            if (window.db) {
+                try {
+                    await window.db.collection('darelab_orders').add({
+                        userEmail: currentUser ? currentUser.email : 'Invitado (sin sesión)',
+                        userName: currentUser ? currentUser.displayName : 'Invitado',
+                        baseName: selectedBase.name,
+                        technique: techName,
+                        fileName: fileName,
+                        imageData: compressedImageBase64,
+                        notes: notes,
+                        total: total,
+                        createdAt: new Date().toISOString()
+                    });
+                } catch (err) {
+                    console.error("Error guardando solicitud de Dare Lab:", err);
+                }
+            }
 
             const resumen = `¡Hola DARECORE! Me gustaría solicitar un Mockup Digital en Dare Lab:\n\n• Prenda Base: ${selectedBase.name}\n• Técnica: ${techName}\n• Archivo: ${fileName}\n• Notas: ${notes}\n• Total Estimado: $${total.toLocaleString('es-MX')} MXN`;
 
@@ -271,7 +330,7 @@ function updateCustomSummary() {
 }
 
 /* ==========================================
-   5. SISTEMA DE CARRITO Y PAGOS
+5. SISTEMA DE CARRITO Y PAGOS
    ========================================== */
 function addToCart(productId) {
     const products = getStoredProducts();
@@ -402,7 +461,6 @@ function openGoogleAuthModal() {
         .then((result) => {
             const user = result.user;
 
-            // Guardar o actualizar el usuario en Firestore
             if (window.db && user) {
                 window.db.collection('users').doc(user.uid).set({
                     uid: user.uid,
@@ -420,8 +478,9 @@ function openGoogleAuthModal() {
             alert("Hubo un error al iniciar sesión con Google: " + error.message);
         });
 }
+
 /* ==========================================
-   6. PANEL DE ADMINISTRACIÓN
+6. PANEL DE ADMINISTRACIÓN
    ========================================== */
 function initAdminPanel() {
     const loginForm = document.getElementById('loginForm');
@@ -437,6 +496,8 @@ function initAdminPanel() {
         if (logoutBtn) logoutBtn.classList.remove('hidden');
         loadAdminProducts();
         loadAdminCustomBases();
+        loadAdminUsers();
+        loadAdminDareLabOrders();
     }
 
     loginForm.addEventListener('submit', (e) => {
@@ -452,6 +513,8 @@ function initAdminPanel() {
             if (logoutBtn) logoutBtn.classList.remove('hidden');
             loadAdminProducts();
             loadAdminCustomBases();
+            loadAdminUsers();
+            loadAdminDareLabOrders();
         } else {
             if (errorMsg) errorMsg.style.display = 'block';
         }
@@ -662,4 +725,80 @@ function updateCustomBaseItem(index) {
         alert('¡Base personalizada actualizada con éxito!');
         loadAdminCustomBases();
     }
+}
+
+function loadAdminUsers() {
+    const container = document.getElementById('adminUsersList');
+    const countSpan = document.getElementById('usersCount');
+    if (!container || !window.db) return;
+
+    window.db.collection('users').orderBy('lastLogin', 'desc').get().then((snapshot) => {
+        if (countSpan) countSpan.innerText = snapshot.size;
+        container.innerHTML = '';
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color: #888; font-size: 12px;">Aún no hay usuarios registrados.</p>';
+            return;
+        }
+
+        snapshot.forEach((doc) => {
+            const u = doc.data();
+            const row = document.createElement('div');
+            row.style.cssText = "display: flex; align-items: center; gap: 12px; background: #0b0b0b; border: 1px solid #222; padding: 10px; border-radius: 6px;";
+            row.innerHTML = `
+                <img src="${u.photoURL || 'https://via.placeholder.com/40'}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                <div style="flex-grow: 1;">
+                    <div style="color: #fff; font-weight: 700; font-size: 13px;">${u.name || 'Usuario'}</div>
+                    <div style="color: #aaa; font-size: 11px;">${u.email}</div>
+                </div>
+                <div style="color: #666; font-size: 10px;">${u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('es-MX') : ''}</div>
+            `;
+            container.appendChild(row);
+        });
+    }).catch(err => console.error("Error cargando usuarios:", err));
+}
+
+function loadAdminDareLabOrders() {
+    const container = document.getElementById('adminDareLabList');
+    const countSpan = document.getElementById('dareLabCount');
+    if (!container || !window.db) return;
+
+    window.db.collection('darelab_orders').orderBy('createdAt', 'desc').get().then((snapshot) => {
+        if (countSpan) countSpan.innerText = snapshot.size;
+        container.innerHTML = '';
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color: #888; font-size: 12px;">No hay solicitudes personalizadas todavía.</p>';
+            return;
+        }
+
+        snapshot.forEach((doc) => {
+            const order = doc.data();
+            const card = document.createElement('div');
+            card.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px;";
+            
+            const imgHtml = order.imageData
+                ? `<a href="${order.imageData}" download="${order.fileName || 'diseno-darelab.jpg'}" title="Clic para descargar imagen">
+                     <img src="${order.imageData}" style="width: 100%; height: 180px; object-fit: contain; background: #161616; border-radius: 4px; cursor: pointer;">
+                   </a>`
+                : `<div style="height: 80px; background: #161616; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666; font-size: 11px;">Sin imagen adjunta</div>`;
+
+            card.innerHTML = `
+                ${imgHtml}
+                <div style="color: #ff3b1b; font-size: 11px; font-weight: 800;">${order.baseName}</div>
+                <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName} (${order.userEmail})</div>
+                <div style="color: #aaa; font-size: 11px;"><strong>Técnica:</strong> ${order.technique} | <strong>Total:</strong> $${Number(order.total).toLocaleString('es-MX')} MXN</div>
+                <div style="color: #888; font-size: 11px;"><strong>Notas:</strong> ${order.notes}</div>
+                <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="deleteDareLabOrder('${doc.id}')">Eliminar Solicitud</button>
+            `;
+            container.appendChild(card);
+        });
+    }).catch(err => console.error("Error cargando solicitudes Dare Lab:", err));
+}
+
+function deleteDareLabOrder(docId) {
+    if (!confirm('¿Eliminar esta solicitud de Dare Lab?')) return;
+    window.db.collection('darelab_orders').doc(docId).delete().then(() => {
+        loadAdminDareLabOrders();
+    }).catch(err => console.error("Error eliminando solicitud:", err));
 }
