@@ -107,9 +107,13 @@ function generateFolio(prefix) {
 }
 
 function styleBrandLogoInHeader() {
-    const candidates = document.querySelectorAll('header a, nav a, .navbar a, .brand, .logo, h1, h2, .admin-title');
+    const isAdminPage = window.location.pathname.toLowerCase().includes('admin');
+    const candidates = document.querySelectorAll('header a, header div, header span, nav a, nav div, nav span, .navbar a, .brand, .logo, h1, h2, .admin-title');
+
     candidates.forEach(el => {
         if (el.dataset.darecoreStyled) return;
+        if (el.children.length > 0 && !el.querySelector('.brand-dare')) return;
+
         const rawText = (el.textContent || '').trim();
 
         if (/^DARECORE\s+ADMIN$/i.test(rawText)) {
@@ -121,6 +125,11 @@ function styleBrandLogoInHeader() {
         if (/^DARECORE$/i.test(rawText)) {
             el.dataset.darecoreStyled = 'true';
             el.innerHTML = `<span class="brand-dare">DARE</span><span class="brand-core-red">CORE</span>`;
+            if (!isAdminPage && el.closest('header, nav, .navbar, .site-header')) {
+                el.dataset.darecoreLogo = 'left';
+                el.style.order = '-10';
+                el.style.marginRight = 'auto';
+            }
         }
     });
 }
