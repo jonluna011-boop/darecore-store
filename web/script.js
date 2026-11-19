@@ -388,24 +388,31 @@ function checkoutCart() {
 }
 
 function openGoogleAuthModal() {
-    // 1. Verificamos que Firebase Auth esté disponible globalmente
     if (!window.auth) {
         alert("Firebase Auth no está inicializado.");
         return;
     }
     
-    // 2. Creamos el proveedor de Google
     const provider = new firebase.auth.GoogleAuthProvider();
-    
-    // 3. Forzamos que siempre muestre el selector de cuentas
     provider.setCustomParameters({
         'prompt': 'select_account'
     });
 
-    // 4. Abrimos la ventana emergente oficial
     window.auth.signInWithPopup(provider)
         .then((result) => {
             const user = result.user;
+
+            // Guardar o actualizar el usuario en Firestore
+            if (window.db && user) {
+                window.db.collection('users').doc(user.uid).set({
+                    uid: user.uid,
+                    name: user.displayName || 'Sin nombre',
+                    email: user.email || '',
+                    photoURL: user.photoURL || '',
+                    lastLogin: new Date().toISOString()
+                }, { merge: true }).catch(err => console.error("Error guardando usuario:", err));
+            }
+
             alert(`¡Bienvenido, ${user.displayName || user.email}! Sesión iniciada con éxito.`);
             closeCartModal();
         }).catch((error) => {
@@ -413,7 +420,6 @@ function openGoogleAuthModal() {
             alert("Hubo un error al iniciar sesión con Google: " + error.message);
         });
 }
-
 /* ==========================================
    6. PANEL DE ADMINISTRACIÓN
    ========================================== */
