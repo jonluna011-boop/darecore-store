@@ -82,6 +82,25 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAbandonedCartReminder();
 });
 
+function isHomePageSection() {
+    const path = window.location.pathname.toLowerCase();
+    const isSubpage =
+        path.includes('hombre') ||
+        path.includes('mujer') ||
+        path.includes('oversize') ||
+        path.includes('personalizar') ||
+        path.includes('admin');
+
+    if (isSubpage) return false;
+
+    return (
+        path === '/' ||
+        path === '' ||
+        path.endsWith('/index.html') ||
+        path === 'index.html'
+    );
+}
+
 function generateFolio(prefix) {
     const randomPart = Math.floor(100000 + Math.random() * 900000);
     return `${prefix}-${randomPart}`;
@@ -166,7 +185,7 @@ function cleanExtraHeroBlocks() {
 }
 
 /* ==========================================
-   HERO CAROUSEL AUTOMÁTICO
+   HERO CAROUSEL AUTOMÁTICO (SOLO INICIO)
    ========================================== */
 function getHeroSlides() {
     const products = getStoredProducts().filter(p => p && p.image);
@@ -211,10 +230,18 @@ function getHeroSlides() {
 }
 
 function initHeroShowcase() {
+    const existingHero = document.getElementById('darecoreHeroWrapper');
+
+    if (!isHomePageSection()) {
+        clearInterval(heroAutoTimer);
+        if (existingHero) existingHero.remove();
+        return;
+    }
+
     const grid = document.getElementById('productGrid') || document.querySelector('.product-grid');
     if (!grid) return;
 
-    let heroWrapper = document.getElementById('darecoreHeroWrapper');
+    let heroWrapper = existingHero;
     if (!heroWrapper) {
         heroWrapper = document.createElement('section');
         heroWrapper.id = 'darecoreHeroWrapper';
@@ -228,6 +255,13 @@ function initHeroShowcase() {
 }
 
 function renderHeroSlide(index) {
+    if (!isHomePageSection()) {
+        clearInterval(heroAutoTimer);
+        const existingHero = document.getElementById('darecoreHeroWrapper');
+        if (existingHero) existingHero.remove();
+        return;
+    }
+
     const heroWrapper = document.getElementById('darecoreHeroWrapper');
     if (!heroWrapper) return;
 
@@ -271,6 +305,7 @@ function goToHeroSlide(index) {
 
 function startHeroAutoPlay() {
     clearInterval(heroAutoTimer);
+    if (!isHomePageSection()) return;
     heroAutoTimer = setInterval(() => {
         renderHeroSlide(heroSlideIndex + 1);
     }, 4500);
