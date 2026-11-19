@@ -1,17 +1,19 @@
 /* ==========================================
-   DARECORE - ESTILO CINEMATOGRÁFICO CORREGIDO
+   DARECORE - ESTILO EDITORIAL LIMPIO + CINEMA
    ========================================== */
 :root {
-    --bg-cinema: #08080a;
-    --bg-surface: #111115;
-    --bg-card: #16161b;
-    --bg-elevated: #1e1e24;
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-hover: rgba(255, 59, 27, 0.55);
+    --bg-page: #f6f7f9;
+    --bg-white: #ffffff;
+    --bg-cinema: #0b0b0e;
+    --bg-surface: #121217;
+    --bg-card: #17171d;
+    --bg-elevated: #202028;
+    --text-dark: #0b0b0e;
+    --text-muted: #52525b;
     --text-primary: #f5f5f7;
-    --text-secondary: #9ca3af;
-    --accent-red: #ff3b1b;
-    --accent-red-glow: rgba(255, 59, 27, 0.28);
+    --text-secondary: #a1a1aa;
+    --accent-red: #ff2a00;
+    --accent-red-glow: rgba(255, 42, 0, 0.28);
     --radius-hero: 28px;
     --radius-card: 24px;
     --radius-input: 16px;
@@ -25,9 +27,9 @@
 }
 
 body {
-    background-color: var(--bg-cinema);
-    color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-page);
+    color: var(--text-dark);
+    font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
     line-height: 1.5;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
@@ -39,13 +41,13 @@ a {
 }
 
 /* ==========================================
-   BARRA DE NAVEGACIÓN HORIZONTAL (TIENDA Y ADMIN)
+   BARRA DE NAVEGACIÓN SUPERIOR (ESTILO LIMPIO)
    ========================================== */
 header, .navbar, .topbar, .admin-header {
-    background: rgba(10, 10, 13, 0.92);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border-subtle);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -70,16 +72,16 @@ nav, .nav-links, .menu-links {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 20px;
+    gap: 12px;
 }
 
 nav a, .nav-links a, header a {
     font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.7px;
     text-transform: uppercase;
-    color: #d1d5db;
-    padding: 6px 12px;
+    color: #18181b;
+    padding: 7px 14px;
     border-radius: var(--radius-pill);
     transition: color 0.2s ease, background 0.2s ease;
     white-space: nowrap;
@@ -87,34 +89,35 @@ nav a, .nav-links a, header a {
 
 nav a:hover, .nav-links a:hover, header a:hover {
     color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
+    background: #0b0b0e;
 }
 
 .search-box, #searchInput, input[type="search"] {
-    background: var(--bg-elevated);
-    color: var(--text-primary);
-    border: 1px solid var(--border-subtle);
+    background: #f1f2f5;
+    color: #0b0b0e;
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: var(--radius-pill);
     padding: 10px 18px;
     font-size: 13px;
-    min-width: 190px;
+    min-width: 210px;
     outline: none;
-    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
 }
 
 .search-box:focus, #searchInput:focus {
+    background: #ffffff;
     border-color: var(--accent-red);
-    box-shadow: 0 0 0 3px var(--accent-red-glow);
+    box-shadow: 0 0 0 3px rgba(255, 42, 0, 0.14);
 }
 
 .cart-btn {
-    background: var(--bg-elevated);
+    background: #0b0b0e;
     color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: none;
     border-radius: var(--radius-pill);
     padding: 10px 18px;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -125,23 +128,54 @@ nav a:hover, .nav-links a:hover, header a:hover {
 
 .cart-btn:hover {
     background: var(--accent-red);
-    border-color: var(--accent-red);
     transform: scale(1.03);
 }
 
 /* ==========================================
-   HERO CAROUSEL CINEMATOGRÁFICO
+   ENCABEZADO EDITORIAL "TU ESTILO. TUS REGLAS."
+   ========================================== */
+.hero-editorial-header,
+.editorial-header,
+.store-intro {
+    max-width: 1320px;
+    margin: 28px auto 10px auto;
+    padding: 0 24px;
+}
+
+.hero-editorial-header h1,
+.editorial-header h1,
+.store-intro h1,
+.hero-title-style {
+    font-family: 'Bebas Neue', 'Space Grotesk', sans-serif;
+    font-size: clamp(46px, 7vw, 88px);
+    line-height: 0.94;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #0b0b0e;
+    margin-bottom: 10px;
+}
+
+.hero-editorial-header p,
+.editorial-header p,
+.store-intro p {
+    font-size: 15px;
+    color: var(--text-muted);
+    max-width: 640px;
+}
+
+/* ==========================================
+   HERO CAROUSEL CINEMATOGRÁFICO (ESTILO MEZQUITE)
    ========================================== */
 .darecore-hero-wrapper {
     max-width: 1320px;
-    margin: 24px auto 34px auto;
+    margin: 22px auto 34px auto;
     padding: 0 20px;
 }
 
 .darecore-hero-stage {
     position: relative;
     width: 100%;
-    min-height: 410px;
+    min-height: 400px;
     border-radius: var(--radius-hero);
     overflow: hidden;
     padding: 44px 52px;
@@ -150,7 +184,7 @@ nav a:hover, .nav-links a:hover, header a:hover {
     align-items: center;
     gap: 24px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 28px 65px rgba(0, 0, 0, 0.75);
+    box-shadow: 0 24px 55px rgba(11, 11, 14, 0.22);
     transition: background 0.85s ease;
 }
 
@@ -159,9 +193,10 @@ nav a:hover, .nav-links a:hover, header a:hover {
     left: 50%;
     top: 52%;
     transform: translate(-50%, -50%);
-    font-size: clamp(80px, 15vw, 210px);
-    font-weight: 900;
-    letter-spacing: -4px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(110px, 18vw, 240px);
+    font-weight: 400;
+    letter-spacing: 6px;
     color: rgba(255, 255, 255, 0.06);
     white-space: nowrap;
     pointer-events: none;
@@ -179,43 +214,43 @@ nav a:hover, .nav-links a:hover, header a:hover {
 .darecore-hero-kicker {
     display: inline-block;
     font-size: 11px;
-    font-weight: 800;
-    letter-spacing: 1.5px;
+    font-weight: 700;
+    letter-spacing: 1.6px;
     text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.86);
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.88);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     padding: 6px 14px;
     border-radius: var(--radius-pill);
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }
 
 .darecore-hero-title {
-    font-size: clamp(30px, 4.2vw, 52px);
-    font-weight: 900;
-    line-height: 1.05;
-    letter-spacing: -1px;
+    font-family: 'Bebas Neue', 'Space Grotesk', sans-serif;
+    font-size: clamp(42px, 5.5vw, 72px);
+    line-height: 0.96;
+    letter-spacing: 1px;
     color: #ffffff;
     margin-bottom: 12px;
 }
 
 .darecore-hero-desc {
     font-size: 14px;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.82);
     margin-bottom: 24px;
     max-width: 440px;
 }
 
 .darecore-hero-cta {
     background: #ffffff;
-    color: #08080a;
+    color: #0b0b0e;
     border: none;
     border-radius: var(--radius-pill);
     padding: 13px 24px;
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.7px;
     cursor: pointer;
     transition: transform 0.22s ease, background 0.22s ease, color 0.22s ease;
 }
@@ -241,7 +276,7 @@ nav a:hover, .nav-links a:hover, header a:hover {
     object-fit: cover;
     border-radius: 24px;
     box-shadow: 0 24px 50px rgba(0, 0, 0, 0.65);
-    border: 1px solid rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -262,7 +297,7 @@ nav a:hover, .nav-links a:hover, header a:hover {
     width: 24px;
     height: 5px;
     border-radius: var(--radius-pill);
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.28);
     border: none;
     cursor: pointer;
     padding: 0;
@@ -282,19 +317,20 @@ nav a:hover, .nav-links a:hover, header a:hover {
     gap: 24px;
     max-width: 1320px;
     margin: 0 auto;
-    padding: 10px 20px 60px 20px;
+    padding: 12px 20px 64px 20px;
 }
 
 .product-card {
     position: relative;
     background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-card);
     padding: 20px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     cursor: pointer;
+    box-shadow: 0 12px 30px rgba(11, 11, 14, 0.14);
     transition:
         transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
         background 0.34s ease,
@@ -306,8 +342,8 @@ nav a:hover, .nav-links a:hover, header a:hover {
 .product-card.touch-pop-active {
     transform: translateY(-9px) scale(1.022);
     background: var(--card-active-bg, linear-gradient(155deg, #271313 0%, #7a1c11 55%, #b92b17 100%));
-    border-color: rgba(255, 255, 255, 0.32);
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.72), 0 0 28px var(--card-active-glow, rgba(255, 59, 27, 0.25));
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 24px 48px rgba(11, 11, 14, 0.38), 0 0 26px var(--card-active-glow, rgba(255, 42, 0, 0.25));
 }
 
 .product-card-top {
@@ -319,11 +355,11 @@ nav a:hover, .nav-links a:hover, header a:hover {
 
 .product-tag {
     font-size: 10px;
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
     color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.07);
     padding: 5px 12px;
     border-radius: var(--radius-pill);
     transition: color 0.3s ease, background 0.3s ease;
@@ -332,15 +368,15 @@ nav a:hover, .nav-links a:hover, header a:hover {
 .product-card:hover .product-tag,
 .product-card.touch-pop-active .product-tag {
     color: #ffffff;
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .product-color-dot {
     width: 11px;
     height: 11px;
     border-radius: 50%;
-    background: var(--dot-color, #ff3b1b);
-    box-shadow: 0 0 10px var(--dot-color, #ff3b1b);
+    background: var(--dot-color, #ff2a00);
+    box-shadow: 0 0 10px var(--dot-color, #ff2a00);
     transition: transform 0.3s ease, background 0.3s ease;
 }
 
@@ -356,7 +392,7 @@ nav a:hover, .nav-links a:hover, header a:hover {
     border-radius: 18px;
     background-size: cover;
     background-position: center;
-    background-color: #1f1f26;
+    background-color: #22222a;
     margin-bottom: 16px;
     transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -367,8 +403,9 @@ nav a:hover, .nav-links a:hover, header a:hover {
 }
 
 .product-name {
+    font-family: 'Space Grotesk', sans-serif;
     font-size: 17px;
-    font-weight: 800;
+    font-weight: 700;
     color: #ffffff;
     margin-bottom: 4px;
 }
@@ -383,7 +420,7 @@ nav a:hover, .nav-links a:hover, header a:hover {
 
 .product-card:hover .product-desc,
 .product-card.touch-pop-active .product-desc {
-    color: rgba(255, 255, 255, 0.88);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .product-footer {
@@ -397,7 +434,7 @@ nav a:hover, .nav-links a:hover, header a:hover {
 
 .price {
     font-size: 16px;
-    font-weight: 900;
+    font-weight: 700;
     color: #ffffff;
 }
 
@@ -408,9 +445,9 @@ nav a:hover, .nav-links a:hover, header a:hover {
     border-radius: var(--radius-pill);
     padding: 8px 18px;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
     cursor: pointer;
     transition: transform 0.22s ease, background 0.25s ease, color 0.25s ease;
 }
@@ -418,7 +455,7 @@ nav a:hover, .nav-links a:hover, header a:hover {
 .product-card:hover .btn-add,
 .product-card.touch-pop-active .btn-add {
     background: #ffffff;
-    color: #08080a;
+    color: #0b0b0e;
     border-color: #ffffff;
 }
 
@@ -441,10 +478,10 @@ nav a:hover, .nav-links a:hover, header a:hover {
 .admin-card, .card, .login-box, .dashboard-card {
     background: var(--bg-surface);
     color: var(--text-primary);
-    border: 1px solid var(--border-subtle);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: var(--radius-card);
     padding: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+    box-shadow: 0 18px 40px rgba(11, 11, 14, 0.18);
 }
 
 .form-control,
@@ -472,7 +509,7 @@ textarea {
 
 .product-item-admin {
     background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
     padding: 12px 16px;
     transition: transform 0.25s ease, border-color 0.25s ease;
@@ -480,7 +517,7 @@ textarea {
 
 .product-item-admin:hover {
     transform: translateY(-3px);
-    border-color: var(--border-hover);
+    border-color: var(--accent-red);
 }
 
 .product-item-admin img {
@@ -494,7 +531,7 @@ textarea {
     border-radius: var(--radius-pill);
     padding: 11px 22px;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 700;
     text-transform: uppercase;
     cursor: pointer;
     transition: transform 0.22s ease, opacity 0.22s ease;
@@ -512,7 +549,7 @@ textarea {
     border-radius: var(--radius-pill);
     padding: 8px 16px;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 700;
     cursor: pointer;
     transition: transform 0.22s ease, background 0.22s ease, color 0.22s ease;
 }
