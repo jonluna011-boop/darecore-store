@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initCartSystem();
 });
 
+function generateFolio(prefix) {
+    const randomPart = Math.floor(100000 + Math.random() * 900000);
+    return `${prefix}-${randomPart}`;
+}
+
 /* ==========================================
 1. GESTIÓN DE PRODUCTOS Y SINCRONIZACIÓN
    ========================================== */
@@ -226,6 +231,15 @@ function setupDareLab() {
     if (mockupBtn) {
         mockupBtn.addEventListener('click', async (e) => {
             e.preventDefault();
+
+            const whatsappInput = document.getElementById('customWhatsapp');
+            const whatsapp = whatsappInput ? whatsappInput.value.trim() : '';
+            if (!whatsapp) {
+                alert('Por favor ingresa tu número de WhatsApp para enviarte tu mockup.');
+                if (whatsappInput) whatsappInput.focus();
+                return;
+            }
+
             const bases = getCustomBases();
             const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
             const techSelectElement = document.getElementById('customTechniqueSelect');
@@ -240,6 +254,7 @@ function setupDareLab() {
             const notes = document.getElementById('customNotes')?.value.trim() || 'Sin notas adicionales';
 
             const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+            const orderNumber = generateFolio('PEDIDO');
 
             let compressedImageBase64 = '';
             if (fileObj) {
@@ -249,8 +264,11 @@ function setupDareLab() {
             if (window.db) {
                 try {
                     await window.db.collection('darelab_orders').add({
+                        orderNumber: orderNumber,
+                        orderType: 'pedido_darelab',
                         userEmail: currentUser ? currentUser.email : 'Invitado (sin sesión)',
                         userName: currentUser ? currentUser.displayName : 'Invitado',
+                        whatsapp: whatsapp,
                         baseName: selectedBase.name,
                         technique: techName,
                         fileName: fileName,
@@ -264,9 +282,8 @@ function setupDareLab() {
                 }
             }
 
-            const resumen = `¡Hola DARECORE! Me gustaría solicitar un Mockup Digital en Dare Lab:\n\n• Prenda Base: ${selectedBase.name}\n• Técnica: ${techName}\n• Archivo: ${fileName}\n• Notas: ${notes}\n• Total Estimado: $${total.toLocaleString('es-MX')} MXN`;
-
-            const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(resumen)}`;
+            const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber}`;
+            const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
             window.open(waUrl, '_blank');
         });
     }
@@ -434,15 +451,38 @@ function removeFromCart(index) {
     openCartModal();
 }
 
-function checkoutCart() {
+async function checkoutCart() {
     if (cart.length === 0) {
         alert('Tu carrito está vacío.');
         return;
     }
+
+    const purchaseNumber = generateFolio('COMPRA');
     const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) * item.qty), 0);
-    const detalle = cart.map(item => `• ${item.qty}x ${item.name} ($${item.price} MXN)`).join('\n');
-    const mensaje = `¡Hola DARECORE! Me gustaría finalizar mi pedido:\n\n${detalle}\n\nTotal a Pagar: $${subtotal.toLocaleString('es-MX')} MXN`;
-    
+    const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+
+    if (window.db) {
+        try {
+            await window.db.collection('orders').add({
+                purchaseNumber: purchaseNumber,
+                orderType: 'compra_carrito',
+                userEmail: currentUser ? currentUser.email : 'Invitado (sin sesión)',
+                userName: currentUser ? currentUser.displayName : 'Invitado',
+                items: cart.map(item => ({
+                    id: item.id || item.firestoreId || '',
+                    name: item.name,
+                    price: Number(item.price),
+                    qty: Number(item.qty)
+                })),
+                total: subtotal,
+                createdAt: new Date().toISOString()
+            });
+        } catch (err) {
+            console.error("Error guardando compra:", err);
+        }
+    }
+
+    const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${purchaseNumber}`;
     window.open(`https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`, '_blank');
 }
 
@@ -783,10 +823,16 @@ function loadAdminDareLabOrders() {
                    </a>`
                 : `<div style="height: 80px; background: #161616; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666; font-size: 11px;">Sin imagen adjunta</div>`;
 
+            const cleanPhone = (order.whatsapp || '').replace(/\D/g, '');
+            const waClientLink = cleanPhone
+                ? `<a href="https://wa.me/${cleanPhone.length === 10 ? '521' + cleanPhone : cleanPhone}" target="_blank" style="color: #25d366; text-decoration: underline;">${order.whatsapp}</a>`
+                : `<span style="color: #888;">${order.whatsapp || 'No proporcionado'}</span>`;
+
             card.innerHTML = `
                 ${imgHtml}
-                <div style="color: #ff3b1b; font-size: 11px; font-weight: 800;">${order.baseName}</div>
+                <div style="color: #ff3b1b; font-size: 11px; font-weight: 800;">${order.orderNumber ? '#' + order.orderNumber + ' • ' : ''}${order.baseName}</div>
                 <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName} (${order.userEmail})</div>
+                <div style="color: #fff; font-size: 12px;"><strong>WhatsApp:</strong> ${waClientLink}</div>
                 <div style="color: #aaa; font-size: 11px;"><strong>Técnica:</strong> ${order.technique} | <strong>Total:</strong> $${Number(order.total).toLocaleString('es-MX')} MXN</div>
                 <div style="color: #888; font-size: 11px;"><strong>Notas:</strong> ${order.notes}</div>
                 <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="deleteDareLabOrder('${doc.id}')">Eliminar Solicitud</button>
