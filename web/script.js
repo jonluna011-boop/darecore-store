@@ -6,6 +6,7 @@ let selectedCustomBaseIndex = 0;
 let cart = JSON.parse(localStorage.getItem('darecore_cart')) || [];
 let activeCartTab = 'cart';
 let isSyncing = false;
+let currentSearchTerm = '';
 let heroSlideIndex = 0;
 let heroAutoTimer = null;
 
@@ -95,11 +96,33 @@ function styleBrandLogoInHeader() {
 
 function cleanExtraHeroBlocks() {
     const descTarget = 'NUESTRAS PIEZAS DE HOMBRE SON CONSTRUIDAS CON HILO OPEN-END PEINADO.';
-    document.querySelectorAll('p, span, div').forEach(el => {
-        if (el.children.length === 0) {
-            const txt = (el.textContent || '').trim().toUpperCase();
-            if (txt.includes('CONSTRUIDAS CON HILO OPEN-END PEINADO') || txt === descTarget) {
-                el.style.display = 'none';
+    const extraTexts = [
+        'SPOTLIGHT / DRAG RACE CLUB',
+        'MONTE CARLO RACING #04',
+        'DROP ACTIVO: APEX & GYM',
+        'DISEÑOS DE ALTO RENDIMIENTO CON ESTÉTICA UNDERGROUND.',
+        'DISENOS DE ALTO RENDIMIENTO CON ESTETICA UNDERGROUND.',
+        'ALGODÓN 240G+ CON RIB GRUESO DE 3.2 CM',
+        'ALGODON 240G+ CON RIB GRUESO DE 3.2 CM',
+        'GRAMAJE POR PIEZA',
+        'ANCHO DEL RIB DE CUELLO',
+        'DEFORMACIÓN GARANTIZADA',
+        'DEFORMACION GARANTIZADA'
+    ];
+
+    document.querySelectorAll('p, span, div, h1, h2, h3, h4, section, article').forEach(el => {
+        if (el.id === 'darecoreHeroWrapper' || el.closest('#darecoreHeroWrapper')) return;
+        const txt = (el.textContent || '').trim().toUpperCase();
+        if (!txt) return;
+
+        const isCottonDesc = el.children.length === 0 && (txt.includes('CONSTRUIDAS CON HILO OPEN-END PEINADO') || txt === descTarget);
+        const isExtraBlockText = extraTexts.some(item => txt === item || (el.children.length === 0 && txt.includes(item)));
+
+        if (isCottonDesc || isExtraBlockText) {
+            el.style.display = 'none';
+            const smallContainer = el.closest('section, article, div');
+            if (smallContainer && smallContainer.id !== 'darecoreHeroWrapper' && smallContainer.innerText.trim().length < 350) {
+                smallContainer.style.display = 'none';
             }
         }
     });
@@ -382,8 +405,10 @@ function getStoredProducts() {
             if (!snapshot.empty) {
                 const cloudProducts = snapshot.docs.map(doc => ({ ...doc.data(), firestoreId: doc.id }));
                 localStorage.setItem('darecore_products', JSON.stringify(cloudProducts));
-                initStore();
-                renderHeroSlide(heroSlideIndex);
+                if (!currentSearchTerm.trim()) {
+                    initStore();
+                    renderHeroSlide(heroSlideIndex);
+                }
             }
         }).catch(err => console.log("Modo offline:", err))
           .finally(() => { setTimeout(() => { isSyncing = false; }, 2000); });
@@ -496,23 +521,25 @@ function setupSearch() {
     const searchInput = document.getElementById('searchInput') || document.querySelector('.search-box');
     if (!searchInput) return;
 
-    searchInput.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase().trim();
+    const applyFilter = (rawValue) => {
+        currentSearchTerm = (rawValue || '').toLowerCase().trim();
         const products = getStoredProducts();
 
-        if (!term) {
+        if (!currentSearchTerm) {
             initStore();
             return;
         }
 
         const filtered = products.filter(p =>
-            (p.name && p.name.toLowerCase().includes(term)) ||
-            (p.desc && p.desc.toLowerCase().includes(term)) ||
-            (p.category && p.category.toLowerCase().includes(term)) ||
-            (p.tag && p.tag.toLowerCase().includes(term))
+            (p.name && p.name.toLowerCase().includes(currentSearchTerm)) ||
+            (p.desc && p.desc.toLowerCase().includes(currentSearchTerm)) ||
+            (p.category && p.category.toLowerCase().includes(currentSearchTerm)) ||
+            (p.tag && p.tag.toLowerCase().includes(currentSearchTerm))
         );
         renderProducts(filtered);
-    });
+    };
+
+    searchInput.addEventListener('input', (e) => applyFilter(e.target.value));
 }
 
 /* ==========================================
