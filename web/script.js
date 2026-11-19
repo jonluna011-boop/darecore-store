@@ -8,18 +8,24 @@ let activeCartTab = 'cart'; // 'cart' | 'pending'
 let isSyncing = false;
 
 const ORDER_STATUSES = [
+    'Pago pendiente',
     'Pedido pendiente',
     'En proceso',
     'Listo para enviar',
     'Enviado'
 ];
 
+// Opcional: Pega aquí tu Webhook (Make / Zapier / Google Apps Script) para envío real de correos
+const EMAIL_WEBHOOK_URL = '';
+
 document.addEventListener('DOMContentLoaded', () => {
+    updateTopAnnouncementBanner();
     initStore();
     setupSearch();
     setupDareLab();
     initAdminPanel();
     initCartSystem();
+    checkAbandonedCartReminder();
 });
 
 function generateFolio(prefix) {
@@ -27,8 +33,67 @@ function generateFolio(prefix) {
     return `${prefix}-${randomPart}`;
 }
 
+/* ==========================================
+   FRANJA SUPERIOR Y NOTIFICACIÓN FLOTANTE VERDE
+   ========================================== */
+function updateTopAnnouncementBanner() {
+    const candidates = document.querySelectorAll('.top-banner, .announcement-bar, .promo-bar, header div, body > div');
+    candidates.forEach(el => {
+        if (el.children.length === 0 && el.textContent) {
+            const txt = el.textContent.toUpperCase();
+            if (txt.includes('EDICIÓN LIMITADA') || txt.includes('DARE LAB CUSTOM STUDIO')) {
+                el.textContent = 'NUEVA COLECCIÓN DISPONIBLE • PERSONALIZA TU PRENDA IDEAL';
+            }
+        }
+    });
+}
+
+function showFloatingToast(message) {
+    let toast = document.getElementById('darecoreFloatingToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'darecoreFloatingToast';
+        toast.style.cssText = [
+            'position: fixed',
+            'top: 50%',
+            'left: 50%',
+            'transform: translate(-50%, -50%) scale(0.95)',
+            'background: #16a34a',
+            'color: #ffffff',
+            'padding: 14px 24px',
+            'border-radius: 999px',
+            'font-size: 13px',
+            'font-weight: 800',
+            'letter-spacing: 0.4px',
+            'box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45)',
+            'border: 1px solid rgba(255, 255, 255, 0.25)',
+            'z-index: 99999',
+            'opacity: 0',
+            'pointer-events: none',
+            'text-align: center',
+            'max-width: 90vw',
+            'transition: opacity 0.22s ease, transform 0.22s ease'
+        ].join(';');
+        document.body.appendChild(toast);
+    }
+
+    toast.textContent = message;
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translate(-50%, -50%) scale(1)';
+    });
+
+    clearTimeout(window._darecoreToastTimer);
+    window._darecoreToastTimer = setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, -50%) scale(0.95)';
+    }, 2400);
+}
+
 function getStatusBadgeStyle(status) {
     switch (status) {
+        case 'Pago pendiente':
+            return 'background: rgba(249, 115, 22, 0.18); color: #fb923c; border: 1px solid rgba(249, 115, 22, 0.45);';
         case 'En proceso':
             return 'background: rgba(255, 193, 7, 0.16); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.45);';
         case 'Listo para enviar':
@@ -238,6 +303,17 @@ function compressImageFile(file, maxWidth = 800, quality = 0.7) {
     });
 }
 
+function resetDareLabForm() {
+    selectedCustomBaseIndex = 0;
+    const fileInput = document.getElementById('customDesignFile');
+    if (fileInput) fileInput.value = '';
+    const notesInput = document.getElementById('customNotes');
+    if (notesInput) notesInput.value = '';
+    const techSelect = document.getElementById('customTechniqueSelect');
+    if (techSelect) techSelect.selectedIndex = 0;
+    renderCustomBasesPublic();
+}
+
 function setupDareLab() {
     const container = document.getElementById('customBasesContainer');
     if (!container) return;
@@ -257,7 +333,7 @@ function setupDareLab() {
             const whatsappInput = document.getElementById('customWhatsapp');
             const whatsapp = whatsappInput ? whatsappInput.value.trim() : '';
             if (!whatsapp) {
-                alert('Por favor ingresa tu número de WhatsApp para enviarte tu mockup.');
+                showFloatingToast('Ingresa tu WhatsApp para enviarte tu mockup');
                 if (whatsappInput) whatsappInput.focus();
                 return;
             }
@@ -277,8 +353,13 @@ function setupDareLab() {
 
             const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
             const orderNumber = generateFolio('PEDIDO');
-            const initialStatus = 'Pedido pendiente';
+            const initialStatus = 'Pago pendiente';
             const createdAt = new Date().toISOString();
+
+            // Pre-abrir pestaña de WhatsApp en el clic síncrono para que el navegador no la bloquee
+            const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber}`;
+            const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
+            const waWindow = window.open('about:blank', '_blank');
 
             let compressedImageBase64 = '';
             if (fileObj) {
@@ -321,9 +402,15 @@ function setupDareLab() {
                 createdAt: createdAt
             });
 
-            const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber}`;
-            const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
-            window.open(waUrl, '_blank');
+            // Limpiar selección actual en Dare Lab para permitir solicitar otro personalizado
+            resetDareLabForm();
+            showFloatingToast(`Solicitud #${orderNumber} agregada a Pedido pendiente`);
+
+            if (waWindow) {
+                waWindow.location.href = waUrl;
+            } else {
+                window.location.href = waUrl;
+            }
         });
     }
 }
@@ -386,7 +473,7 @@ function updateCustomSummary() {
 }
 
 /* ==========================================
-5. SISTEMA DE CARRITO, ESTATUS Y PAGOS
+5. SISTEMA DE CARRITO, ESTATUS, RECORDATORIO 24H Y PAGOS
    ========================================== */
 function getClientPendingOrdersLocal() {
     try {
@@ -451,7 +538,7 @@ async function fetchClientPendingOrders() {
                     mergedMap.set(entry.folio, {
                         ...entry,
                         delivered: false,
-                        status: data.status || entry.status || 'Pedido pendiente',
+                        status: data.status || entry.status || 'Pago pendiente',
                         total: data.total !== undefined ? data.total : entry.total
                     });
                 } else {
@@ -467,9 +554,10 @@ async function fetchClientPendingOrders() {
 
         if (currentUser && currentUser.email) {
             try {
-                const [cartSnap, labSnap] = await Promise.all([
+                const [cartSnap, labSnap, deliveredSnap] = await Promise.all([
                     window.db.collection('orders').where('userEmail', '==', currentUser.email).get(),
-                    window.db.collection('darelab_orders').where('userEmail', '==', currentUser.email).get()
+                    window.db.collection('darelab_orders').where('userEmail', '==', currentUser.email).get(),
+                    window.db.collection('delivered_orders').where('userEmail', '==', currentUser.email).get()
                 ]);
 
                 cartSnap.forEach(docSnap => {
@@ -485,7 +573,7 @@ async function fetchClientPendingOrders() {
                         typeLabel: 'Carrito',
                         summary: summaryText,
                         total: d.total || 0,
-                        status: d.status || 'Pedido pendiente',
+                        status: d.status || 'Pago pendiente',
                         delivered: false,
                         createdAt: d.createdAt || ''
                     });
@@ -501,8 +589,24 @@ async function fetchClientPendingOrders() {
                         typeLabel: 'Dare Lab',
                         summary: `${d.baseName || 'Prenda'} (${d.technique || 'Estándar'})`,
                         total: d.total || 0,
-                        status: d.status || 'Pedido pendiente',
+                        status: d.status || 'Pago pendiente',
                         delivered: false,
+                        createdAt: d.createdAt || ''
+                    });
+                });
+
+                deliveredSnap.forEach(docSnap => {
+                    const d = docSnap.data();
+                    const folio = d.folio || d.purchaseNumber || d.orderNumber || docSnap.id;
+                    mergedMap.set(folio, {
+                        id: docSnap.id,
+                        collection: 'delivered_orders',
+                        folio: folio,
+                        typeLabel: d.typeLabel || 'Pedido',
+                        summary: d.summary || 'Pedido completado',
+                        total: d.total || 0,
+                        status: 'Entregado',
+                        delivered: true,
                         createdAt: d.createdAt || ''
                     });
                 });
@@ -522,6 +626,81 @@ async function fetchClientPendingOrders() {
     return combined;
 }
 
+function syncAbandonedCartState() {
+    if (cart.length === 0) {
+        localStorage.removeItem('darecore_cart_updated_at');
+        localStorage.removeItem('darecore_cart_reminded_24h');
+        const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+        if (window.db && currentUser && currentUser.uid) {
+            window.db.collection('abandoned_carts').doc(currentUser.uid).delete().catch(() => {});
+        }
+        return;
+    }
+
+    const nowIso = new Date().toISOString();
+    localStorage.setItem('darecore_cart_updated_at', nowIso);
+
+    const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+    if (window.db && currentUser && currentUser.email) {
+        const remindAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+        window.db.collection('abandoned_carts').doc(currentUser.uid).set({
+            uid: currentUser.uid,
+            userName: currentUser.displayName || 'Cliente',
+            userEmail: currentUser.email,
+            items: cart.map(i => ({ name: i.name, qty: Number(i.qty || 1), price: Number(i.price) })),
+            updatedAt: nowIso,
+            remindAt: remindAt,
+            emailSubject: 'Tienes un carrito pendiente en DareCore Store',
+            emailBody: 'Tienes un carrito pendiente en DareCore Store. No pierdas la oportunidad de lucir con estilo a donde vayas.'
+        }, { merge: true }).catch(() => {});
+    }
+}
+
+function checkAbandonedCartReminder() {
+    if (cart.length === 0) return;
+    const updatedAt = localStorage.getItem('darecore_cart_updated_at');
+    if (!updatedAt) return;
+
+    const elapsedMs = Date.now() - new Date(updatedAt).getTime();
+    const twentyFourHoursMs = 24 * 60 * 60 * 1000;
+    const alreadyReminded = localStorage.getItem('darecore_cart_reminded_24h') === 'true';
+
+    if (elapsedMs >= twentyFourHoursMs && !alreadyReminded) {
+        localStorage.setItem('darecore_cart_reminded_24h', 'true');
+        const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+        if (currentUser && currentUser.email) {
+            triggerAutomatedEmail({
+                type: 'abandoned_cart_24h',
+                recipients: [currentUser.email],
+                subject: 'Tienes un carrito pendiente en DareCore Store',
+                message: 'Tienes un carrito pendiente en DareCore Store. No pierdas la oportunidad de lucir con estilo a donde vayas.'
+            });
+        }
+    }
+}
+
+async function triggerAutomatedEmail(payload) {
+    if (window.db) {
+        try {
+            await window.db.collection('mail_queue').add({
+                ...payload,
+                createdAt: new Date().toISOString(),
+                status: 'queued'
+            });
+        } catch (err) {
+            console.log("No se pudo encolar notificación:", err);
+        }
+    }
+
+    if (EMAIL_WEBHOOK_URL) {
+        fetch(EMAIL_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).catch(err => console.log("Webhook de correo no disponible:", err));
+    }
+}
+
 function addToCart(productId) {
     const products = getStoredProducts();
     const product = products.find(p => p.id == productId || p.firestoreId == productId);
@@ -536,7 +715,7 @@ function addToCart(productId) {
 
     saveCart();
     updateCartUI();
-    alert(`¡"${product.name}" agregado al carrito!`);
+    showFloatingToast(`"${product.name}" agregado al carrito`);
 }
 
 function changeCartQty(index, delta) {
@@ -554,6 +733,7 @@ function changeCartQty(index, delta) {
 
 function saveCart() {
     localStorage.setItem('darecore_cart', JSON.stringify(cart));
+    syncAbandonedCartState();
 }
 
 function updateCartUI() {
@@ -633,14 +813,14 @@ async function openCartModal(tab = activeCartTab) {
         } else {
             bodyContentHtml = pendingOrders.map((ord) => {
                 const isDelivered = Boolean(ord.delivered);
-                const currentStatus = ord.status || 'Pedido pendiente';
+                const currentStatus = ord.status || 'Pago pendiente';
                 const badgeStyle = isDelivered
                     ? 'background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4);'
                     : getStatusBadgeStyle(currentStatus);
 
                 const strikeStyle = isDelivered ? 'text-decoration: line-through; opacity: 0.65;' : '';
                 const cardBorderStyle = isDelivered
-                    ? 'background:#141414; border:1px solid #262626; opacity:0.85;'
+                    ? 'background:#141414; border:1px solid #262626; opacity:0.88;'
                     : 'background:#181818; border:1px solid #282828;';
 
                 const deliveredBannerHtml = isDelivered
@@ -720,15 +900,20 @@ function removeFromCart(index) {
 
 async function checkoutCart() {
     if (cart.length === 0) {
-        alert('Tu carrito está vacío.');
+        showFloatingToast('Tu carrito está vacío');
         return;
     }
 
     const purchaseNumber = generateFolio('COMPRA');
     const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty || 1)), 0);
     const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
-    const initialStatus = 'Pedido pendiente';
+    const initialStatus = 'Pago pendiente';
     const createdAt = new Date().toISOString();
+
+    // Abrir WhatsApp de inmediato dentro del evento de clic para evitar bloqueos del navegador
+    const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${purchaseNumber}`;
+    const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
+    const waWindow = window.open('about:blank', '_blank');
 
     const cleanItems = cart.map(item => ({
         id: item.id || item.firestoreId || '',
@@ -774,13 +959,16 @@ async function checkoutCart() {
     updateCartUI();
     openCartModal('pending');
 
-    const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${purchaseNumber}`;
-    window.open(`https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`, '_blank');
+    if (waWindow) {
+        waWindow.location.href = waUrl;
+    } else {
+        window.location.href = waUrl;
+    }
 }
 
 function openGoogleAuthModal() {
     if (!window.auth) {
-        alert("Firebase Auth no está inicializado.");
+        showFloatingToast('Firebase Auth no está inicializado');
         return;
     }
     
@@ -803,13 +991,14 @@ function openGoogleAuthModal() {
                 }, { merge: true }).catch(err => console.error("Error guardando usuario:", err));
             }
 
+            syncAbandonedCartState();
             await fetchClientPendingOrders();
 
-            alert(`¡Bienvenido, ${user.displayName || user.email}! Sesión iniciada y pedidos sincronizados.`);
+            showFloatingToast(`Bienvenido, ${user.displayName || user.email}`);
             openCartModal('pending');
         }).catch((error) => {
             console.error("Error en autenticación con Google:", error.message);
-            alert("Hubo un error al iniciar sesión con Google: " + error.message);
+            showFloatingToast('Error al iniciar sesión con Google');
         });
 }
 
@@ -824,15 +1013,21 @@ function initAdminPanel() {
     const dashboardSection = document.getElementById('dashboardSection');
     const logoutBtn = document.getElementById('logoutBtn');
 
-    if (localStorage.getItem('darecore_admin_logged') === 'true') {
-        if (loginSection) loginSection.classList.add('hidden');
-        if (dashboardSection) dashboardSection.classList.remove('hidden');
-        if (logoutBtn) logoutBtn.classList.remove('hidden');
+    const bootDashboard = () => {
+        ensureDeliveredOrdersSection();
         loadAdminProducts();
         loadAdminCustomBases();
         loadAdminUsers();
         loadAdminDareLabOrders();
         loadAdminOrders();
+        loadAdminDeliveredOrders();
+    };
+
+    if (localStorage.getItem('darecore_admin_logged') === 'true') {
+        if (loginSection) loginSection.classList.add('hidden');
+        if (dashboardSection) dashboardSection.classList.remove('hidden');
+        if (logoutBtn) logoutBtn.classList.remove('hidden');
+        bootDashboard();
     }
 
     loginForm.addEventListener('submit', (e) => {
@@ -846,11 +1041,7 @@ function initAdminPanel() {
             if (loginSection) loginSection.classList.add('hidden');
             if (dashboardSection) dashboardSection.classList.remove('hidden');
             if (logoutBtn) logoutBtn.classList.remove('hidden');
-            loadAdminProducts();
-            loadAdminCustomBases();
-            loadAdminUsers();
-            loadAdminDareLabOrders();
-            loadAdminOrders();
+            bootDashboard();
         } else {
             if (errorMsg) errorMsg.style.display = 'block';
         }
@@ -870,14 +1061,105 @@ function initAdminPanel() {
     }
 }
 
+function ensureDeliveredOrdersSection() {
+    if (document.getElementById('adminDeliveredList')) return;
+
+    const dareLabContainer = document.getElementById('adminDareLabList');
+    const ordersContainer = document.getElementById('adminOrdersList');
+    const anchorCard = (dareLabContainer && dareLabContainer.closest('.admin-card')) ||
+                       (ordersContainer && ordersContainer.closest('.admin-card')) ||
+                       document.getElementById('dashboardSection');
+
+    if (!anchorCard) return;
+
+    const section = document.createElement('div');
+    section.className = 'admin-card';
+    section.style.cssText = 'margin-top: 24px; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 24px;';
+    section.innerHTML = `
+        <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 900; color: #16a34a; text-transform: uppercase;">
+            ✅ PEDIDOS ENTREGADOS (<span id="deliveredCount">0</span>)
+        </h3>
+        <p style="margin: 0 0 16px 0; font-size: 12px; color: #666;">
+            Historial de compras y pedidos Dare Lab entregados. Haz clic en cualquier pedido para ver sus especificaciones en grande.
+        </p>
+        <div id="adminDeliveredList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;"></div>
+    `;
+
+    if (anchorCard.id === 'dashboardSection') {
+        anchorCard.appendChild(section);
+    } else {
+        anchorCard.insertAdjacentElement('afterend', section);
+    }
+}
+
+function openAdminOrderDetailModal(orderData) {
+    let modal = document.getElementById('adminOrderDetailModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'adminOrderDetailModal';
+        modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:99999; justify-content:center; align-items:center; padding:20px;';
+        document.body.appendChild(modal);
+    }
+
+    const itemsHtml = Array.isArray(orderData.items) && orderData.items.length > 0
+        ? `<ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px;">
+            ${orderData.items.map(i => `
+                <li style="background:#181818; border:1px solid #2a2a2a; padding:10px 12px; border-radius:5px; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color:#fff; font-size:13px;"><strong>${i.qty}x</strong> ${i.name}</span>
+                    <span style="color:#ff3b1b; font-weight:800; font-size:13px;">$${(Number(i.price) * Number(i.qty || 1)).toLocaleString('es-MX')} MXN</span>
+                </li>
+            `).join('')}
+           </ul>`
+        : `<div style="background:#181818; border:1px solid #2a2a2a; padding:12px; border-radius:5px; color:#ddd; font-size:13px; line-height:1.5;">
+            <div><strong>Prenda base:</strong> ${orderData.baseName || orderData.summary || 'N/A'}</div>
+            ${orderData.technique ? `<div><strong>Técnica:</strong> ${orderData.technique}</div>` : ''}
+            ${orderData.notes ? `<div><strong>Notas del cliente:</strong> ${orderData.notes}</div>` : ''}
+           </div>`;
+
+    const imageBlock = orderData.imageData
+        ? `<div style="margin-bottom:14px; text-align:center; background:#141414; padding:10px; border-radius:6px; border:1px solid #262626;">
+            <img src="${orderData.imageData}" style="max-width:100%; max-height:260px; object-fit:contain; border-radius:4px;">
+            <div style="margin-top:8px;">
+                <a href="${orderData.imageData}" download="${orderData.fileName || 'diseno-darecore.jpg'}" style="color:#60a5fa; font-size:12px; font-weight:700; text-decoration:underline;">Descargar archivo adjunto</a>
+            </div>
+           </div>`
+        : '';
+
+    modal.innerHTML = `
+        <div style="background:#111; border:1px solid #2a2a2a; border-radius:8px; max-width:600px; width:100%; max-height:90vh; overflow-y:auto; padding:26px; position:relative; color:#fff;">
+            <button onclick="document.getElementById('adminOrderDetailModal').style.display='none'" style="position:absolute; top:14px; right:18px; background:none; border:none; color:#fff; font-size:26px; cursor:pointer;">&times;</button>
+            <div style="font-size:11px; font-weight:800; color:#ff3b1b; text-transform:uppercase; margin-bottom:4px;">${orderData.typeLabel || 'PEDIDO DARECORE'}</div>
+            <h2 style="margin:0 0 14px 0; font-size:22px; font-weight:900;">#${orderData.folio}</h2>
+
+            ${imageBlock}
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; background:#161616; padding:12px; border-radius:6px; border:1px solid #252525; margin-bottom:16px; font-size:12px;">
+                <div><span style="color:#888;">Cliente:</span><br><strong>${orderData.userName || 'Invitado'}</strong></div>
+                <div><span style="color:#888;">Correo:</span><br><strong>${orderData.userEmail || 'Sin correo'}</strong></div>
+                <div><span style="color:#888;">WhatsApp:</span><br><strong>${orderData.whatsapp || 'No registrado'}</strong></div>
+                <div><span style="color:#888;">Estatus:</span><br><strong style="color:#4ade80;">${orderData.status || 'Pago pendiente'}</strong></div>
+            </div>
+
+            <div style="font-size:11px; font-weight:800; color:#aaa; text-transform:uppercase; margin-bottom:8px;">Especificaciones del pedido</div>
+            ${itemsHtml}
+
+            <div style="margin-top:18px; padding-top:14px; border-top:1px solid #262626; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:14px; color:#bbb; font-weight:700;">Total Cobrado:</span>
+                <span style="font-size:22px; color:#ff3b1b; font-weight:900;">$${Number(orderData.total || 0).toLocaleString('es-MX')} MXN</span>
+            </div>
+        </div>
+    `;
+    modal.style.display = 'flex';
+}
+
 function renderStatusSelectHtml(collectionName, docId, currentStatus) {
-    const active = currentStatus || 'Pedido pendiente';
+    const active = currentStatus || 'Pago pendiente';
     const optionsHtml = ORDER_STATUSES.map(st =>
         `<option value="${st}" ${st === active ? 'selected' : ''}>${st}</option>`
     ).join('');
 
     return `
-        <div style="margin-top: 4px;">
+        <div style="margin-top: 4px;" onclick="event.stopPropagation();">
             <label style="font-size: 10px; color: #aaa; display: block; margin-bottom: 4px; text-transform: uppercase; font-weight: 700;">Estatus del pedido:</label>
             <select onchange="updateOrderStatus('${collectionName}', '${docId}', this.value)" style="width: 100%; background: #141414; color: #fff; border: 1px solid #333; padding: 7px 8px; border-radius: 4px; font-size: 12px; cursor: pointer;">
                 ${optionsHtml}
@@ -904,23 +1186,41 @@ function updateOrderStatus(collectionName, docId, newStatus) {
     }).catch(err => console.error("Error actualizando estatus:", err));
 }
 
-async function markOrderDeliveredInCloud(collectionName, docId) {
+async function archiveOrderAsDelivered(collectionName, docId) {
     if (!window.db || !docId) return;
     try {
         const snap = await window.db.collection(collectionName).doc(docId).get();
-        let folio = docId;
-        if (snap.exists) {
-            const d = snap.data();
-            folio = d.purchaseNumber || d.orderNumber || docId;
-        }
-        await window.db.collection('delivered_folios').doc(docId).set({
-            orderId: docId,
-            folio: folio,
-            collection: collectionName,
-            deliveredAt: new Date().toISOString()
-        }, { merge: true });
+        if (!snap.exists) return;
+
+        const d = snap.data();
+        const folio = d.purchaseNumber || d.orderNumber || docId;
+        const typeLabel = collectionName === 'darelab_orders' ? 'Dare Lab' : 'Carrito';
+        const summary = collectionName === 'darelab_orders'
+            ? `${d.baseName || 'Prenda'} (${d.technique || 'Estándar'})`
+            : (Array.isArray(d.items) ? d.items.map(i => `${i.qty}x ${i.name}`).join(', ') : 'Compra en tienda');
+
+        await Promise.all([
+            window.db.collection('delivered_orders').doc(docId).set({
+                ...d,
+                originalId: docId,
+                originalCollection: collectionName,
+                folio: folio,
+                typeLabel: typeLabel,
+                summary: summary,
+                status: 'Entregado',
+                deliveredAt: new Date().toISOString()
+            }),
+            window.db.collection('delivered_folios').doc(docId).set({
+                orderId: docId,
+                folio: folio,
+                collection: collectionName,
+                deliveredAt: new Date().toISOString()
+            }, { merge: true })
+        ]);
+
+        await window.db.collection(collectionName).doc(docId).delete();
     } catch (err) {
-        console.log("No se pudo registrar folio entregado:", err);
+        console.error("Error moviendo pedido a entregados:", err);
     }
 }
 
@@ -952,6 +1252,27 @@ function loadAdminProducts() {
     });
 }
 
+function notifyUsersAboutNewProduct(product) {
+    if (!window.db) return;
+    window.db.collection('users').get().then(snapshot => {
+        const emails = [];
+        snapshot.forEach(doc => {
+            const u = doc.data();
+            if (u.email) emails.push(u.email);
+        });
+        if (emails.length > 0) {
+            triggerAutomatedEmail({
+                type: 'new_product_published',
+                recipients: emails,
+                productName: product.name,
+                productPrice: product.price,
+                subject: `Nuevo drop en DareCore: ${product.name}`,
+                message: `Acabamos de publicar "${product.name}" ($${Number(product.price).toLocaleString('es-MX')} MXN) en DareCore Store. Entra ahora antes de que se agote.`
+            });
+        }
+    }).catch(() => {});
+}
+
 function handleProductSubmit(e) {
     e.preventDefault();
     const editingId = document.getElementById('editingProductId')?.value;
@@ -976,7 +1297,7 @@ function handleProductSubmit(e) {
                 }
                 return p;
             });
-            alert('¡Prenda actualizada con éxito!');
+            showFloatingToast(`"${name}" se actualizó exitosamente`);
         } else {
             const newId = 'prod_' + Date.now();
             const newProduct = {
@@ -999,7 +1320,8 @@ function handleProductSubmit(e) {
                 }).catch(err => console.log(err));
             }
 
-            alert('¡Prenda publicada con éxito!');
+            notifyUsersAboutNewProduct(newProduct);
+            showFloatingToast(`"${name}" se publicó exitosamente`);
         }
 
         saveProductsLocal(products);
@@ -1070,7 +1392,7 @@ function deleteProduct(productId) {
 
     loadAdminProducts();
     initStore();
-    alert('Prenda eliminada correctamente.');
+    showFloatingToast('Prenda eliminada correctamente');
 }
 
 function loadAdminCustomBases() {
@@ -1112,7 +1434,7 @@ function updateCustomBaseItem(index) {
             window.db.collection('settings').doc('customBases').set({ items: bases }).catch(err => console.log(err));
         }
 
-        alert('¡Base personalizada actualizada con éxito!');
+        showFloatingToast('Base personalizada actualizada');
         loadAdminCustomBases();
     }
 }
@@ -1164,27 +1486,28 @@ function loadAdminDareLabOrders() {
 
         snapshot.forEach((doc) => {
             const order = doc.data();
-            const status = order.status || 'Pedido pendiente';
+            const status = order.status || 'Pago pendiente';
             const badgeStyle = getStatusBadgeStyle(status);
+            const folio = order.orderNumber || doc.id;
 
             const card = document.createElement('div');
-            card.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px;";
+            card.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;";
             
             const imgHtml = order.imageData
-                ? `<a href="${order.imageData}" download="${order.fileName || 'diseno-darelab.jpg'}" title="Clic para descargar imagen">
+                ? `<a href="${order.imageData}" download="${order.fileName || 'diseno-darelab.jpg'}" onclick="event.stopPropagation();" title="Clic para descargar imagen">
                      <img src="${order.imageData}" style="width: 100%; height: 180px; object-fit: contain; background: #161616; border-radius: 4px; cursor: pointer;">
                    </a>`
                 : `<div style="height: 80px; background: #161616; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #666; font-size: 11px;">Sin imagen adjunta</div>`;
 
             const cleanPhone = (order.whatsapp || '').replace(/\D/g, '');
             const waClientLink = cleanPhone
-                ? `<a href="https://wa.me/${cleanPhone.length === 10 ? '521' + cleanPhone : cleanPhone}" target="_blank" style="color: #25d366; text-decoration: underline;">${order.whatsapp}</a>`
+                ? `<a href="https://wa.me/${cleanPhone.length === 10 ? '521' + cleanPhone : cleanPhone}" target="_blank" onclick="event.stopPropagation();" style="color: #25d366; text-decoration: underline;">${order.whatsapp}</a>`
                 : `<span style="color: #888;">${order.whatsapp || 'No proporcionado'}</span>`;
 
             card.innerHTML = `
                 ${imgHtml}
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
-                    <span style="color: #ff3b1b; font-size: 11px; font-weight: 800;">${order.orderNumber ? '#' + order.orderNumber : 'DARE LAB'}</span>
+                    <span style="color: #ff3b1b; font-size: 11px; font-weight: 800;">#${folio}</span>
                     <span style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; ${badgeStyle}">${status}</span>
                 </div>
                 <div style="color: #fff; font-size: 12px; font-weight: 700;">${order.baseName}</div>
@@ -1193,19 +1516,37 @@ function loadAdminDareLabOrders() {
                 <div style="color: #aaa; font-size: 11px;"><strong>Técnica:</strong> ${order.technique} | <strong>Total:</strong> $${Number(order.total).toLocaleString('es-MX')} MXN</div>
                 <div style="color: #888; font-size: 11px;"><strong>Notas:</strong> ${order.notes}</div>
                 ${renderStatusSelectHtml('darelab_orders', doc.id, status)}
-                <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="deleteDareLabOrder('${doc.id}')">Eliminar Solicitud</button>
+                <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="event.stopPropagation(); deleteDareLabOrder('${doc.id}')">Marcar Entregado / Archivar</button>
             `;
+
+            card.addEventListener('click', () => {
+                openAdminOrderDetailModal({
+                    folio,
+                    typeLabel: 'Solicitud Dare Lab',
+                    userName: order.userName,
+                    userEmail: order.userEmail,
+                    whatsapp: order.whatsapp,
+                    status,
+                    baseName: order.baseName,
+                    technique: order.technique,
+                    notes: order.notes,
+                    imageData: order.imageData,
+                    fileName: order.fileName,
+                    total: order.total
+                });
+            });
+
             container.appendChild(card);
         });
     }).catch(err => console.error("Error cargando solicitudes Dare Lab:", err));
 }
 
 async function deleteDareLabOrder(docId) {
-    if (!confirm('¿Eliminar esta solicitud de Dare Lab?')) return;
-    await markOrderDeliveredInCloud('darelab_orders', docId);
-    window.db.collection('darelab_orders').doc(docId).delete().then(() => {
-        loadAdminDareLabOrders();
-    }).catch(err => console.error("Error eliminando solicitud:", err));
+    if (!confirm('¿Mover esta solicitud a Pedidos Entregados?')) return;
+    await archiveOrderAsDelivered('darelab_orders', docId);
+    showFloatingToast('Pedido movido a Pedidos Entregados');
+    loadAdminDareLabOrders();
+    loadAdminDeliveredOrders();
 }
 
 function loadAdminOrders() {
@@ -1224,8 +1565,9 @@ function loadAdminOrders() {
 
         snapshot.forEach((doc) => {
             const order = doc.data();
-            const status = order.status || 'Pedido pendiente';
+            const status = order.status || 'Pago pendiente';
             const badgeStyle = getStatusBadgeStyle(status);
+            const folio = order.purchaseNumber || doc.id;
 
             const itemsList = Array.isArray(order.items) && order.items.length > 0
                 ? order.items.map(item => `
@@ -1238,10 +1580,10 @@ function loadAdminOrders() {
             const dateText = order.createdAt ? new Date(order.createdAt).toLocaleString('es-MX') : '';
 
             const card = document.createElement('div');
-            card.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px;";
+            card.style.cssText = "background: #0b0b0b; border: 1px solid #222; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; cursor: pointer;";
             card.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-                    <span style="color: #ff3b1b; font-size: 12px; font-weight: 800;">#${order.purchaseNumber || doc.id}</span>
+                    <span style="color: #ff3b1b; font-size: 12px; font-weight: 800;">#${folio}</span>
                     <span style="font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 999px; ${badgeStyle}">${status}</span>
                 </div>
                 <div style="color: #666; font-size: 10px;">${dateText}</div>
@@ -1256,17 +1598,90 @@ function loadAdminOrders() {
                     Total: <span style="color: #ff3b1b;">$${Number(order.total || 0).toLocaleString('es-MX')} MXN</span>
                 </div>
                 ${renderStatusSelectHtml('orders', doc.id, status)}
-                <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="deleteAdminOrder('${doc.id}')">Eliminar Compra</button>
+                <button type="button" class="btn-delete" style="margin-top: auto; width: 100%;" onclick="event.stopPropagation(); deleteAdminOrder('${doc.id}')">Marcar Entregado / Archivar</button>
             `;
+
+            card.addEventListener('click', () => {
+                openAdminOrderDetailModal({
+                    folio,
+                    typeLabel: 'Compra en Tienda',
+                    userName: order.userName,
+                    userEmail: order.userEmail,
+                    status,
+                    items: order.items,
+                    total: order.total
+                });
+            });
+
             container.appendChild(card);
         });
     }).catch(err => console.error("Error cargando compras del carrito:", err));
 }
 
 async function deleteAdminOrder(docId) {
-    if (!confirm('¿Eliminar este registro de compra?')) return;
-    await markOrderDeliveredInCloud('orders', docId);
-    window.db.collection('orders').doc(docId).delete().then(() => {
-        loadAdminOrders();
-    }).catch(err => console.error("Error eliminando compra:", err));
+    if (!confirm('¿Mover esta compra a Pedidos Entregados?')) return;
+    await archiveOrderAsDelivered('orders', docId);
+    showFloatingToast('Pedido movido a Pedidos Entregados');
+    loadAdminOrders();
+    loadAdminDeliveredOrders();
+}
+
+function loadAdminDeliveredOrders() {
+    ensureDeliveredOrdersSection();
+    const container = document.getElementById('adminDeliveredList');
+    const countSpan = document.getElementById('deliveredCount');
+    if (!container || !window.db) return;
+
+    window.db.collection('delivered_orders').orderBy('deliveredAt', 'desc').get().then((snapshot) => {
+        if (countSpan) countSpan.innerText = snapshot.size;
+        container.innerHTML = '';
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color: #888; font-size: 12px;">Aún no hay pedidos archivados en entregados.</p>';
+            return;
+        }
+
+        snapshot.forEach((doc) => {
+            const order = doc.data();
+            const folio = order.folio || order.purchaseNumber || order.orderNumber || doc.id;
+            const dateText = order.deliveredAt ? new Date(order.deliveredAt).toLocaleString('es-MX') : '';
+
+            const card = document.createElement('div');
+            card.style.cssText = "background: #0b0b0b; border: 1px solid #1f3d2b; padding: 14px; border-radius: 6px; display: flex; flex-direction: column; gap: 6px; cursor: pointer;";
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <span style="color: #4ade80; font-size: 12px; font-weight: 800;">#${folio}</span>
+                    <span style="font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: rgba(34, 197, 94, 0.16); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.45);">Entregado</span>
+                </div>
+                <div style="color: #666; font-size: 10px;">Entregado el: ${dateText}</div>
+                <div style="color: #fff; font-size: 12px;"><strong>Cliente:</strong> ${order.userName || 'Invitado'} (${order.userEmail || 'Sin correo'})</div>
+                <div style="color: #bbb; font-size: 11px;">${order.summary || ''}</div>
+                <div style="color: #fff; font-size: 13px; font-weight: 800; margin-top: 4px;">
+                    Cobrado: <span style="color: #4ade80;">$${Number(order.total || 0).toLocaleString('es-MX')} MXN</span>
+                </div>
+                <div style="color: #60a5fa; font-size: 10px; font-weight: 700; margin-top: 4px;">Clic para ver especificaciones completas</div>
+            `;
+
+            card.addEventListener('click', () => {
+                openAdminOrderDetailModal({
+                    folio,
+                    typeLabel: `${order.typeLabel || 'Pedido'} (Entregado)`,
+                    userName: order.userName,
+                    userEmail: order.userEmail,
+                    whatsapp: order.whatsapp,
+                    status: 'Entregado',
+                    items: order.items,
+                    baseName: order.baseName,
+                    technique: order.technique,
+                    notes: order.notes,
+                    imageData: order.imageData,
+                    fileName: order.fileName,
+                    summary: order.summary,
+                    total: order.total
+                });
+            });
+
+            container.appendChild(card);
+        });
+    }).catch(err => console.error("Error cargando pedidos entregados:", err));
 }
