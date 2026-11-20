@@ -116,21 +116,11 @@ function styleBrandLogoInHeader() {
     logoLinks.forEach(logo => {
         if (isAdminPage && logo.closest('.admin-header, [class*="admin"]')) return;
 
-        const spanInside = logo.querySelector('span');
-        if (spanInside) {
-            const firstTextNode = Array.from(logo.childNodes).find(
-                n => n.nodeType === Node.TEXT_NODE && n.textContent.trim().length > 0
-            );
-            const dareText = firstTextNode ? firstTextNode.textContent.trim() : 'DARE';
-            const coreText = spanInside.textContent.trim() || 'CORE';
-            logo.innerHTML = `<span class="brand-dare" style="color:#0b0b0e !important;font-weight:900;">${dareText}</span><span class="brand-core-orange" style="color:#ff5500 !important;font-weight:900;">${coreText}</span>`;
-            logo.dataset.darecoreStyled = 'true';
-            return;
-        }
-
-        const rawText = (logo.textContent || '').trim();
-        if (/^DARECORE$/i.test(rawText)) {
-            logo.innerHTML = `<span class="brand-dare" style="color:#0b0b0e !important;font-weight:900;">DARE</span><span class="brand-core-orange" style="color:#ff5500 !important;font-weight:900;">CORE</span>`;
+        const cleanText = (logo.textContent || '').replace(/\s+/g, '').trim();
+        if (/^DARECORE$/i.test(cleanText)) {
+            const darePart = cleanText.slice(0, 4).toUpperCase();
+            const corePart = cleanText.slice(4).toUpperCase();
+            logo.innerHTML = `<span class="brand-dare" style="color:#0b0b0e !important;font-weight:900;">${darePart}</span><span class="brand-core-orange" style="color:#ff5500 !important;font-weight:900;">${corePart}</span>`;
             logo.dataset.darecoreStyled = 'true';
         }
     });
