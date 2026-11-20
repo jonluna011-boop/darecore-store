@@ -818,7 +818,8 @@ function closeProductModal() {
 }
 
 /* ==========================================
-4. DARE LAB (PERSONALIZACIÓN, AVATAR 3D THREE.JS, TABLAS DE MEDIDAS Y COTIZACIÓN)
+/* ==========================================
+4. DARE LAB (SILUETA ANATÓMICA 3D, DESPLEGABLES POR MEDIDA Y COTIZACIÓN)
    ========================================== */
 function getCustomBases() {
     const local = localStorage.getItem('darecore_custom_bases');
@@ -877,198 +878,6 @@ function detectGarmentTypeFromBase(baseObj) {
     return keys[0] || 'camisa';
 }
 
-function createSoftOrangeGlowTexture() {
-    const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    const grad = ctx.createRadialGradient(128, 128, 12, 128, 128, 124);
-    grad.addColorStop(0, 'rgba(255, 85, 0, 0.95)');
-    grad.addColorStop(0.45, 'rgba(255, 42, 0, 0.55)');
-    grad.addColorStop(1, 'rgba(255, 42, 0, 0)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 256, 256);
-    return new THREE.CanvasTexture(canvas);
-}
-
-function buildFallbackThreeAvatar(scene, gender) {
-    const isFemale = gender === 'mujer';
-    const group = new THREE.Group();
-    const baseMat = new THREE.MeshStandardMaterial({
-        color: isFemale ? 0x2a2630 : 0x22252c,
-        roughness: 0.45,
-        metalness: 0.15
-    });
-
-    const chestRadiusTop = isFemale ? 0.44 : 0.54;
-    const chestRadiusBottom = isFemale ? 0.36 : 0.46;
-    const torsoGeo = new THREE.CylinderGeometry(chestRadiusTop, chestRadiusBottom, 1.35, 28);
-    const torso = new THREE.Mesh(torsoGeo, baseMat);
-    torso.position.set(0, 0.65, 0);
-    group.add(torso);
-
-    const headGeo = new THREE.SphereGeometry(0.27, 24, 24);
-    const head = new THREE.Mesh(headGeo, baseMat);
-    head.position.set(0, 1.62, 0);
-    group.add(head);
-
-    const armRadius = isFemale ? 0.105 : 0.135;
-    const armGeo = new THREE.CylinderGeometry(armRadius, armRadius * 0.85, 1.2, 18);
-    const leftArm = new THREE.Mesh(armGeo, baseMat);
-    leftArm.position.set(isFemale ? -0.58 : -0.68, 0.62, 0);
-    leftArm.rotation.z = -0.1;
-    group.add(leftArm);
-
-    const rightArm = new THREE.Mesh(armGeo, baseMat);
-    rightArm.position.set(isFemale ? 0.58 : 0.68, 0.62, 0);
-    rightArm.rotation.z = 0.1;
-    group.add(rightArm);
-
-    const legRadius = isFemale ? 0.145 : 0.165;
-    const legGeo = new THREE.CylinderGeometry(legRadius, legRadius * 0.78, 1.35, 20);
-    const leftLeg = new THREE.Mesh(legGeo, baseMat);
-    leftLeg.position.set(-0.22, -0.68, 0);
-    group.add(leftLeg);
-
-    const rightLeg = new THREE.Mesh(legGeo, baseMat);
-    rightLeg.position.set(0.22, -0.68, 0);
-    group.add(rightLeg);
-
-    scene.add(group);
-    return group;
-}
-
-function updateThreeGlowZone(zone) {
-    if (!threeSceneState.glowMesh) return;
-    const mesh = threeSceneState.glowMesh;
-
-    if (zone === 'waist') {
-        mesh.position.set(0, 0.35, 0.36);
-        mesh.scale.set(1.25, 0.68, 1);
-    } else if (zone === 'length') {
-        mesh.position.set(0, 0.05, 0.38);
-        mesh.scale.set(1.05, 1.55, 1);
-    } else {
-        mesh.position.set(0, 0.96, 0.38);
-        mesh.scale.set(1.38, 0.75, 1);
-    }
-}
-
-function initThreeAvatarViewport(gender, zone) {
-    const mount = document.getElementById('dareLabThreeViewport');
-    if (!mount) return;
-
-    if (threeSceneState.animId) cancelAnimationFrame(threeSceneState.animId);
-    if (threeSceneState.renderer && threeSceneState.renderer.domElement) {
-        threeSceneState.renderer.dispose();
-    }
-    mount.innerHTML = '';
-
-    if (!window.THREE) {
-        mount.innerHTML = `<div style="display:flex;height:100%;align-items:center;justify-content:center;color:#fb923c;font-size:12px;padding:16px;text-align:center;">Agrega Three.js y GLTFLoader en tu HTML para activar el visor 3D.</div>`;
-        return;
-    }
-
-    const width = mount.clientWidth || 260;
-    const height = mount.clientHeight || 280;
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0c0c10);
-
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
-    camera.position.set(0, 0.55, 3.8);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    mount.appendChild(renderer.domElement);
-
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.15);
-    scene.add(ambientLight);
-
-    const orangeLight = new THREE.PointLight(0xff2a00, 3.5, 8);
-    orangeLight.position.set(0, 0.7, 2.2);
-    scene.add(orangeLight);
-
-    const rimLight = new THREE.DirectionalLight(0xff5500, 1.4);
-    rimLight.position.set(2, 3, 2);
-    scene.add(rimLight);
-
-    const glowTex = createSoftOrangeGlowTexture();
-    const glowMat = new THREE.MeshBasicMaterial({
-        map: glowTex,
-        transparent: true,
-        opacity: 0.9,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        side: THREE.DoubleSide
-    });
-    const glowMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 1.15), glowMat);
-    scene.add(glowMesh);
-
-    const fallbackGroup = buildFallbackThreeAvatar(scene, gender);
-    threeSceneState = {
-        renderer,
-        scene,
-        camera,
-        animId: null,
-        glowMesh,
-        bodyGroup: fallbackGroup,
-        loadedModel: null
-    };
-
-    updateThreeGlowZone(zone);
-
-    const glbUrl = gender === 'mujer' ? THREE_AVATAR_CONFIG.mujerGlbUrl : THREE_AVATAR_CONFIG.hombreGlbUrl;
-    if (typeof THREE.GLTFLoader === 'function' && glbUrl) {
-        const loader = new THREE.GLTFLoader();
-        loader.load(
-            glbUrl,
-            (gltf) => {
-                if (!threeSceneState.scene) return;
-                if (threeSceneState.bodyGroup) {
-                    threeSceneState.scene.remove(threeSceneState.bodyGroup);
-                }
-                const model = gltf.scene;
-                const box = new THREE.Box3().setFromObject(model);
-                const size = new THREE.Vector3();
-                const center = new THREE.Vector3();
-                box.getSize(size);
-                box.getCenter(center);
-
-                const maxDim = Math.max(size.x, size.y, size.z) || 1;
-                const scale = 2.6 / maxDim;
-                model.scale.setScalar(scale);
-                model.position.set(-center.x * scale, -center.y * scale + 0.35, -center.z * scale);
-
-                threeSceneState.scene.add(model);
-                threeSceneState.bodyGroup = model;
-                threeSceneState.loadedModel = model;
-            },
-            undefined,
-            () => {
-                // Mantiene el avatar 3D articulado si el .glb aún no está en el servidor
-            }
-        );
-    }
-
-    let pulse = 0;
-    const animate = () => {
-        threeSceneState.animId = requestAnimationFrame(animate);
-        pulse += 0.05;
-        if (threeSceneState.bodyGroup) {
-            threeSceneState.bodyGroup.rotation.y += 0.006;
-        }
-        if (threeSceneState.glowMesh) {
-            const breathe = 1 + Math.sin(pulse) * 0.08;
-            threeSceneState.glowMesh.scale.setScalar(breathe);
-            threeSceneState.glowMesh.material.opacity = 0.72 + Math.sin(pulse) * 0.18;
-        }
-        renderer.render(scene, camera);
-    };
-    animate();
-}
-
 function getZoneLabelText(zone, gender) {
     if (zone === 'waist') {
         return 'Cintura (cm): Contorno natural de la cintura donde se toma la referencia.';
@@ -1079,6 +888,97 @@ function getZoneLabelText(zone, gender) {
     return gender === 'mujer'
         ? 'Busto / Pecho (cm): Contorno completo sobre la parte más prominente del busto.'
         : 'Pecho (cm): Contorno completo alrededor del pecho a la altura de las axilas.';
+}
+
+function renderSculptedAnatomySvg(gender, zone) {
+    const isFemale = gender === 'mujer';
+    const chestActive = zone === 'chest';
+    const waistActive = zone === 'waist';
+    const lengthActive = zone === 'length';
+
+    const shoulderHalfSpan = isFemale ? 98 : 114;
+    const chestWidth = isFemale ? 31 : 37;
+    const waistWidth = isFemale ? 22 : 30;
+    const hipWidth = isFemale ? 34 : 31;
+
+    return `
+        <svg viewBox="0 0 260 320" width="100%" height="265" style="display:block; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.65));">
+            <defs>
+                <linearGradient id="bodySculptGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#3f3f46" />
+                    <stop offset="35%" stop-color="#d4d4d8" />
+                    <stop offset="55%" stop-color="#f4f4f5" />
+                    <stop offset="82%" stop-color="#71717a" />
+                    <stop offset="100%" stop-color="#27272a" />
+                </linearGradient>
+                <radialGradient id="darecoreOrangeGlow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="#ff5500" stop-opacity="0.92" />
+                    <stop offset="48%" stop-color="#ff2a00" stop-opacity="0.52" />
+                    <stop offset="100%" stop-color="#ff2a00" stop-opacity="0" />
+                </radialGradient>
+                <filter id="softOrangeBlur" x="-40%" y="-40%" width="180%" height="180%">
+                    <feGaussianBlur stdDeviation="9" />
+                </filter>
+            </defs>
+
+            <!-- Cabeza y cuello en pose T -->
+            <ellipse cx="130" cy="40" rx="${isFemale ? 18 : 19}" ry="23" fill="url(#bodySculptGrad)" stroke="#18181b" stroke-width="1.2" />
+            <rect x="${130 - (isFemale ? 8 : 10)}" y="60" width="${isFemale ? 16 : 20}" height="15" rx="5" fill="url(#bodySculptGrad)" />
+
+            <!-- Torso y extremidades esculpidas (pose T anatómica) -->
+            <path d="
+                M ${130 - chestWidth} 76
+                Q 130 71 ${130 + chestWidth} 76
+                L ${130 + waistWidth} 126
+                Q ${130 + hipWidth} 142 ${130 + hipWidth - 2} 156
+                L ${130 + hipWidth - 4} 164
+                L ${130 + 6} 164
+                L ${130 + 5} 296
+                L ${130 - 22} 296
+                L ${130 - 24} 164
+                L ${130 - (hipWidth - 4)} 164
+                L ${130 - (hipWidth - 2)} 156
+                Q ${130 - hipWidth} 142 ${130 - waistWidth} 126
+                Z
+            " fill="url(#bodySculptGrad)" stroke="#18181b" stroke-width="1.2" />
+
+            <!-- Brazos extendidos en T -->
+            <path d="
+                M ${130 - chestWidth + 2} 77
+                L ${130 - shoulderHalfSpan} 92
+                L ${130 - shoulderHalfSpan - 4} 99
+                L ${130 - chestWidth + 3} 94
+                Z
+            " fill="url(#bodySculptGrad)" stroke="#18181b" stroke-width="1.1" />
+            <path d="
+                M ${130 + chestWidth - 2} 77
+                L ${130 + shoulderHalfSpan} 92
+                L ${130 + shoulderHalfSpan + 4} 99
+                L ${130 + chestWidth - 3} 94
+                Z
+            " fill="url(#bodySculptGrad)" stroke="#18181b" stroke-width="1.1" />
+
+            <!-- Líneas de volumen muscular sutiles -->
+            <path d="M ${130 - chestWidth + 7} 95 Q 130 104 ${130 + chestWidth - 7} 95" fill="none" stroke="rgba(24,24,27,0.28)" stroke-width="1.4" />
+            <path d="M 130 82 L 130 145" fill="none" stroke="rgba(24,24,27,0.18)" stroke-width="1.2" />
+
+            <!-- Halo difuminado naranja según medida seleccionada -->
+            ${chestActive ? `
+                <ellipse cx="130" cy="96" rx="${chestWidth + 14}" ry="22" fill="url(#darecoreOrangeGlow)" filter="url(#softOrangeBlur)" />
+                <ellipse cx="130" cy="96" rx="${chestWidth + 6}" ry="14" fill="none" stroke="#ff5500" stroke-width="2" stroke-dasharray="4 3" opacity="0.9" />
+            ` : ''}
+
+            ${waistActive ? `
+                <ellipse cx="130" cy="128" rx="${waistWidth + 14}" ry="16" fill="url(#darecoreOrangeGlow)" filter="url(#softOrangeBlur)" />
+                <ellipse cx="130" cy="128" rx="${waistWidth + 6}" ry="10" fill="none" stroke="#ff5500" stroke-width="2" stroke-dasharray="4 3" opacity="0.9" />
+            ` : ''}
+
+            ${lengthActive ? `
+                <rect x="${130 - chestWidth - 8}" y="76" width="${(chestWidth + 8) * 2}" height="90" rx="18" fill="url(#darecoreOrangeGlow)" filter="url(#softOrangeBlur)" />
+                <line x1="130" y1="76" x2="130" y2="164" stroke="#ff5500" stroke-width="2.5" stroke-dasharray="5 3" />
+            ` : ''}
+        </svg>
+    `;
 }
 
 function renderSizeGuideBlock() {
@@ -1105,6 +1005,13 @@ function renderSizeGuideBlock() {
         selectedSizeLabel = rows[0].size;
     }
 
+    const activeRow = rows.find(r => r.size === selectedSizeLabel) || rows[0] || {
+        size: 'M',
+        chestCm: '100',
+        waistCm: '82',
+        lengthCm: '68'
+    };
+
     guideBox.style.cssText = 'margin-top: 18px; background: #ffffff; border: 1.5px solid #ff2a00; border-radius: 26px; padding: 20px; box-shadow: 0 10px 26px rgba(255, 42, 0, 0.08); color: #0b0b0e;';
 
     guideBox.innerHTML = `
@@ -1129,48 +1036,49 @@ function renderSizeGuideBlock() {
 
         ${activeChart?.fabricNote ? `<p style="margin:0 0 14px 0; font-size:12px; color:#52525b;">${activeChart.fabricNote}</p>` : ''}
 
-        <div style="display:grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); gap:18px; align-items:start;">
+        <div style="display:grid; grid-template-columns: minmax(220px, 270px) minmax(0, 1fr); gap:18px; align-items:start;">
             <div style="background:#0c0c10; border:1.5px solid #ff2a00; border-radius:20px; padding:12px; color:#fff; box-shadow: 0 12px 28px rgba(255, 42, 0, 0.16);">
-                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; font-weight:800; color:#ff5500; text-transform:uppercase; margin-bottom:8px;">
-                    <span>AVATAR 3D • ${selectedGender === 'mujer' ? 'MUJER' : 'HOMBRE'}</span>
-                    <span>HALO NARANJA</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; font-weight:800; color:#ff5500; text-transform:uppercase; margin-bottom:6px;">
+                    <span>SILUETA • ${selectedGender === 'mujer' ? 'MUJER' : 'HOMBRE'}</span>
+                    <span>DIFUMINADO NARANJA</span>
                 </div>
-                <div id="dareLabThreeViewport" style="width:100%; height:265px; border-radius:14px; overflow:hidden; background:#0c0c10;"></div>
-                <div id="dareLabZoneCaption" style="margin-top:10px; font-size:11px; color:#e4e4e7; line-height:1.45; background:rgba(255, 42, 0, 0.12); border:1px solid rgba(255, 85, 0, 0.35); padding:8px 10px; border-radius:12px;">
+                <div id="dareLabThreeViewport" style="width:100%; height:265px; border-radius:14px; overflow:hidden; background: radial-gradient(circle at 50% 35%, #27272a 0%, #0c0c10 75%);">
+                    ${renderSculptedAnatomySvg(selectedGender, selectedMeasurementZone)}
+                </div>
+                <div id="dareLabZoneCaption" style="margin-top:10px; font-size:11px; color:#e4e4e7; line-height:1.45; background:rgba(255, 42, 0, 0.14); border:1px solid rgba(255, 85, 0, 0.4); padding:8px 10px; border-radius:12px;">
                     ${getZoneLabelText(selectedMeasurementZone, selectedGender)}
                 </div>
             </div>
 
-            <div style="overflow-x:auto;">
-                <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:center;">
-                    <thead>
-                        <tr style="background:#111115; color:#ffffff;">
-                            <th style="padding:9px 10px; border-radius:10px 0 0 10px;">Talla</th>
-                            <th style="padding:9px 10px; cursor:pointer; color:#ff5500;" onclick="setMeasurementZone('chest')" title="Iluminar pecho/busto en 3D">Pecho / Busto (cm)</th>
-                            <th style="padding:9px 10px; cursor:pointer; color:#ff5500;" onclick="setMeasurementZone('waist')" title="Iluminar cintura en 3D">Cintura (cm)</th>
-                            <th style="padding:9px 10px; cursor:pointer; color:#ff5500;" onclick="setMeasurementZone('length')" title="Iluminar largo en 3D">Largo (cm)</th>
-                            <th style="padding:9px 10px; border-radius:0 10px 10px 0;">Elegir</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rows.map(row => {
-                            const isSelected = row.size === selectedSizeLabel;
-                            return `
-                                <tr onclick="selectDareLabSize('${row.size}')" style="cursor:pointer; border-bottom:1px solid #e4e4e7; background:${isSelected ? 'rgba(255, 42, 0, 0.10)' : '#ffffff'}; font-weight:${isSelected ? '800' : '500'};">
-                                    <td style="padding:9px 10px; color:#0b0b0e;">${row.size}</td>
-                                    <td onclick="event.stopPropagation(); setMeasurementZone('chest'); selectDareLabSize('${row.size}');" style="padding:9px 10px; color:#27272a; ${selectedMeasurementZone === 'chest' ? 'box-shadow: inset 0 0 12px rgba(255, 42, 0, 0.28); font-weight:800;' : ''}">${row.chestCm} cm</td>
-                                    <td onclick="event.stopPropagation(); setMeasurementZone('waist'); selectDareLabSize('${row.size}');" style="padding:9px 10px; color:#27272a; ${selectedMeasurementZone === 'waist' ? 'box-shadow: inset 0 0 12px rgba(255, 42, 0, 0.28); font-weight:800;' : ''}">${row.waistCm} cm</td>
-                                    <td onclick="event.stopPropagation(); setMeasurementZone('length'); selectDareLabSize('${row.size}');" style="padding:9px 10px; color:#27272a; ${selectedMeasurementZone === 'length' ? 'box-shadow: inset 0 0 12px rgba(255, 42, 0, 0.28); font-weight:800;' : ''}">${row.lengthCm} cm</td>
-                                    <td style="padding:9px 10px;">
-                                        <button type="button" onclick="event.stopPropagation(); selectDareLabSize('${row.size}')" style="padding:5px 12px; border-radius:999px; font-size:11px; font-weight:800; cursor:pointer; border:none; background:${isSelected ? '#ff2a00' : '#e4e4e7'}; color:${isSelected ? '#fff' : '#0b0b0e'};">
-                                            ${isSelected ? 'Seleccionada' : 'Elegir'}
-                                        </button>
-                                    </td>
-                                </tr>
-                            `;
-                        }).join('')}
-                    </tbody>
-                </table>
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
+                    <div style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'chest' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;" onclick="setMeasurementZone('chest')">
+                        <label for="dropdownChestMeasure" style="display:block; font-size:11px; font-weight:800; color:#ff2a00; margin-bottom:6px; cursor:pointer;">Pecho / Busto (cm)</label>
+                        <select id="dropdownChestMeasure" onchange="setMeasurementZone('chest'); selectDareLabSize(this.value);" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
+                            ${rows.map(r => `<option value="${r.size}" ${r.size === selectedSizeLabel ? 'selected' : ''}>Talla ${r.size} — ${r.chestCm} cm</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'waist' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;" onclick="setMeasurementZone('waist')">
+                        <label for="dropdownWaistMeasure" style="display:block; font-size:11px; font-weight:800; color:#ff2a00; margin-bottom:6px; cursor:pointer;">Cintura (cm)</label>
+                        <select id="dropdownWaistMeasure" onchange="setMeasurementZone('waist'); selectDareLabSize(this.value);" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
+                            ${rows.map(r => `<option value="${r.size}" ${r.size === selectedSizeLabel ? 'selected' : ''}>Talla ${r.size} — ${r.waistCm} cm</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'length' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;" onclick="setMeasurementZone('length')">
+                        <label for="dropdownLengthMeasure" style="display:block; font-size:11px; font-weight:800; color:#ff2a00; margin-bottom:6px; cursor:pointer;">Largo (cm)</label>
+                        <select id="dropdownLengthMeasure" onchange="setMeasurementZone('length'); selectDareLabSize(this.value);" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
+                            ${rows.map(r => `<option value="${r.size}" ${r.size === selectedSizeLabel ? 'selected' : ''}>Talla ${r.size} — ${r.lengthCm} cm</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+
+                <div style="background:#f9fafb; border:1px solid #e4e4e7; border-radius:16px; padding:12px; font-size:12px; color:#27272a; display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px;">
+                    <span><strong>Pecho/Busto:</strong> ${activeRow.chestCm} cm</span>
+                    <span><strong>Cintura:</strong> ${activeRow.waistCm} cm</span>
+                    <span><strong>Largo:</strong> ${activeRow.lengthCm} cm</span>
+                </div>
             </div>
         </div>
 
@@ -1179,7 +1087,6 @@ function renderSizeGuideBlock() {
         </div>
     `;
 
-    initThreeAvatarViewport(selectedGender, selectedMeasurementZone);
     updateCustomSummary();
 }
 
@@ -1205,262 +1112,6 @@ function setDareLabGarmentType(garmentKey) {
 function selectDareLabSize(sizeLabel) {
     selectedSizeLabel = sizeLabel;
     renderSizeGuideBlock();
-}
-
-function moveQuoteBelowWhatsapp() {
-    if (!window.location.pathname.toLowerCase().includes('personalizar')) return;
-
-    const whatsappEl = document.getElementById('customWhatsapp');
-    const summaryPriceEl = document.getElementById('summaryTotalPrice');
-    const quoteBox =
-        (summaryPriceEl && summaryPriceEl.closest('div[class*="card"], div[class*="summary"], div[class*="quote"], section, aside')) ||
-        Array.from(document.querySelectorAll('h2, h3, h4, div')).find(el =>
-            el.children.length <= 8 &&
-            (el.textContent || '').toUpperCase().includes('RESUMEN DE COTIZACIÓN')
-        )?.closest('div');
-
-    if (!whatsappEl || !quoteBox) return;
-
-    const whatsappContainer =
-        whatsappEl.closest('.form-group, .input-group, .field-group, div[class*="form"], div[class*="input"]') ||
-        whatsappEl.parentElement;
-
-    if (!whatsappContainer || whatsappContainer.contains(quoteBox)) return;
-
-    const mainRowOrGrid = quoteBox.parentElement;
-    if (mainRowOrGrid && mainRowOrGrid !== document.body) {
-        mainRowOrGrid.style.setProperty('grid-template-columns', 'minmax(0, 1fr)', 'important');
-        mainRowOrGrid.style.setProperty('display', 'block', 'important');
-    }
-
-    quoteBox.style.setProperty('width', '100%', 'important');
-    quoteBox.style.setProperty('max-width', '100%', 'important');
-    quoteBox.style.setProperty('margin-top', '24px', 'important');
-
-    whatsappContainer.insertAdjacentElement('afterend', quoteBox);
-}
-
-function compressImageFile(file, maxWidth = 800, quality = 0.7) {
-    return new Promise((resolve) => {
-        if (!file || !file.type.startsWith('image/')) {
-            resolve(null);
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-
-                if (width > maxWidth) {
-                    height = Math.round((height * maxWidth) / width);
-                    width = maxWidth;
-                }
-
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                resolve(canvas.toDataURL('image/jpeg', quality));
-            };
-            img.onerror = () => resolve(null);
-            img.src = event.target.result;
-        };
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(file);
-    });
-}
-
-function resetDareLabForm() {
-    selectedCustomBaseIndex = 0;
-    selectedGender = 'hombre';
-    selectedSizeLabel = 'M';
-    selectedMeasurementZone = 'chest';
-    const fileInput = document.getElementById('customDesignFile');
-    if (fileInput) fileInput.value = '';
-    const notesInput = document.getElementById('customNotes');
-    if (notesInput) notesInput.value = '';
-    const techSelect = document.getElementById('customTechniqueSelect');
-    if (techSelect) techSelect.selectedIndex = 0;
-    renderCustomBasesPublic();
-}
-
-function setupDareLab() {
-    const container = document.getElementById('customBasesContainer');
-    if (!container) return;
-
-    renderCustomBasesPublic();
-    moveQuoteBelowWhatsapp();
-
-    const techSelect = document.getElementById('customTechniqueSelect');
-    if (techSelect) {
-        techSelect.addEventListener('change', updateCustomSummary);
-    }
-
-    const mockupBtn = document.getElementById('requestMockupBtn');
-    if (mockupBtn) {
-        mockupBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-
-            const whatsappInput = document.getElementById('customWhatsapp');
-            const whatsapp = whatsappInput ? whatsappInput.value.trim() : '';
-            if (!whatsapp) {
-                showFloatingToast('Ingresa tu WhatsApp para enviarte tu mockup');
-                if (whatsappInput) whatsappInput.focus();
-                return;
-            }
-
-            const bases = getCustomBases();
-            const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
-            const garmentType = detectGarmentTypeFromBase(selectedBase);
-            const techSelectElement = document.getElementById('customTechniqueSelect');
-            const selectedOption = techSelectElement ? techSelectElement.options[techSelectElement.selectedIndex] : null;
-            const techName = selectedOption ? selectedOption.value : 'Estándar';
-            const extraCost = selectedOption ? Number(selectedOption.getAttribute('data-extra') || 0) : 0;
-            const total = Number(selectedBase.price) + extraCost;
-
-            const fileInput = document.getElementById('customDesignFile');
-            const fileObj = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
-            const fileName = fileObj ? fileObj.name : 'Lo enviaré por chat';
-            const rawNotes = document.getElementById('customNotes')?.value.trim() || '';
-            const sizeInfoText = `Género: ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} | Tipo: ${garmentType} | Talla: ${selectedSizeLabel}`;
-            const notes = rawNotes ? `${sizeInfoText} — ${rawNotes}` : sizeInfoText;
-
-            const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
-            const orderNumber = generateFolio('PEDIDO');
-            const initialStatus = 'Pago pendiente';
-            const createdAt = new Date().toISOString();
-
-            const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber} (${selectedBase.name}, Talla ${selectedSizeLabel} - ${selectedGender})`;
-            const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
-            const waWindow = window.open('about:blank', '_blank');
-
-            let compressedImageBase64 = '';
-            if (fileObj) {
-                compressedImageBase64 = (await compressImageFile(fileObj)) || '';
-            }
-
-            let docId = null;
-            if (window.db) {
-                try {
-                    const docRef = await window.db.collection('darelab_orders').add({
-                        orderNumber: orderNumber,
-                        orderType: 'pedido_darelab',
-                        status: initialStatus,
-                        userEmail: currentUser ? currentUser.email : 'Invitado (sin sesión)',
-                        userName: currentUser ? currentUser.displayName : 'Invitado',
-                        whatsapp: whatsapp,
-                        baseName: selectedBase.name,
-                        gender: selectedGender,
-                        garmentType: garmentType,
-                        size: selectedSizeLabel,
-                        technique: techName,
-                        fileName: fileName,
-                        imageData: compressedImageBase64,
-                        notes: notes,
-                        total: total,
-                        createdAt: createdAt
-                    });
-                    docId = docRef.id;
-                } catch (err) {
-                    console.error("Error guardando solicitud de Dare Lab:", err);
-                }
-            }
-
-            saveClientPendingOrder({
-                id: docId || orderNumber,
-                collection: 'darelab_orders',
-                folio: orderNumber,
-                typeLabel: 'Dare Lab',
-                summary: `${selectedBase.name} • Talla ${selectedSizeLabel} (${techName})`,
-                total: total,
-                status: initialStatus,
-                delivered: false,
-                createdAt: createdAt
-            });
-
-            resetDareLabForm();
-            showFloatingToast(`Solicitud #${orderNumber} agregada a Pedido pendiente`);
-
-            if (waWindow) {
-                waWindow.location.href = waUrl;
-            } else {
-                window.location.href = waUrl;
-            }
-        });
-    }
-}
-
-function renderCustomBasesPublic() {
-    const container = document.getElementById('customBasesContainer');
-    if (!container) return;
-
-    const bases = getCustomBases();
-    if (selectedCustomBaseIndex >= bases.length) {
-        selectedCustomBaseIndex = 0;
-    }
-
-    const activeBase = bases[selectedCustomBaseIndex] || bases[0];
-
-    container.style.cssText = 'display: block; width: 100%;';
-    container.innerHTML = `
-        <div style="background: #ffffff; border: 1.5px solid #ff2a00; border-radius: 26px; padding: 18px 20px; box-shadow: 0 10px 26px rgba(255, 42, 0, 0.08);">
-            <label for="customBaseSelect" style="display: block; font-size: 12px; font-weight: 800; color: #0b0b0e; margin-bottom: 10px;">
-                Prenda base y gramaje
-            </label>
-            <select id="customBaseSelect" style="width: 100%; background: #ffffff; color: #0b0b0e; border: 1.5px solid #ff2a00; border-radius: 999px; padding: 12px 18px; font-size: 13px; font-weight: 700; cursor: pointer; outline: none;">
-                ${bases.map((base, index) => `
-                    <option value="${index}" ${index === selectedCustomBaseIndex ? 'selected' : ''}>
-                        ${base.name}${base.desc ? ` — ${base.desc}` : ''} ($${Number(base.price).toLocaleString('es-MX')} MXN)
-                    </option>
-                `).join('')}
-            </select>
-            <div id="customBaseHelperInfo" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #52525b; padding: 0 4px;">
-                <span>${activeBase ? (activeBase.desc || '') : ''}</span>
-                <strong style="color: #ff2a00; font-size: 14px;">$${Number(activeBase ? activeBase.price : 0).toLocaleString('es-MX')} MXN</strong>
-            </div>
-        </div>
-    `;
-
-    const selectEl = document.getElementById('customBaseSelect');
-    if (selectEl) {
-        selectEl.addEventListener('change', (e) => {
-            selectedCustomBaseIndex = Number(e.target.value) || 0;
-            const currentBase = bases[selectedCustomBaseIndex] || bases[0];
-            const helperEl = document.getElementById('customBaseHelperInfo');
-            if (helperEl && currentBase) {
-                helperEl.innerHTML = `
-                    <span>${currentBase.desc || ''}</span>
-                    <strong style="color: #ff2a00; font-size: 14px;">$${Number(currentBase.price).toLocaleString('es-MX')} MXN</strong>
-                `;
-            }
-            renderSizeGuideBlock();
-        });
-    }
-
-    renderSizeGuideBlock();
-}
-
-function updateCustomSummary() {
-    const bases = getCustomBases();
-    const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
-
-    const techSelect = document.getElementById('customTechniqueSelect');
-    if (!techSelect) return;
-
-    const selectedOption = techSelect.options[techSelect.selectedIndex];
-    const extraCost = selectedOption ? Number(selectedOption.getAttribute('data-extra') || 0) : 0;
-    const totalPrice = Number(selectedBase.price) + extraCost;
-
-    const summaryBaseName = document.getElementById('summaryBaseName');
-    const summaryTechName = document.getElementById('summaryTechName');
-    const summaryTotalPrice = document.getElementById('summaryTotalPrice');
-
-    if (summaryBaseName) summaryBaseName.innerText = `${selectedBase.name} (${selectedSizeLabel})`;
-    if (summaryTechName) summaryTechName.innerText = selectedOption ? selectedOption.value : '';
-    if (summaryTotalPrice) summaryTotalPrice.innerText = `$${totalPrice.toLocaleString('es-MX')} MXN`;
 }
 
 /* ==========================================
