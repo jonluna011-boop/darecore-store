@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DARECORE // Dare Lab - Crea tu prenda a medida</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
         .lab-grid {
@@ -49,11 +49,9 @@
             margin-top: 8px;
             margin-bottom: 15px;
             font-size: 13px;
-            background: #fff;
-            color: #0b0b0e;
         }
-        @media(max-width: 900px) {
-            .lab-grid { grid-template-columns: 1fr; }
+        @media(max-width: 900px) { 
+            .lab-grid { grid-template-columns: 1fr; } 
             .options-row { grid-template-columns: 1fr; }
         }
     </style>
@@ -98,25 +96,18 @@
             <div>
                 <div class="lab-box">
                     <div class="lab-step-title">01. Selecciona Base & Gramaje</div>
-                    <div class="options-row" id="customBasesContainer"></div>
+                    <div class="options-row" id="customBasesContainer">
+                        <!-- Se llena automáticamente desde JavaScript / Firebase -->
+                    </div>
                 </div>
 
                 <div class="lab-box">
-                    <div class="lab-step-title">02. Técnica, Posición & Detalles de tu Diseño</div>
-
+                    <div class="lab-step-title">02. Técnica & Detalles de tu Diseño</div>
                     <label style="font-size: 12px; color: var(--text-secondary);">Técnica de estampado</label>
                     <select class="form-input" id="customTechniqueSelect">
                         <option value="Serigrafía HD" data-extra="120">Serigrafía HD (Alta Densidad) (+ $120 MXN)</option>
                         <option value="Bordado 3D Relieve" data-extra="180">Bordado 3D Relieve (+ $180 MXN)</option>
                         <option value="DTF Textil Ultrafino" data-extra="100">DTF Textil Ultrafino (+ $100 MXN)</option>
-                    </select>
-
-                    <label style="font-size: 12px; color: var(--text-secondary);">Dónde va el estampado</label>
-                    <select class="form-input" id="customPlacementSelect">
-                        <option value="Pecho Izquierdo" data-extra="0">Pecho Izquierdo (+ $0 MXN)</option>
-                        <option value="Espalda Completa" data-extra="80">Espalda Completa (+ $80 MXN)</option>
-                        <option value="Pecho + Espalda" data-extra="140">Pecho + Espalda (+ $140 MXN)</option>
-                        <option value="Manga / Detalle" data-extra="60">Manga / Detalle (+ $60 MXN)</option>
                     </select>
 
                     <label style="font-size: 12px; color: var(--text-secondary);">Sube tu archivo o logotipo (PNG, AI, PDF)</label>
@@ -141,14 +132,14 @@
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
                         <span>Estampado:</span>
-                        <strong id="summaryTechName">Serigrafía HD • Pecho Izquierdo</strong>
+                        <strong id="summaryTechName">Serigrafía HD</strong>
                     </div>
                     <hr style="border-color: var(--border-color); margin: 15px 0;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                         <span>Total Estimado:</span>
-                        <span id="summaryTotalPrice" style="font-size: 24px; font-weight: 900; color: var(--accent-color);">$700 MXN</span>
+                        <span id="summaryTotalPrice" style="font-size: 24px; font-weight: 900; color: var(--accent-color);">$670 MXN</span>
                     </div>
-                    <button type="button" class="btn-primary" id="requestMockupBtn" style="width: 100%; text-align: center;">SOLICITAR MOCKUP DIGITAL</button>
+                    <button class="btn-primary" id="requestMockupBtn" style="width: 100%; text-align: center;">SOLICITAR MOCKUP DIGITAL</button>
                 </div>
             </div>
         </div>
@@ -160,9 +151,11 @@
                 <h4>DARECORE</h4>
                 <p>Tu estilo. Tus reglas. Prendas creadas con actitud, motorsport vibes y calidad premium desde León, Gto.</p>
             </div>
+            </div>
         </div>
     </footer>
 
+    <!-- Conexión a Firebase App, Firestore y Auth -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -181,7 +174,9 @@
         }
         window.db = firebase.firestore();
         window.auth = firebase.auth();
-    </script>
+        </script>
+    <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+    <script src="https://unpkg.com/three@0.160.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
