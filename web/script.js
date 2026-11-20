@@ -5,6 +5,9 @@
 let selectedCustomBaseIndex = 0;
 let selectedGender = 'hombre';
 let selectedSizeLabel = 'M';
+let selectedChestSize = 'M';
+let selectedWaistSize = 'M';
+let selectedLengthSize = 'M';
 let selectedMeasurementZone = 'chest'; // 'chest' | 'waist' | 'length'
 let adminSelectedGender = 'hombre';
 let adminSelectedGarmentType = 'camisa';
@@ -143,6 +146,7 @@ const DEFAULT_SIZE_CHARTS = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    injectResponsiveMobileStyles();
     updateTopAnnouncementBanner();
     styleBrandLogoInHeader();
     layoutPublicHeaderZones();
@@ -156,7 +160,135 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAbandonedCartReminder();
 });
 
-window.addEventListener('resize', layoutPublicHeaderZones);
+window.addEventListener('resize', () => {
+    layoutPublicHeaderZones();
+    applyMobileGridLayout();
+});
+
+function injectResponsiveMobileStyles() {
+    if (document.getElementById('darecoreMobileResponsiveStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'darecoreMobileResponsiveStyle';
+    style.textContent = `
+        #dareLabSizeGuideBox,
+        #dareLabSizeGuideBox * {
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+
+        .darelab-guide-split {
+            display: grid;
+            grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .darelab-zones-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            #productGrid,
+            .product-grid {
+                display: grid !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                gap: 10px !important;
+                padding: 8px !important;
+            }
+
+            #productGrid .product-card,
+            .product-grid .product-card {
+                padding: 10px !important;
+                border-radius: 18px !important;
+                min-width: 0 !important;
+            }
+
+            #productGrid .product-card-top,
+            .product-grid .product-card-top {
+                margin-bottom: 6px !important;
+                gap: 4px !important;
+            }
+
+            #productGrid .product-tag,
+            .product-grid .product-tag {
+                font-size: 9px !important;
+                padding: 2px 7px !important;
+            }
+
+            #productGrid .product-img,
+            .product-grid .product-img {
+                height: 128px !important;
+                border-radius: 12px !important;
+                margin-bottom: 8px !important;
+            }
+
+            #productGrid .product-name,
+            .product-grid .product-name {
+                font-size: 12px !important;
+                line-height: 1.25 !important;
+                margin-bottom: 4px !important;
+            }
+
+            #productGrid .product-desc,
+            .product-grid .product-desc {
+                font-size: 10px !important;
+                line-height: 1.3 !important;
+                margin-bottom: 8px !important;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            #productGrid .product-footer,
+            .product-grid .product-footer {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 6px !important;
+            }
+
+            #productGrid .price,
+            .product-grid .price {
+                font-size: 12px !important;
+            }
+
+            #productGrid .btn-add,
+            .product-grid .btn-add {
+                width: 100% !important;
+                padding: 7px 10px !important;
+                font-size: 10px !important;
+                border-radius: 999px !important;
+            }
+
+            .darelab-guide-split {
+                grid-template-columns: minmax(0, 1fr) !important;
+                gap: 14px !important;
+            }
+
+            .darelab-zones-grid {
+                grid-template-columns: minmax(0, 1fr) !important;
+                gap: 8px !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function applyMobileGridLayout() {
+    const grid = document.getElementById('productGrid') || document.querySelector('.product-grid');
+    if (!grid) return;
+
+    if (window.innerWidth <= 768) {
+        grid.style.setProperty('display', 'grid', 'important');
+        grid.style.setProperty('grid-template-columns', 'repeat(2, minmax(0, 1fr))', 'important');
+        grid.style.setProperty('gap', '10px', 'important');
+    } else {
+        grid.style.removeProperty('grid-template-columns');
+        grid.style.removeProperty('gap');
+    }
+}
 
 function isHomePageSection() {
     const path = window.location.pathname.toLowerCase();
@@ -698,6 +830,8 @@ function renderProducts(products) {
     const grid = document.getElementById('productGrid') || document.querySelector('.product-grid');
     if (!grid) return;
 
+    applyMobileGridLayout();
+
     grid.innerHTML = '';
     if (!products || products.length === 0) {
         grid.innerHTML = '<p style="color: #71717a; grid-column: 1/-1; text-align: center; padding: 48px; background: #ffffff; border-radius: 24px; border: 1.5px solid rgba(0,0,0,0.08);">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
@@ -782,9 +916,9 @@ function openProductModal(productId) {
     }
 
     modalOverlay.innerHTML = `
-        <div class="product-modal-content" style="background:#121217; border:1.5px solid #ff2a00; padding:30px; border-radius:28px; max-width:680px; width:100%; position:relative; display:grid; grid-template-columns: 1fr 1fr; gap:24px; box-shadow:0 28px 70px rgba(0,0,0,0.85);">
+        <div class="product-modal-content" style="background:#121217; border:1.5px solid #ff2a00; padding:30px; border-radius:28px; max-width:680px; width:100%; position:relative; display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:24px; box-shadow:0 28px 70px rgba(0,0,0,0.85);">
             <button onclick="closeProductModal()" class="product-modal-close" style="position:absolute; top:14px; right:18px; background:rgba(255,255,255,0.08); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:20px; cursor:pointer;">&times;</button>
-            <div style="background-image: url('${product.image}'); background-size: cover; background-position: center; height:300px; border-radius:20px; background-color:#1e1e24;"></div>
+            <div style="background-image: url('${product.image}'); background-size: cover; background-position: center; height:280px; border-radius:20px; background-color:#1e1e24;"></div>
             <div style="display: flex; flex-direction: column; justify-content: center; color: #ffffff;">
                 <span style="color: #ff2a00; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing:1px; margin-bottom: 6px;">${product.tag || 'DARECORE'}</span>
                 <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 10px; color: #ffffff;">${product.name}</h2>
@@ -803,7 +937,7 @@ function closeProductModal() {
 }
 
 /* ==========================================
-4. DARE LAB (SILUETA ANATÓMICA 3D, DESPLEGABLES POR MEDIDA Y COTIZACIÓN)
+4. DARE LAB (SILUETA ANATÓMICA, MEDIDAS INDEPENDIENTES Y COTIZACIÓN)
    ========================================== */
 function getCustomBases() {
     const local = localStorage.getItem('darecore_custom_bases');
@@ -874,6 +1008,16 @@ function getZoneLabelText(zone, gender) {
         : 'Pecho (cm): Contorno completo alrededor del pecho a la altura de las axilas.';
 }
 
+function getSelectedMixSummaryText() {
+    if (
+        selectedChestSize === selectedWaistSize &&
+        selectedWaistSize === selectedLengthSize
+    ) {
+        return selectedChestSize;
+    }
+    return `Pecho ${selectedChestSize} / Cintura ${selectedWaistSize} / Largo ${selectedLengthSize}`;
+}
+
 function renderSculptedAnatomySvg(gender, zone) {
     const isFemale = gender === 'mujer';
     const chestActive = zone === 'chest';
@@ -886,7 +1030,7 @@ function renderSculptedAnatomySvg(gender, zone) {
     const hipWidth = isFemale ? 34 : 31;
 
     return `
-        <svg viewBox="0 0 260 320" width="100%" height="265" style="display:block; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.65));">
+        <svg viewBox="0 0 260 320" width="100%" height="240" style="display:block; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.65));">
             <defs>
                 <linearGradient id="bodySculptGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                     <stop offset="0%" stop-color="#3f3f46" />
@@ -979,12 +1123,11 @@ function updateActiveAnatomyAndSummary() {
     const activeGarmentKey = detectGarmentTypeFromBase(activeBase);
     const activeChart = genderMap[activeGarmentKey] || genderMap[garmentKeys[0]];
     const rows = Array.isArray(activeChart?.rows) ? activeChart.rows : [];
-    const activeRow = rows.find(r => r.size === selectedSizeLabel) || rows[0] || {
-        size: 'M',
-        chestCm: '100',
-        waistCm: '82',
-        lengthCm: '68'
-    };
+    const fallbackRow = rows[0] || { size: 'M', chestCm: '100', waistCm: '82', lengthCm: '68' };
+
+    const chestRow = rows.find(r => r.size === selectedChestSize) || fallbackRow;
+    const waistRow = rows.find(r => r.size === selectedWaistSize) || fallbackRow;
+    const lengthRow = rows.find(r => r.size === selectedLengthSize) || fallbackRow;
 
     const chestCard = document.getElementById('cardZoneChest');
     const waistCard = document.getElementById('cardZoneWaist');
@@ -996,25 +1139,25 @@ function updateActiveAnatomyAndSummary() {
     const measuresBar = document.getElementById('dareLabActiveMeasuresBar');
     if (measuresBar) {
         measuresBar.innerHTML = `
-            <span><strong>Pecho/Busto:</strong> ${activeRow.chestCm} cm</span>
-            <span><strong>Cintura:</strong> ${activeRow.waistCm} cm</span>
-            <span><strong>Largo:</strong> ${activeRow.lengthCm} cm</span>
+            <span><strong>Pecho/Busto (${chestRow.size}):</strong> ${chestRow.chestCm} cm</span>
+            <span><strong>Cintura (${waistRow.size}):</strong> ${waistRow.waistCm} cm</span>
+            <span><strong>Largo (${lengthRow.size}):</strong> ${lengthRow.lengthCm} cm</span>
         `;
     }
 
     const selectedLabelEl = document.getElementById('dareLabSelectedSizeSummary');
     if (selectedLabelEl) {
         selectedLabelEl.innerHTML = `
-            Talla seleccionada: <strong style="color:#ff2a00;">${selectedSizeLabel}</strong> (${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} • ${activeChart?.label || activeGarmentKey})
+            Selección actual: <strong style="color:#ff2a00;">${getSelectedMixSummaryText()}</strong> (${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} • ${activeChart?.label || activeGarmentKey})
         `;
     }
 
-    ['dropdownChestMeasure', 'dropdownWaistMeasure', 'dropdownLengthMeasure'].forEach(id => {
-        const sel = document.getElementById(id);
-        if (sel && sel.value !== selectedSizeLabel) {
-            sel.value = selectedSizeLabel;
-        }
-    });
+    const selChest = document.getElementById('dropdownChestMeasure');
+    const selWaist = document.getElementById('dropdownWaistMeasure');
+    const selLength = document.getElementById('dropdownLengthMeasure');
+    if (selChest && selChest.value !== chestRow.size) selChest.value = chestRow.size;
+    if (selWaist && selWaist.value !== waistRow.size) selWaist.value = waistRow.size;
+    if (selLength && selLength.value !== lengthRow.size) selLength.value = lengthRow.size;
 
     updateCustomSummary();
 }
@@ -1038,23 +1181,23 @@ function renderSizeGuideBlock() {
     const activeGarmentKey = detectGarmentTypeFromBase(activeBase);
     const activeChart = genderMap[activeGarmentKey] || genderMap[garmentKeys[0]];
     const rows = Array.isArray(activeChart?.rows) ? activeChart.rows : [];
+    const defaultSize = rows[0]?.size || 'M';
 
-    if (!rows.some(r => r.size === selectedSizeLabel) && rows[0]) {
-        selectedSizeLabel = rows[0].size;
-    }
+    if (!rows.some(r => r.size === selectedSizeLabel)) selectedSizeLabel = defaultSize;
+    if (!rows.some(r => r.size === selectedChestSize)) selectedChestSize = selectedSizeLabel;
+    if (!rows.some(r => r.size === selectedWaistSize)) selectedWaistSize = selectedSizeLabel;
+    if (!rows.some(r => r.size === selectedLengthSize)) selectedLengthSize = selectedSizeLabel;
 
-    const activeRow = rows.find(r => r.size === selectedSizeLabel) || rows[0] || {
-        size: 'M',
-        chestCm: '100',
-        waistCm: '82',
-        lengthCm: '68'
-    };
+    const fallbackRow = rows[0] || { size: 'M', chestCm: '100', waistCm: '82', lengthCm: '68' };
+    const chestRow = rows.find(r => r.size === selectedChestSize) || fallbackRow;
+    const waistRow = rows.find(r => r.size === selectedWaistSize) || fallbackRow;
+    const lengthRow = rows.find(r => r.size === selectedLengthSize) || fallbackRow;
 
-    guideBox.style.cssText = 'margin-top: 18px; background: #ffffff; border: 1.5px solid #ff2a00; border-radius: 26px; padding: 20px; box-shadow: 0 10px 26px rgba(255, 42, 0, 0.08); color: #0b0b0e;';
+    guideBox.style.cssText = 'margin-top: 18px; width: 100%; background: #ffffff; border: 1.5px solid #ff2a00; border-radius: 26px; padding: 18px; box-shadow: 0 10px 26px rgba(255, 42, 0, 0.08); color: #0b0b0e;';
 
     guideBox.innerHTML = `
         <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px;">
-            <div>
+            <div style="min-width:0;">
                 <div style="font-size:11px; font-weight:900; color:#ff2a00; text-transform:uppercase; letter-spacing:0.6px;">TABLA DE MEDIDAS EN 3D (CM)</div>
                 <div style="font-size:14px; font-weight:800; color:#0b0b0e;">${activeChart?.label || 'Guía de tallas'} • ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'}</div>
             </div>
@@ -1074,13 +1217,13 @@ function renderSizeGuideBlock() {
 
         ${activeChart?.fabricNote ? `<p style="margin:0 0 14px 0; font-size:12px; color:#52525b;">${activeChart.fabricNote}</p>` : ''}
 
-        <div style="display:grid; grid-template-columns: minmax(220px, 270px) minmax(0, 1fr); gap:18px; align-items:start;">
-            <div style="background:#0c0c10; border:1.5px solid #ff2a00; border-radius:20px; padding:12px; color:#fff; box-shadow: 0 12px 28px rgba(255, 42, 0, 0.16);">
+        <div class="darelab-guide-split">
+            <div style="background:#0c0c10; border:1.5px solid #ff2a00; border-radius:20px; padding:12px; color:#fff; box-shadow: 0 12px 28px rgba(255, 42, 0, 0.16); min-width:0;">
                 <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; font-weight:800; color:#ff5500; text-transform:uppercase; margin-bottom:6px;">
                     <span>SILUETA • ${selectedGender === 'mujer' ? 'MUJER' : 'HOMBRE'}</span>
                     <span>DIFUMINADO NARANJA</span>
                 </div>
-                <div id="dareLabThreeViewport" style="width:100%; height:265px; border-radius:14px; overflow:hidden; background: radial-gradient(circle at 50% 35%, #27272a 0%, #0c0c10 75%);">
+                <div id="dareLabThreeViewport" style="width:100%; height:240px; border-radius:14px; overflow:hidden; background: radial-gradient(circle at 50% 35%, #27272a 0%, #0c0c10 75%);">
                     ${renderSculptedAnatomySvg(selectedGender, selectedMeasurementZone)}
                 </div>
                 <div id="dareLabZoneCaption" style="margin-top:10px; font-size:11px; color:#e4e4e7; line-height:1.45; background:rgba(255, 42, 0, 0.14); border:1px solid rgba(255, 85, 0, 0.4); padding:8px 10px; border-radius:12px;">
@@ -1088,40 +1231,40 @@ function renderSizeGuideBlock() {
                 </div>
             </div>
 
-            <div style="display:flex; flex-direction:column; gap:12px;">
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
-                    <div id="cardZoneChest" style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'chest' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;">
+            <div style="display:flex; flex-direction:column; gap:12px; min-width:0;">
+                <div class="darelab-zones-grid">
+                    <div id="cardZoneChest" style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'chest' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px; min-width:0;">
                         <label for="dropdownChestMeasure" style="display:block; font-size:11px; font-weight:800; color:#ff2a00; margin-bottom:6px; cursor:pointer;">Pecho / Busto (cm)</label>
-                        <select id="dropdownChestMeasure" onmousedown="setMeasurementZone('chest')" onfocus="setMeasurementZone('chest')" onchange="selectDareLabSize(this.value)" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
-                            ${rows.map(r => `<option value="${r.size}" ${r.size === selectedSizeLabel ? 'selected' : ''}>Talla ${r.size} — ${r.chestCm} cm</option>`).join('')}
+                        <select id="dropdownChestMeasure" onmousedown="setMeasurementZone('chest')" onfocus="setMeasurementZone('chest')" onchange="selectIndependentMeasure('chest', this.value)" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
+                            ${rows.map(r => `<option value="${r.size}" ${r.size === chestRow.size ? 'selected' : ''}>Talla ${r.size} — ${r.chestCm} cm</option>`).join('')}
                         </select>
                     </div>
 
-                    <div id="cardZoneWaist" style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'waist' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;">
+                    <div id="cardZoneWaist" style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'waist' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px; min-width:0;">
                         <label for="dropdownWaistMeasure" style="display:block; font-size:11px; font-weight:800; color:#ff2a00; margin-bottom:6px; cursor:pointer;">Cintura (cm)</label>
-                        <select id="dropdownWaistMeasure" onmousedown="setMeasurementZone('waist')" onfocus="setMeasurementZone('waist')" onchange="selectDareLabSize(this.value)" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
-                            ${rows.map(r => `<option value="${r.size}" ${r.size === selectedSizeLabel ? 'selected' : ''}>Talla ${r.size} — ${r.waistCm} cm</option>`).join('')}
+                        <select id="dropdownWaistMeasure" onmousedown="setMeasurementZone('waist')" onfocus="setMeasurementZone('waist')" onchange="selectIndependentMeasure('waist', this.value)" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
+                            ${rows.map(r => `<option value="${r.size}" ${r.size === waistRow.size ? 'selected' : ''}>Talla ${r.size} — ${r.waistCm} cm</option>`).join('')}
                         </select>
                     </div>
 
-                    <div id="cardZoneLength" style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'length' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;">
+                    <div id="cardZoneLength" style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'length' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px; min-width:0;">
                         <label for="dropdownLengthMeasure" style="display:block; font-size:11px; font-weight:800; color:#ff2a00; margin-bottom:6px; cursor:pointer;">Largo (cm)</label>
-                        <select id="dropdownLengthMeasure" onmousedown="setMeasurementZone('length')" onfocus="setMeasurementZone('length')" onchange="selectDareLabSize(this.value)" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
-                            ${rows.map(r => `<option value="${r.size}" ${r.size === selectedSizeLabel ? 'selected' : ''}>Talla ${r.size} — ${r.lengthCm} cm</option>`).join('')}
+                        <select id="dropdownLengthMeasure" onmousedown="setMeasurementZone('length')" onfocus="setMeasurementZone('length')" onchange="selectIndependentMeasure('length', this.value)" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
+                            ${rows.map(r => `<option value="${r.size}" ${r.size === lengthRow.size ? 'selected' : ''}>Talla ${r.size} — ${r.lengthCm} cm</option>`).join('')}
                         </select>
                     </div>
                 </div>
 
                 <div id="dareLabActiveMeasuresBar" style="background:#f9fafb; border:1px solid #e4e4e7; border-radius:16px; padding:12px; font-size:12px; color:#27272a; display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px;">
-                    <span><strong>Pecho/Busto:</strong> ${activeRow.chestCm} cm</span>
-                    <span><strong>Cintura:</strong> ${activeRow.waistCm} cm</span>
-                    <span><strong>Largo:</strong> ${activeRow.lengthCm} cm</span>
+                    <span><strong>Pecho/Busto (${chestRow.size}):</strong> ${chestRow.chestCm} cm</span>
+                    <span><strong>Cintura (${waistRow.size}):</strong> ${waistRow.waistCm} cm</span>
+                    <span><strong>Largo (${lengthRow.size}):</strong> ${lengthRow.lengthCm} cm</span>
                 </div>
             </div>
         </div>
 
         <div id="dareLabSelectedSizeSummary" style="margin-top:12px; font-size:12px; color:#0b0b0e;">
-            Talla seleccionada: <strong style="color:#ff2a00;">${selectedSizeLabel}</strong> (${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} • ${activeChart?.label || activeGarmentKey})
+            Selección actual: <strong style="color:#ff2a00;">${getSelectedMixSummaryText()}</strong> (${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} • ${activeChart?.label || activeGarmentKey})
         </div>
     `;
 
@@ -1148,8 +1291,29 @@ function setDareLabGarmentType(garmentKey) {
     renderSizeGuideBlock();
 }
 
+function selectIndependentMeasure(zone, sizeLabel) {
+    selectedMeasurementZone = zone;
+    if (zone === 'chest') selectedChestSize = sizeLabel;
+    else if (zone === 'waist') selectedWaistSize = sizeLabel;
+    else if (zone === 'length') selectedLengthSize = sizeLabel;
+
+    if (
+        selectedChestSize === selectedWaistSize &&
+        selectedWaistSize === selectedLengthSize
+    ) {
+        selectedSizeLabel = sizeLabel;
+    } else {
+        selectedSizeLabel = getSelectedMixSummaryText();
+    }
+
+    updateActiveAnatomyAndSummary();
+}
+
 function selectDareLabSize(sizeLabel) {
     selectedSizeLabel = sizeLabel;
+    selectedChestSize = sizeLabel;
+    selectedWaistSize = sizeLabel;
+    selectedLengthSize = sizeLabel;
     updateActiveAnatomyAndSummary();
 }
 
@@ -1223,6 +1387,9 @@ function resetDareLabForm() {
     selectedCustomBaseIndex = 0;
     selectedGender = 'hombre';
     selectedSizeLabel = 'M';
+    selectedChestSize = 'M';
+    selectedWaistSize = 'M';
+    selectedLengthSize = 'M';
     selectedMeasurementZone = 'chest';
     const fileInput = document.getElementById('customDesignFile');
     if (fileInput) fileInput.value = '';
@@ -1271,7 +1438,8 @@ function setupDareLab() {
             const fileObj = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
             const fileName = fileObj ? fileObj.name : 'Lo enviaré por chat';
             const rawNotes = document.getElementById('customNotes')?.value.trim() || '';
-            const sizeInfoText = `Género: ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} | Tipo: ${garmentType} | Talla: ${selectedSizeLabel}`;
+            const mixText = getSelectedMixSummaryText();
+            const sizeInfoText = `Género: ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} | Tipo: ${garmentType} | Medidas: ${mixText}`;
             const notes = rawNotes ? `${sizeInfoText} — ${rawNotes}` : sizeInfoText;
 
             const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
@@ -1279,7 +1447,7 @@ function setupDareLab() {
             const initialStatus = 'Pago pendiente';
             const createdAt = new Date().toISOString();
 
-            const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber} (${selectedBase.name}, Talla ${selectedSizeLabel} - ${selectedGender})`;
+            const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber} (${selectedBase.name}, ${mixText} - ${selectedGender})`;
             const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
             const waWindow = window.open('about:blank', '_blank');
 
@@ -1301,7 +1469,10 @@ function setupDareLab() {
                         baseName: selectedBase.name,
                         gender: selectedGender,
                         garmentType: garmentType,
-                        size: selectedSizeLabel,
+                        size: mixText,
+                        chestSize: selectedChestSize,
+                        waistSize: selectedWaistSize,
+                        lengthSize: selectedLengthSize,
                         technique: techName,
                         fileName: fileName,
                         imageData: compressedImageBase64,
@@ -1320,7 +1491,7 @@ function setupDareLab() {
                 collection: 'darelab_orders',
                 folio: orderNumber,
                 typeLabel: 'Dare Lab',
-                summary: `${selectedBase.name} • Talla ${selectedSizeLabel} (${techName})`,
+                summary: `${selectedBase.name} • ${mixText} (${techName})`,
                 total: total,
                 status: initialStatus,
                 delivered: false,
@@ -1363,7 +1534,7 @@ function renderCustomBasesPublic() {
                     </option>
                 `).join('')}
             </select>
-            <div id="customBaseHelperInfo" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #52525b; padding: 0 4px;">
+            <div id="customBaseHelperInfo" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: #52525b; padding: 0 4px;">
                 <span>${activeBase ? (activeBase.desc || '') : ''}</span>
                 <strong style="color: #ff2a00; font-size: 14px;">$${Number(activeBase ? activeBase.price : 0).toLocaleString('es-MX')} MXN</strong>
             </div>
@@ -1404,7 +1575,7 @@ function updateCustomSummary() {
     const summaryTechName = document.getElementById('summaryTechName');
     const summaryTotalPrice = document.getElementById('summaryTotalPrice');
 
-    if (summaryBaseName) summaryBaseName.innerText = `${selectedBase.name} (${selectedSizeLabel})`;
+    if (summaryBaseName) summaryBaseName.innerText = `${selectedBase.name} (${getSelectedMixSummaryText()})`;
     if (summaryTechName) summaryTechName.innerText = selectedOption ? selectedOption.value : '';
     if (summaryTotalPrice) summaryTotalPrice.innerText = `$${totalPrice.toLocaleString('es-MX')} MXN`;
 }
@@ -2860,7 +3031,7 @@ function loadAdminDareLabOrders() {
                     <span style="color: #ff2a00; font-size: 11px; font-weight: 800;">#${folio}</span>
                     <span style="font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; ${badgeStyle}">${status}</span>
                 </div>
-                <div style="color: #0b0b0e; font-size: 13px; font-weight: 700;">${order.baseName} ${order.size ? `• Talla ${order.size}` : ''}</div>
+                <div style="color: #0b0b0e; font-size: 13px; font-weight: 700;">${order.baseName} ${order.size ? `• ${order.size}` : ''}</div>
                 <div style="color: #0b0b0e; font-size: 12px;"><strong>Cliente:</strong> ${order.userName} (${order.userEmail})</div>
                 <div style="color: #0b0b0e; font-size: 12px;"><strong>WhatsApp:</strong> ${waClientLink}</div>
                 <div style="color: #52525b; font-size: 11px;"><strong>Técnica:</strong> ${order.technique} | <strong>Total:</strong> $${Number(order.total).toLocaleString('es-MX')} MXN</div>
