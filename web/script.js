@@ -3,6 +3,11 @@
    ========================================== */
 
 let selectedCustomBaseIndex = 0;
+let selectedGender = 'hombre';
+let selectedSizeLabel = 'M';
+let adminSelectedGender = 'hombre';
+let adminSelectedGarmentType = 'camisa';
+
 let cart = JSON.parse(localStorage.getItem('darecore_cart')) || [];
 let activeCartTab = 'cart';
 let isSyncing = false;
@@ -68,6 +73,73 @@ const CINEMA_CARD_THEMES = [
         heroBg: 'radial-gradient(circle at 80% 35%, #065f46 0%, #0d1b18 55%, #080c0b 100%)'
     }
 ];
+
+const DEFAULT_SIZE_CHARTS = {
+    hombre: {
+        camisa: {
+            label: 'Camisa / Playera (Algodón)',
+            fabricNote: 'Corte recto / boxy en algodón peinado (sin elongación elástica alta).',
+            rows: [
+                { size: 'CH / S', chestCm: '102', waistCm: '96', lengthCm: '70' },
+                { size: 'M', chestCm: '108', waistCm: '102', lengthCm: '72' },
+                { size: 'G / L', chestCm: '114', waistCm: '108', lengthCm: '74' },
+                { size: 'EG / XL', chestCm: '120', waistCm: '114', lengthCm: '76' }
+            ]
+        },
+        sudadera: {
+            label: 'Sudadera / Hoodie (Felpa)',
+            fabricNote: 'Felpa pesada con holgura extra para capas internas.',
+            rows: [
+                { size: 'CH / S', chestCm: '110', waistCm: '104', lengthCm: '71' },
+                { size: 'M', chestCm: '116', waistCm: '110', lengthCm: '73' },
+                { size: 'G / L', chestCm: '122', waistCm: '116', lengthCm: '75' },
+                { size: 'EG / XL', chestCm: '128', waistCm: '122', lengthCm: '77' }
+            ]
+        },
+        top: {
+            label: 'Top / Compresión / Licra',
+            fabricNote: 'Tejido elástico tipo licra: medidas en cm con ajuste ceñido/compresivo.',
+            rows: [
+                { size: 'CH / S', chestCm: '88', waistCm: '74', lengthCm: '64' },
+                { size: 'M', chestCm: '94', waistCm: '80', lengthCm: '66' },
+                { size: 'G / L', chestCm: '100', waistCm: '86', lengthCm: '68' },
+                { size: 'EG / XL', chestCm: '106', waistCm: '92', lengthCm: '70' }
+            ]
+        }
+    },
+    mujer: {
+        camisa: {
+            label: 'Camisa / Playera (Algodón)',
+            fabricNote: 'Silueta adaptada a contorno de busto, cintura y cadera en algodón.',
+            rows: [
+                { size: 'CH / S', chestCm: '88', waistCm: '70', lengthCm: '62' },
+                { size: 'M', chestCm: '94', waistCm: '76', lengthCm: '64' },
+                { size: 'G / L', chestCm: '100', waistCm: '82', lengthCm: '66' },
+                { size: 'EG / XL', chestCm: '106', waistCm: '88', lengthCm: '68' }
+            ]
+        },
+        sudadera: {
+            label: 'Sudadera / Hoodie (Felpa)',
+            fabricNote: 'Corte relajado en felpa con caída cómoda.',
+            rows: [
+                { size: 'CH / S', chestCm: '98', waistCm: '84', lengthCm: '63' },
+                { size: 'M', chestCm: '104', waistCm: '90', lengthCm: '65' },
+                { size: 'G / L', chestCm: '110', waistCm: '96', lengthCm: '67' },
+                { size: 'EG / XL', chestCm: '116', waistCm: '102', lengthCm: '69' }
+            ]
+        },
+        top: {
+            label: 'Top / Licra / Seamless',
+            fabricNote: 'Licra / spandex de alta elasticidad: se toma medida corporal directa en cm.',
+            rows: [
+                { size: 'CH / S', chestCm: '82', waistCm: '62', lengthCm: '38' },
+                { size: 'M', chestCm: '88', waistCm: '68', lengthCm: '40' },
+                { size: 'G / L', chestCm: '94', waistCm: '74', lengthCm: '42' },
+                { size: 'EG / XL', chestCm: '100', waistCm: '80', lengthCm: '44' }
+            ]
+        }
+    }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
     updateTopAnnouncementBanner();
@@ -730,7 +802,7 @@ function closeProductModal() {
 }
 
 /* ==========================================
-4. DARE LAB (PERSONALIZACIÓN Y COTIZACIÓN)
+4. DARE LAB (PERSONALIZACIÓN, TABLAS DE MEDIDAS Y COTIZACIÓN)
    ========================================== */
 function getCustomBases() {
     const local = localStorage.getItem('darecore_custom_bases');
@@ -741,11 +813,192 @@ function getCustomBases() {
         } catch (e) { /* fallback */ }
     }
     return [
-        { id: 'b1', name: 'BOXY TEE 240G', price: 580, desc: 'Algodón peinado pesado' },
-        { id: 'b2', name: 'HEAVY HOODIE 400G', price: 1099, desc: 'Felpa francesa alto gramaje' },
-        { id: 'b3', name: 'VARSITY JACKET BORDADA', price: 1750, desc: 'Chamarra de equipo' },
-        { id: 'b4', name: 'TOP DEPORTIVO SEAMLESS', price: 460, desc: 'Compresión gym' }
+        { id: 'b1', name: 'BOXY TEE 240G', price: 580, desc: 'Camisa / playera algodón peinado pesado', garmentType: 'camisa' },
+        { id: 'b2', name: 'HEAVY HOODIE 400G', price: 1099, desc: 'Sudadera / hoodie felpa francesa alto gramaje', garmentType: 'sudadera' },
+        { id: 'b3', name: 'VARSITY JACKET BORDADA', price: 1750, desc: 'Chamarra de equipo', garmentType: 'sudadera' },
+        { id: 'b4', name: 'TOP DEPORTIVO SEAMLESS', price: 460, desc: 'Top / licra compresión gym', garmentType: 'top' }
     ];
+}
+
+function getSizeChartsData() {
+    const local = localStorage.getItem('darecore_size_charts');
+    if (local) {
+        try {
+            const parsed = JSON.parse(local);
+            if (parsed && parsed.hombre && parsed.mujer) return parsed;
+        } catch (e) { /* fallback */ }
+    }
+    return JSON.parse(JSON.stringify(DEFAULT_SIZE_CHARTS));
+}
+
+function persistSizeChartsData(chartsData) {
+    localStorage.setItem('darecore_size_charts', JSON.stringify(chartsData));
+    if (window.db) {
+        window.db.collection('settings').doc('sizeCharts').set(chartsData, { merge: true }).catch(err => console.log(err));
+    }
+}
+
+function detectGarmentTypeFromBase(baseObj) {
+    const charts = getSizeChartsData();
+    const genderCharts = charts[selectedGender] || charts.hombre;
+    const keys = Object.keys(genderCharts);
+
+    if (baseObj && baseObj.garmentType && genderCharts[baseObj.garmentType]) {
+        return baseObj.garmentType;
+    }
+
+    const combinedText = `${baseObj?.name || ''} ${baseObj?.desc || ''}`.toLowerCase();
+    if (combinedText.includes('top') || combinedText.includes('licra') || combinedText.includes('seamless') || combinedText.includes('compres')) {
+        return genderCharts.top ? 'top' : keys[0];
+    }
+    if (combinedText.includes('sudadera') || combinedText.includes('hoodie') || combinedText.includes('varsity') || combinedText.includes('chamarra') || combinedText.includes('felpa')) {
+        return genderCharts.sudadera ? 'sudadera' : keys[0];
+    }
+    if (combinedText.includes('camisa') || combinedText.includes('playera') || combinedText.includes('tee')) {
+        return genderCharts.camisa ? 'camisa' : keys[0];
+    }
+
+    return keys[0] || 'camisa';
+}
+
+function renderSizeGuideBlock() {
+    const container = document.getElementById('customBasesContainer');
+    if (!container) return;
+
+    let guideBox = document.getElementById('dareLabSizeGuideBox');
+    if (!guideBox) {
+        guideBox = document.createElement('div');
+        guideBox.id = 'dareLabSizeGuideBox';
+        container.insertAdjacentElement('afterend', guideBox);
+    }
+
+    const bases = getCustomBases();
+    const activeBase = bases[selectedCustomBaseIndex] || bases[0];
+    const charts = getSizeChartsData();
+    const genderMap = charts[selectedGender] || charts.hombre;
+    const garmentKeys = Object.keys(genderMap);
+    const activeGarmentKey = detectGarmentTypeFromBase(activeBase);
+    const activeChart = genderMap[activeGarmentKey] || genderMap[garmentKeys[0]];
+    const rows = Array.isArray(activeChart?.rows) ? activeChart.rows : [];
+
+    if (!rows.some(r => r.size === selectedSizeLabel) && rows[0]) {
+        selectedSizeLabel = rows[0].size;
+    }
+
+    guideBox.style.cssText = 'margin-top: 18px; background: #ffffff; border: 1.5px solid #ff2a00; border-radius: 26px; padding: 20px; box-shadow: 0 10px 26px rgba(255, 42, 0, 0.08); color: #0b0b0e;';
+
+    guideBox.innerHTML = `
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px;">
+            <div>
+                <div style="font-size:11px; font-weight:900; color:#ff2a00; text-transform:uppercase; letter-spacing:0.6px;">TABLA DE MEDIDAS (CM)</div>
+                <div style="font-size:14px; font-weight:800; color:#0b0b0e;">${activeChart?.label || 'Guía de tallas'} • ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'}</div>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button type="button" onclick="setDareLabGender('hombre')" style="padding:7px 14px; border-radius:999px; font-size:11px; font-weight:800; cursor:pointer; border:1.5px solid #ff2a00; ${selectedGender === 'hombre' ? 'background:#ff2a00; color:#fff;' : 'background:#fff; color:#0b0b0e;'}">Hombre</button>
+                <button type="button" onclick="setDareLabGender('mujer')" style="padding:7px 14px; border-radius:999px; font-size:11px; font-weight:800; cursor:pointer; border:1.5px solid #ff2a00; ${selectedGender === 'mujer' ? 'background:#ff2a00; color:#fff;' : 'background:#fff; color:#0b0b0e;'}">Mujer</button>
+            </div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            ${garmentKeys.map(key => {
+                const item = genderMap[key];
+                const isActive = key === activeGarmentKey;
+                return `<button type="button" onclick="setDareLabGarmentType('${key}')" style="padding:6px 12px; border-radius:999px; font-size:11px; font-weight:700; cursor:pointer; border:1px solid ${isActive ? '#0b0b0e' : '#d4d4d8'}; background:${isActive ? '#0b0b0e' : '#f4f4f5'}; color:${isActive ? '#fff' : '#3f3f46'};">${item.label || key}</button>`;
+            }).join('')}
+        </div>
+
+        ${activeChart?.fabricNote ? `<p style="margin:0 0 12px 0; font-size:12px; color:#52525b;">${activeChart.fabricNote}</p>` : ''}
+
+        <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:center;">
+                <thead>
+                    <tr style="background:#111115; color:#ffffff;">
+                        <th style="padding:9px 10px; border-radius:10px 0 0 10px;">Talla</th>
+                        <th style="padding:9px 10px;">Pecho / Busto (cm)</th>
+                        <th style="padding:9px 10px;">Cintura (cm)</th>
+                        <th style="padding:9px 10px;">Largo (cm)</th>
+                        <th style="padding:9px 10px; border-radius:0 10px 10px 0;">Elegir</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.map(row => {
+                        const isSelected = row.size === selectedSizeLabel;
+                        return `
+                            <tr onclick="selectDareLabSize('${row.size}')" style="cursor:pointer; border-bottom:1px solid #e4e4e7; background:${isSelected ? 'rgba(255, 42, 0, 0.10)' : '#ffffff'}; font-weight:${isSelected ? '800' : '500'};">
+                                <td style="padding:9px 10px; color:#0b0b0e;">${row.size}</td>
+                                <td style="padding:9px 10px; color:#27272a;">${row.chestCm} cm</td>
+                                <td style="padding:9px 10px; color:#27272a;">${row.waistCm} cm</td>
+                                <td style="padding:9px 10px; color:#27272a;">${row.lengthCm} cm</td>
+                                <td style="padding:9px 10px;">
+                                    <button type="button" onclick="event.stopPropagation(); selectDareLabSize('${row.size}')" style="padding:5px 12px; border-radius:999px; font-size:11px; font-weight:800; cursor:pointer; border:none; background:${isSelected ? '#ff2a00' : '#e4e4e7'}; color:${isSelected ? '#fff' : '#0b0b0e'};">
+                                        ${isSelected ? 'Seleccionada' : 'Elegir'}
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top:12px; font-size:12px; color:#0b0b0e;">
+            Talla seleccionada: <strong style="color:#ff2a00;">${selectedSizeLabel}</strong> (${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} • ${activeChart?.label || activeGarmentKey})
+        </div>
+    `;
+
+    updateCustomSummary();
+}
+
+function setDareLabGender(gender) {
+    selectedGender = gender === 'mujer' ? 'mujer' : 'hombre';
+    renderSizeGuideBlock();
+}
+
+function setDareLabGarmentType(garmentKey) {
+    const bases = getCustomBases();
+    if (bases[selectedCustomBaseIndex]) {
+        bases[selectedCustomBaseIndex].garmentType = garmentKey;
+        localStorage.setItem('darecore_custom_bases', JSON.stringify(bases));
+    }
+    renderSizeGuideBlock();
+}
+
+function selectDareLabSize(sizeLabel) {
+    selectedSizeLabel = sizeLabel;
+    renderSizeGuideBlock();
+}
+
+function moveQuoteBelowWhatsapp() {
+    if (!window.location.pathname.toLowerCase().includes('personalizar')) return;
+
+    const whatsappEl = document.getElementById('customWhatsapp');
+    const summaryPriceEl = document.getElementById('summaryTotalPrice');
+    const quoteBox =
+        (summaryPriceEl && summaryPriceEl.closest('div[class*="card"], div[class*="summary"], div[class*="quote"], section, aside')) ||
+        Array.from(document.querySelectorAll('h2, h3, h4, div')).find(el =>
+            el.children.length <= 8 &&
+            (el.textContent || '').toUpperCase().includes('RESUMEN DE COTIZACIÓN')
+        )?.closest('div');
+
+    if (!whatsappEl || !quoteBox) return;
+
+    const whatsappContainer =
+        whatsappEl.closest('.form-group, .input-group, .field-group, div[class*="form"], div[class*="input"]') ||
+        whatsappEl.parentElement;
+
+    if (!whatsappContainer || whatsappContainer.contains(quoteBox)) return;
+
+    const mainRowOrGrid = quoteBox.parentElement;
+    if (mainRowOrGrid && mainRowOrGrid !== document.body) {
+        mainRowOrGrid.style.setProperty('grid-template-columns', 'minmax(0, 1fr)', 'important');
+        mainRowOrGrid.style.setProperty('display', 'block', 'important');
+    }
+
+    quoteBox.style.setProperty('width', '100%', 'important');
+    quoteBox.style.setProperty('max-width', '100%', 'important');
+    quoteBox.style.setProperty('margin-top', '24px', 'important');
+
+    whatsappContainer.insertAdjacentElement('afterend', quoteBox);
 }
 
 function compressImageFile(file, maxWidth = 800, quality = 0.7) {
@@ -783,6 +1036,8 @@ function compressImageFile(file, maxWidth = 800, quality = 0.7) {
 
 function resetDareLabForm() {
     selectedCustomBaseIndex = 0;
+    selectedGender = 'hombre';
+    selectedSizeLabel = 'M';
     const fileInput = document.getElementById('customDesignFile');
     if (fileInput) fileInput.value = '';
     const notesInput = document.getElementById('customNotes');
@@ -797,6 +1052,7 @@ function setupDareLab() {
     if (!container) return;
 
     renderCustomBasesPublic();
+    moveQuoteBelowWhatsapp();
 
     const techSelect = document.getElementById('customTechniqueSelect');
     if (techSelect) {
@@ -818,6 +1074,7 @@ function setupDareLab() {
 
             const bases = getCustomBases();
             const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
+            const garmentType = detectGarmentTypeFromBase(selectedBase);
             const techSelectElement = document.getElementById('customTechniqueSelect');
             const selectedOption = techSelectElement ? techSelectElement.options[techSelectElement.selectedIndex] : null;
             const techName = selectedOption ? selectedOption.value : 'Estándar';
@@ -827,14 +1084,16 @@ function setupDareLab() {
             const fileInput = document.getElementById('customDesignFile');
             const fileObj = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
             const fileName = fileObj ? fileObj.name : 'Lo enviaré por chat';
-            const notes = document.getElementById('customNotes')?.value.trim() || 'Sin notas adicionales';
+            const rawNotes = document.getElementById('customNotes')?.value.trim() || '';
+            const sizeInfoText = `Género: ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} | Tipo: ${garmentType} | Talla: ${selectedSizeLabel}`;
+            const notes = rawNotes ? `${sizeInfoText} — ${rawNotes}` : sizeInfoText;
 
             const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
             const orderNumber = generateFolio('PEDIDO');
             const initialStatus = 'Pago pendiente';
             const createdAt = new Date().toISOString();
 
-            const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber}`;
+            const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber} (${selectedBase.name}, Talla ${selectedSizeLabel} - ${selectedGender})`;
             const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
             const waWindow = window.open('about:blank', '_blank');
 
@@ -854,6 +1113,9 @@ function setupDareLab() {
                         userName: currentUser ? currentUser.displayName : 'Invitado',
                         whatsapp: whatsapp,
                         baseName: selectedBase.name,
+                        gender: selectedGender,
+                        garmentType: garmentType,
+                        size: selectedSizeLabel,
                         technique: techName,
                         fileName: fileName,
                         imageData: compressedImageBase64,
@@ -872,7 +1134,7 @@ function setupDareLab() {
                 collection: 'darelab_orders',
                 folio: orderNumber,
                 typeLabel: 'Dare Lab',
-                summary: `${selectedBase.name} (${techName})`,
+                summary: `${selectedBase.name} • Talla ${selectedSizeLabel} (${techName})`,
                 total: total,
                 status: initialStatus,
                 delivered: false,
@@ -904,18 +1166,18 @@ function renderCustomBasesPublic() {
 
     container.style.cssText = 'display: block; width: 100%;';
     container.innerHTML = `
-        <div style="background: #ffffff; border: 1.5px solid rgba(0,0,0,0.14); border-radius: 20px; padding: 18px;">
-            <label for="customBaseSelect" style="display: block; font-size: 11px; font-weight: 800; color: #52525b; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">
-                Elige prenda base y gramaje
+        <div style="background: #ffffff; border: 1.5px solid #ff2a00; border-radius: 26px; padding: 18px 20px; box-shadow: 0 10px 26px rgba(255, 42, 0, 0.08);">
+            <label for="customBaseSelect" style="display: block; font-size: 12px; font-weight: 800; color: #0b0b0e; margin-bottom: 10px;">
+                Prenda base y gramaje
             </label>
-            <select id="customBaseSelect" style="width: 100%; background: #ffffff; color: #0b0b0e; border: 1.5px solid #0b0b0e; border-radius: 14px; padding: 12px 14px; font-size: 13px; font-weight: 800; cursor: pointer; outline: none;">
+            <select id="customBaseSelect" style="width: 100%; background: #ffffff; color: #0b0b0e; border: 1.5px solid #ff2a00; border-radius: 999px; padding: 12px 18px; font-size: 13px; font-weight: 700; cursor: pointer; outline: none;">
                 ${bases.map((base, index) => `
                     <option value="${index}" ${index === selectedCustomBaseIndex ? 'selected' : ''}>
                         ${base.name}${base.desc ? ` — ${base.desc}` : ''} ($${Number(base.price).toLocaleString('es-MX')} MXN)
                     </option>
                 `).join('')}
             </select>
-            <div id="customBaseHelperInfo" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #52525b;">
+            <div id="customBaseHelperInfo" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #52525b; padding: 0 4px;">
                 <span>${activeBase ? (activeBase.desc || '') : ''}</span>
                 <strong style="color: #ff2a00; font-size: 14px;">$${Number(activeBase ? activeBase.price : 0).toLocaleString('es-MX')} MXN</strong>
             </div>
@@ -934,11 +1196,11 @@ function renderCustomBasesPublic() {
                     <strong style="color: #ff2a00; font-size: 14px;">$${Number(currentBase.price).toLocaleString('es-MX')} MXN</strong>
                 `;
             }
-            updateCustomSummary();
+            renderSizeGuideBlock();
         });
     }
 
-    updateCustomSummary();
+    renderSizeGuideBlock();
 }
 
 function updateCustomSummary() {
@@ -956,7 +1218,7 @@ function updateCustomSummary() {
     const summaryTechName = document.getElementById('summaryTechName');
     const summaryTotalPrice = document.getElementById('summaryTotalPrice');
 
-    if (summaryBaseName) summaryBaseName.innerText = selectedBase.name;
+    if (summaryBaseName) summaryBaseName.innerText = `${selectedBase.name} (${selectedSizeLabel})`;
     if (summaryTechName) summaryTechName.innerText = selectedOption ? selectedOption.value : '';
     if (summaryTotalPrice) summaryTotalPrice.innerText = `$${totalPrice.toLocaleString('es-MX')} MXN`;
 }
@@ -1545,6 +1807,7 @@ function initAdminPanel() {
         ensureDeliveredOrdersSection();
         loadAdminProducts();
         loadAdminCustomBases();
+        loadAdminSizeChartsEditor();
         loadAdminUsers();
         loadAdminDareLabOrders();
         loadAdminOrders();
@@ -1587,6 +1850,252 @@ function initAdminPanel() {
     if (addProductForm) {
         addProductForm.addEventListener('submit', handleProductSubmit);
     }
+}
+
+function loadAdminSizeChartsEditor() {
+    const basesContainer = document.getElementById('adminCustomBasesList');
+    const anchorCard = (basesContainer && basesContainer.closest('.admin-card')) || document.getElementById('dashboardSection');
+    if (!anchorCard) return;
+
+    let editorSection = document.getElementById('adminSizeChartsSection');
+    if (!editorSection) {
+        editorSection = document.createElement('div');
+        editorSection.id = 'adminSizeChartsSection';
+        editorSection.className = 'admin-card';
+        editorSection.style.cssText = 'margin-top: 24px; background: #ffffff; border: 1.5px solid rgba(0,0,0,0.1); border-radius: 24px; padding: 24px; color: #0b0b0e;';
+        if (anchorCard.id === 'dashboardSection') {
+            anchorCard.appendChild(editorSection);
+        } else {
+            anchorCard.insertAdjacentElement('afterend', editorSection);
+        }
+    }
+
+    const charts = getSizeChartsData();
+    const genderMap = charts[adminSelectedGender] || charts.hombre;
+    const garmentKeys = Object.keys(genderMap);
+    if (!genderMap[adminSelectedGarmentType]) {
+        adminSelectedGarmentType = garmentKeys[0] || 'camisa';
+    }
+    const activeChart = genderMap[adminSelectedGarmentType];
+    const rows = Array.isArray(activeChart.rows) ? activeChart.rows : [];
+
+    editorSection.innerHTML = `
+        <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px;">
+            <div>
+                <h3 style="margin:0 0 4px 0; font-size:16px; font-weight:900; color:#0b0b0e; text-transform:uppercase;">
+                    TABLAS DE MEDIDAS POR GÉNERO Y PRENDA / TELA (CM)
+                </h3>
+                <p style="margin:0; font-size:12px; color:#52525b;">
+                    Modifica tallas o centímetros (pecho/busto, cintura y largo) para hombre o mujer según el tipo de tela (algodón, felpa, licra, top, etc.)[cite: 9].
+                </p>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button type="button" onclick="setAdminChartGender('hombre')" style="padding:8px 16px; border-radius:999px; font-size:11px; font-weight:800; cursor:pointer; border:1.5px solid #ff2a00; ${adminSelectedGender === 'hombre' ? 'background:#ff2a00; color:#fff;' : 'background:#fff; color:#0b0b0e;'}">Hombre</button>
+                <button type="button" onclick="setAdminChartGender('mujer')" style="padding:8px 16px; border-radius:999px; font-size:11px; font-weight:800; cursor:pointer; border:1.5px solid #ff2a00; ${adminSelectedGender === 'mujer' ? 'background:#ff2a00; color:#fff;' : 'background:#fff; color:#0b0b0e;'}">Mujer</button>
+            </div>
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
+            ${garmentKeys.map(key => {
+                const item = genderMap[key];
+                const active = key === adminSelectedGarmentType;
+                return `<button type="button" onclick="setAdminChartGarmentType('${key}')" style="padding:7px 14px; border-radius:999px; font-size:11px; font-weight:800; cursor:pointer; border:1px solid ${active ? '#0b0b0e' : '#d4d4d8'}; background:${active ? '#0b0b0e' : '#f4f4f5'}; color:${active ? '#fff' : '#0b0b0e'};">${item.label || key}</button>`;
+            }).join('')}
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom:16px;">
+            <div>
+                <label style="font-size:10px; font-weight:800; color:#52525b; display:block; margin-bottom:4px;">NOMBRE DE PRENDA / TELA</label>
+                <input type="text" id="chartGarmentLabelInput" value="${activeChart.label || ''}" class="form-control" style="font-size:12px;">
+            </div>
+            <div>
+                <label style="font-size:10px; font-weight:800; color:#52525b; display:block; margin-bottom:4px;">NOTA DE TELA / AJUSTE</label>
+                <input type="text" id="chartFabricNoteInput" value="${activeChart.fabricNote || ''}" class="form-control" style="font-size:12px;">
+            </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+            ${rows.map((r, idx) => `
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)) auto; gap:8px; align-items:center; background:#f9fafb; border:1px solid #e4e4e7; padding:10px; border-radius:16px;">
+                    <div>
+                        <label style="font-size:10px; font-weight:700; color:#52525b; display:block;">Talla</label>
+                        <input type="text" id="chartRowSize_${idx}" value="${r.size}" class="form-control" style="font-size:12px;">
+                    </div>
+                    <div>
+                        <label style="font-size:10px; font-weight:700; color:#52525b; display:block;">Pecho/Busto (cm)</label>
+                        <input type="text" id="chartRowChest_${idx}" value="${r.chestCm}" class="form-control" style="font-size:12px;">
+                    </div>
+                    <div>
+                        <label style="font-size:10px; font-weight:700; color:#52525b; display:block;">Cintura (cm)</label>
+                        <input type="text" id="chartRowWaist_${idx}" value="${r.waistCm}" class="form-control" style="font-size:12px;">
+                    </div>
+                    <div>
+                        <label style="font-size:10px; font-weight:700; color:#52525b; display:block;">Largo (cm)</label>
+                        <input type="text" id="chartRowLength_${idx}" value="${r.lengthCm}" class="form-control" style="font-size:12px;">
+                    </div>
+                    <button type="button" class="btn-delete" style="padding:8px 12px; font-size:11px; margin-top:14px;" onclick="deleteSizeChartRow(${idx})">Quitar</button>
+                </div>
+            `).join('')}
+        </div>
+
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
+            <button type="button" class="btn-primary" style="padding:9px 16px; font-size:11px;" onclick="addSizeChartRow()">+ Agregar fila de talla</button>
+            <button type="button" class="btn-primary" style="padding:9px 18px; font-size:11px; background:#16a34a;" onclick="saveCurrentSizeChart()">Guardar tabla (${selectedGender === adminSelectedGender ? adminSelectedGender : adminSelectedGender})</button>
+        </div>
+
+        <div style="border-top:1px dashed #d4d4d8; padding-top:16px;">
+            <div style="font-size:11px; font-weight:900; color:#ff2a00; text-transform:uppercase; margin-bottom:10px;">
+                + AGREGAR NUEVO TIPO DE PRENDA / TELA PARA ${adminSelectedGender === 'mujer' ? 'MUJER' : 'HOMBRE'}
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                <input type="text" id="newChartKeyInput" placeholder="Clave ej. licra, camisola, jogger" class="form-control" style="font-size:12px;">
+                <input type="text" id="newChartLabelInput" placeholder="Nombre visible ej. Licra Deportiva" class="form-control" style="font-size:12px;">
+                <input type="text" id="newChartNoteInput" placeholder="Nota de tela ej. Alta elasticidad en cm" class="form-control" style="font-size:12px;">
+                <button type="button" class="btn-primary" style="padding:9px 14px; font-size:11px;" onclick="addNewGarmentSizeChart()">+ Crear tabla de prenda</button>
+            </div>
+        </div>
+    `;
+}
+
+function setAdminChartGender(gender) {
+    adminSelectedGender = gender === 'mujer' ? 'mujer' : 'hombre';
+    const charts = getSizeChartsData();
+    const keys = Object.keys(charts[adminSelectedGender] || {});
+    if (!keys.includes(adminSelectedGarmentType)) {
+        adminSelectedGarmentType = keys[0] || 'camisa';
+    }
+    loadAdminSizeChartsEditor();
+}
+
+function setAdminChartGarmentType(garmentKey) {
+    adminSelectedGarmentType = garmentKey;
+    loadAdminSizeChartsEditor();
+}
+
+function collectCurrentChartRowsFromDom(count) {
+    const updatedRows = [];
+    for (let i = 0; i < count; i++) {
+        const sizeVal = document.getElementById(`chartRowSize_${i}`)?.value.trim() || `T${i + 1}`;
+        const chestVal = document.getElementById(`chartRowChest_${i}`)?.value.trim() || '0';
+        const waistVal = document.getElementById(`chartRowWaist_${i}`)?.value.trim() || '0';
+        const lengthVal = document.getElementById(`chartRowLength_${i}`)?.value.trim() || '0';
+        updatedRows.push({
+            size: sizeVal,
+            chestCm: chestVal,
+            waistCm: waistVal,
+            lengthCm: lengthVal
+        });
+    }
+    return updatedRows;
+}
+
+function addSizeChartRow() {
+    const charts = getSizeChartsData();
+    const chart = charts[adminSelectedGender]?.[adminSelectedGarmentType];
+    if (!chart) return;
+
+    const currentRows = collectCurrentChartRowsFromDom((chart.rows || []).length);
+    currentRows.push({ size: '2XL', chestCm: '126', waistCm: '120', lengthCm: '78' });
+    chart.rows = currentRows;
+    persistSizeChartsData(charts);
+    loadAdminSizeChartsEditor();
+    renderSizeGuideBlock();
+}
+
+function deleteSizeChartRow(index) {
+    const charts = getSizeChartsData();
+    const chart = charts[adminSelectedGender]?.[adminSelectedGarmentType];
+    if (!chart || !Array.isArray(chart.rows)) return;
+    if (chart.rows.length <= 1) {
+        showFloatingToast('Debe quedar al menos una talla en la tabla');
+        return;
+    }
+
+    const currentRows = collectCurrentChartRowsFromDom(chart.rows.length);
+    currentRows.splice(index, 1);
+    chart.rows = currentRows;
+    persistSizeChartsData(charts);
+    loadAdminSizeChartsEditor();
+    renderSizeGuideBlock();
+}
+
+function saveCurrentSizeChart() {
+    const charts = getSizeChartsData();
+    const chart = charts[adminSelectedGender]?.[adminSelectedGarmentType];
+    if (!chart) return;
+
+    const labelVal = document.getElementById('chartGarmentLabelInput')?.value.trim();
+    const noteVal = document.getElementById('chartFabricNoteInput')?.value.trim();
+    const currentRows = collectCurrentChartRowsFromDom((chart.rows || []).length);
+
+    if (labelVal) chart.label = labelVal;
+    chart.fabricNote = noteVal || '';
+    chart.rows = currentRows;
+
+    persistSizeChartsData(charts);
+    showFloatingToast(`Tabla "${chart.label}" guardada`);
+    loadAdminSizeChartsEditor();
+    renderSizeGuideBlock();
+}
+
+function addNewGarmentSizeChart() {
+    const rawKey = document.getElementById('newChartKeyInput')?.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || '';
+    const labelVal = document.getElementById('newChartLabelInput')?.value.trim() || '';
+    const noteVal = document.getElementById('newChartNoteInput')?.value.trim() || 'Medidas en cm según prenda y tela.';
+
+    if (!rawKey || !labelVal) {
+        showFloatingToast('Ingresa una clave y un nombre visible para la nueva prenda/tela');
+        return;
+    }
+
+    const charts = getSizeChartsData();
+    charts[adminSelectedGender][rawKey] = {
+        label: labelVal,
+        fabricNote: noteVal,
+        rows: [
+            { size: 'CH / S', chestCm: '90', waistCm: '72', lengthCm: '64' },
+            { size: 'M', chestCm: '96', waistCm: '78', lengthCm: '66' },
+            { size: 'G / L', chestCm: '102', waistCm: '84', lengthCm: '68' }
+        ]
+    };
+
+    adminSelectedGarmentType = rawKey;
+    persistSizeChartsData(charts);
+    showFloatingToast(`Nueva tabla "${labelVal}" creada`);
+    loadAdminSizeChartsEditor();
+    renderSizeGuideBlock();
+}
+
+function openAdminProductPreviewModal(product) {
+    if (!product) return;
+
+    let modal = document.getElementById('adminProductPreviewModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'adminProductPreviewModal';
+        modal.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); backdrop-filter:blur(8px); z-index:99999; justify-content:center; align-items:center; padding:20px;';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div style="background:#111115; border:1.5px solid #ff2a00; border-radius:28px; max-width:720px; width:100%; padding:28px; position:relative; display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:24px; color:#fff; box-shadow:0 28px 70px rgba(0,0,0,0.85);">
+            <button onclick="document.getElementById('adminProductPreviewModal').style.display='none'" style="position:absolute; top:14px; right:18px; background:rgba(255,255,255,0.08); border:none; color:#fff; width:34px; height:34px; border-radius:50%; font-size:20px; cursor:pointer;">&times;</button>
+            <div style="background:#18181e; border-radius:20px; padding:12px; display:flex; align-items:center; justify-content:center; min-height:280px;">
+                <img src="${product.image || AVATAR_URL}" alt="${product.name}" style="width:100%; max-height:340px; object-fit:contain; border-radius:14px;">
+            </div>
+            <div style="display:flex; flex-direction:column; justify-content:center; gap:10px;">
+                <span style="color:#ff5500; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:1px;">${product.tag || 'DARECORE'} • ${product.category || 'inicio'}</span>
+                <h2 style="margin:0; font-size:24px; font-weight:900; color:#fff;">${product.name}</h2>
+                <p style="margin:0; font-size:13px; color:#b4b4bc; line-height:1.55;">${product.desc || 'Sin descripción registrada.'}</p>
+                <div style="margin-top:8px; font-size:22px; font-weight:900; color:#ff5500;">$${Number(product.price || 0).toLocaleString('es-MX')} MXN</div>
+                <div style="display:flex; gap:10px; margin-top:12px;">
+                    <button type="button" class="btn-primary" style="padding:10px 18px; font-size:12px;" onclick="document.getElementById('adminProductPreviewModal').style.display='none'; editProduct('${product.id || product.firestoreId}')">Editar prenda</button>
+                    <button type="button" style="background:rgba(255,255,255,0.1); color:#fff; border:none; padding:10px 18px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer;" onclick="document.getElementById('adminProductPreviewModal').style.display='none'">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    modal.style.display = 'flex';
 }
 
 function ensureDeliveredOrdersSection() {
@@ -1764,15 +2273,31 @@ function loadAdminProducts() {
     products.forEach((p) => {
         const item = document.createElement('div');
         item.className = 'product-item-admin';
-        item.style.cssText = 'display:flex; align-items:center; gap:12px; margin-bottom:10px;';
+        item.style.cssText = 'display:flex; align-items:center; gap:12px; margin-bottom:10px; cursor:pointer; transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;';
+
+        item.addEventListener('mouseenter', () => {
+            item.style.transform = 'translateY(-4px)';
+            item.style.boxShadow = '0 14px 28px rgba(0, 0, 0, 0.28)';
+            item.style.borderColor = '#ff2a00';
+        });
+
+        item.addEventListener('mouseleave', () => {
+            item.style.transform = 'translateY(0)';
+            item.style.boxShadow = '';
+            item.style.borderColor = '';
+        });
+
+        item.addEventListener('click', () => {
+            openAdminProductPreviewModal(p);
+        });
 
         item.innerHTML = `
-            <img src="${p.image || ''}" alt="${p.name}" style="width:52px; height:52px; object-fit:cover;">
-            <div style="flex-grow: 1; color: #0b0b0e;">
+            <img src="${p.image || ''}" alt="${p.name}" style="width:52px; height:52px; object-fit:cover; border-radius:12px;">
+            <div style="flex-grow: 1;">
                 <div style="font-weight: 700; font-size: 13px;">${p.name}</div>
-                <div style="font-size: 11px; color: #52525b;">${p.category || 'general'} | $${p.price} MXN</div>
+                <div style="font-size: 11px; opacity: 0.78;">${p.category || 'general'} | $${Number(p.price).toLocaleString('es-MX')} MXN</div>
             </div>
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: 8px;" onclick="event.stopPropagation();">
                 <button type="button" class="btn-primary" style="padding: 7px 14px; font-size: 11px;" onclick="editProduct('${p.id || p.firestoreId}')">Editar</button>
                 <button type="button" class="btn-delete" style="padding: 7px 14px; font-size: 11px;" onclick="deleteProduct('${p.id || p.firestoreId}')">Eliminar</button>
             </div>
@@ -1932,6 +2457,72 @@ async function deleteProduct(productId) {
     showFloatingToast('Prenda eliminada correctamente');
 }
 
+function persistCustomBases(bases) {
+    localStorage.setItem('darecore_custom_bases', JSON.stringify(bases));
+    if (window.db) {
+        window.db.collection('settings').doc('customBases').set({ items: bases }).catch(err => console.log(err));
+    }
+}
+
+function addCustomBaseItem() {
+    const nameInput = document.getElementById('newBaseName');
+    const descInput = document.getElementById('newBaseDesc');
+    const priceInput = document.getElementById('newBasePrice');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    const desc = descInput ? descInput.value.trim() : '';
+    const price = Number(priceInput ? priceInput.value : 0);
+
+    if (!name) {
+        showFloatingToast('Escribe el nombre de la nueva prenda base');
+        if (nameInput) nameInput.focus();
+        return;
+    }
+
+    if (!price || price <= 0) {
+        showFloatingToast('Ingresa un precio válido en MXN');
+        if (priceInput) priceInput.focus();
+        return;
+    }
+
+    const bases = getCustomBases();
+    bases.push({
+        id: 'base_' + Date.now(),
+        name: name.toUpperCase(),
+        desc: desc || 'Prenda personalizada Dare Lab',
+        price: price
+    });
+
+    persistCustomBases(bases);
+    if (nameInput) nameInput.value = '';
+    if (descInput) descInput.value = '';
+    if (priceInput) priceInput.value = '';
+
+    showFloatingToast(`"${name.toUpperCase()}" agregada a Dare Lab`);
+    loadAdminCustomBases();
+    renderCustomBasesPublic();
+}
+
+async function removeCustomBaseItem(index) {
+    const bases = getCustomBases();
+    if (bases.length <= 1) {
+        showFloatingToast('Debe quedar al menos una prenda base');
+        return;
+    }
+
+    const confirmed = await showConfirmModal('¿Eliminar esta prenda base de Dare Lab?');
+    if (!confirmed) return;
+
+    bases.splice(index, 1);
+    if (selectedCustomBaseIndex >= bases.length) {
+        selectedCustomBaseIndex = 0;
+    }
+    persistCustomBases(bases);
+    showFloatingToast('Prenda base eliminada');
+    loadAdminCustomBases();
+    renderCustomBasesPublic();
+}
+
 function loadAdminCustomBases() {
     const container = document.getElementById('adminCustomBasesList');
     if (!container) return;
@@ -1947,32 +2538,68 @@ function loadAdminCustomBases() {
                 <label style="font-size: 10px; color: #52525b; display: block; margin-bottom:4px; font-weight:700;">NOMBRE BASE</label>
                 <input type="text" id="baseName_${index}" value="${base.name}" class="form-control" style="font-size: 12px;">
             </div>
+            <div style="margin-bottom: 8px;">
+                <label style="font-size: 10px; color: #52525b; display: block; margin-bottom:4px; font-weight:700;">DESCRIPCIÓN / GRAMAJE</label>
+                <input type="text" id="baseDesc_${index}" value="${base.desc || ''}" class="form-control" style="font-size: 12px;">
+            </div>
             <div style="margin-bottom: 10px;">
                 <label style="font-size: 10px; color: #52525b; display: block; margin-bottom:4px; font-weight:700;">PRECIO (MXN)</label>
                 <input type="number" id="basePrice_${index}" value="${base.price}" class="form-control" style="font-size: 12px;">
             </div>
-            <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 11px; width: 100%;" onclick="updateCustomBaseItem(${index})">Guardar Cambios</button>
+            <div style="display:flex; gap:8px;">
+                <button type="button" class="btn-primary" style="padding: 8px 14px; font-size: 11px; flex:1;" onclick="updateCustomBaseItem(${index})">Guardar Cambios</button>
+                ${bases.length > 1 ? `<button type="button" class="btn-delete" style="padding: 8px 12px; font-size: 11px;" onclick="removeCustomBaseItem(${index})">Quitar</button>` : ''}
+            </div>
         `;
         container.appendChild(box);
     });
+
+    let addBox = document.getElementById('addCustomBaseBox');
+    if (!addBox) {
+        addBox = document.createElement('div');
+        addBox.id = 'addCustomBaseBox';
+        addBox.style.cssText = "background: #ffffff; border: 1.5px dashed #ff2a00; padding: 16px; border-radius: 22px; display:flex; flex-direction:column; justify-content:space-between;";
+        container.parentElement.appendChild(addBox);
+    }
+
+    addBox.style.marginTop = '16px';
+    addBox.innerHTML = `
+        <div style="font-size: 11px; font-weight: 900; color: #ff2a00; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;">
+            + AGREGAR OTRA PRENDA BASE
+        </div>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 12px;">
+            <div>
+                <label style="font-size: 10px; color: #52525b; display: block; margin-bottom:4px; font-weight:700;">NOMBRE PRENDA</label>
+                <input type="text" id="newBaseName" placeholder="Ej. HOODIE ZIP 420G" class="form-control" style="font-size: 12px;">
+            </div>
+            <div>
+                <label style="font-size: 10px; color: #52525b; display: block; margin-bottom:4px; font-weight:700;">DESCRIPCIÓN / GRAMAJE</label>
+                <input type="text" id="newBaseDesc" placeholder="Ej. Algodón peinado cierre" class="form-control" style="font-size: 12px;">
+            </div>
+            <div>
+                <label style="font-size: 10px; color: #52525b; display: block; margin-bottom:4px; font-weight:700;">PRECIO (MXN)</label>
+                <input type="number" id="newBasePrice" placeholder="Ej. 1190" class="form-control" style="font-size: 12px;">
+            </div>
+        </div>
+        <button type="button" class="btn-primary" style="padding: 10px 16px; font-size: 12px; width: 100%;" onclick="addCustomBaseItem()">+ AGREGAR BASE A DARE LAB</button>
+    `;
 }
 
 function updateCustomBaseItem(index) {
     const bases = getCustomBases();
     const nameInput = document.getElementById(`baseName_${index}`);
+    const descInput = document.getElementById(`baseDesc_${index}`);
     const priceInput = document.getElementById(`basePrice_${index}`);
 
     if (nameInput && priceInput) {
         bases[index].name = nameInput.value;
+        if (descInput) bases[index].desc = descInput.value;
         bases[index].price = Number(priceInput.value);
-        localStorage.setItem('darecore_custom_bases', JSON.stringify(bases));
-
-        if (window.db) {
-            window.db.collection('settings').doc('customBases').set({ items: bases }).catch(err => console.log(err));
-        }
+        persistCustomBases(bases);
 
         showFloatingToast('Base personalizada actualizada');
         loadAdminCustomBases();
+        renderCustomBasesPublic();
     }
 }
 
@@ -2047,7 +2674,7 @@ function loadAdminDareLabOrders() {
                     <span style="color: #ff2a00; font-size: 11px; font-weight: 800;">#${folio}</span>
                     <span style="font-size: 10px; font-weight: 800; padding: 3px 10px; border-radius: 999px; ${badgeStyle}">${status}</span>
                 </div>
-                <div style="color: #0b0b0e; font-size: 13px; font-weight: 700;">${order.baseName}</div>
+                <div style="color: #0b0b0e; font-size: 13px; font-weight: 700;">${order.baseName} ${order.size ? `• Talla ${order.size}` : ''}</div>
                 <div style="color: #0b0b0e; font-size: 12px;"><strong>Cliente:</strong> ${order.userName} (${order.userEmail})</div>
                 <div style="color: #0b0b0e; font-size: 12px;"><strong>WhatsApp:</strong> ${waClientLink}</div>
                 <div style="color: #52525b; font-size: 11px;"><strong>Técnica:</strong> ${order.technique} | <strong>Total:</strong> $${Number(order.total).toLocaleString('es-MX')} MXN</div>
