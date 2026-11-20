@@ -1395,9 +1395,196 @@ function resetDareLabForm() {
     if (fileInput) fileInput.value = '';
     const notesInput = document.getElementById('customNotes');
     if (notesInput) notesInput.value = '';
-    const techSelect = document.getElementById('customTechniqueSelect');
+    const techSelect =
+        document.getElementById('customTechniqueSelect') ||
+        document.querySelector('select[name*="technique" i], select[id*="technique" i], select[id*="estampado" i], select[name*="estampado" i], select[id*="ubicacion" i], select[name*="ubicacion" i]');
     if (techSelect) techSelect.selectedIndex = 0;
     renderCustomBasesPublic();
+}
+
+function getTechniqueSelectionData() {
+    const techSelect =
+        document.getElementById('customTechniqueSelect') ||
+        document.querySelector('select[name*="technique" i], select[id*="technique" i], select[id*="estampado" i], select[name*="estampado" i], select[id*="ubicacion" i], select[name*="ubicacion" i]');
+
+    if (techSelect && techSelect.options && techSelect.selectedIndex >= 0) {
+        const opt = techSelect.options[techSelect.selectedIndex];
+        const labelText = (opt.textContent || opt.value || '').trim();
+        const rawExtra =
+            opt.getAttribute('data-extra') ??
+            opt.getAttribute('data-price') ??
+            opt.dataset?.extra ??
+            opt.dataset?.price ??
+            '0';
+
+        let extra = Number(String(rawExtra).replace(/[^0-9.-]/g, ''));
+        if (!Number.isFinite(extra)) extra = 0;
+
+        if (extra === 0 && !opt.hasAttribute('data-extra') && !opt.hasAttribute('data-price') && labelText.includes('+')) {
+            const match = labelText.match(/\+\s*\$?\s*([0-9]+(?:\.[0-9]+)?)/);
+            if (match) {
+                const parsedNum = Number(match[1]);
+                if (Number.isFinite(parsedNum)) extra = parsedNum;
+            }
+        }
+
+        return {
+            label: labelText || opt.value || 'Estándar',
+            extra
+        };
+    }
+
+    const activeBtn = document.querySelector(
+        '[data-technique].active, [data-technique].selected, [data-technique][aria-pressed="true"], ' +
+        '.technique-btn.active, .technique-btn.selected, .estampado-option.active, .estampado-option.selected'
+    );
+    if (activeBtn) {
+        const rawExtra = activeBtn.getAttribute('data-extra') ?? activeBtn.getAttribute('data-price') ?? '0';
+        const extra = Number(String(rawExtra).replace(/[^0-9.-]/g, '')) || 0;
+        const label = (activeBtn.getAttribute('data-technique') || activeBtn.textContent || '').trim();
+        return { label: label || 'Estándar', extra };
+    }
+
+    const techInput = document.getElementById('customTechnique') || document.getElementById('estampadoInput');
+    if (techInput) {
+        const rawExtra = techInput.getAttribute('data-extra') ?? techInput.getAttribute('data-price') ?? '0';
+        const extra = Number(String(rawExtra).replace(/[^0-9.-]/g, '')) || 0;
+        return { label: (techInput.value || '').trim() || 'Estándar', extra };
+    }
+
+    return { label: 'Estándar', extra: 0 };
+}
+
+function bindDareLabTechniqueListeners() {
+    const controls = document.querySelectorAll(
+        '#customTechniqueSelect, #customTechnique, #estampadoInput, ' +
+        'select[name*="technique" i], select[id*="technique" i], select[id*="estampado" i], select[name*="estampado" i], select[id*="ubicacion" i], select[name*="ubicacion" i]'
+    );
+    controls.forEach(el => {
+        if (!el.dataset.darecoreBound) {
+            el.dataset.darecoreBound = 'true';
+            el.addEventListener('change', updateCustomSummary);
+            el.addEventListener('input', updateCustomSummary);
+        }
+    });
+
+    if (!document.body.dataset.darecoreTechDelegation) {
+        document.body.dataset.darecoreTechDelegation = 'true';
+        document.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-technique], [data-extra], [data-price], .technique-btn, .estampado-option');
+            if (target) {
+                setTimeout(updateCustomSummary, 0);
+            }
+        });
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.matches('select, input[type="radio"], input[type="checkbox"]')) {
+                updateCustomSummary();
+            }
+        });
+    }
+}
+
+function getMockupSubmitButton() {
+    return (
+        document.getElementById('requestMockupBtn') ||
+        Array.from(document.querySelectorAll('button, input[type="submit"], a[role="button"]')).find(el =>
+            /solicitar\s*mockup/i.test((el.textContent || el.value || '').trim())
+        ) ||
+        null
+    );
+}
+
+async function handleMockupRequestSubmit(e) {
+    if (e) e.preventDefault();
+
+    const whatsappInput =
+        document.getElementById('customWhatsapp') ||
+        document.querySelector('input[type="tel"], input[name*="whatsapp" i], input[id*="whatsapp" i]');
+    const whatsapp = whatsappInput ? whatsappInput.value.trim() : '';
+    if (!whatsapp) {
+        showFloatingToast('Ingresa tu WhatsApp para enviarte tu mockup');
+        if (whatsappInput) whatsappInput.focus();
+        return;
+    }
+
+    const bases = getCustomBases();
+    const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
+    const garmentType = detectGarmentTypeFromBase(selectedBase);
+    const { label: techName, extra: extraCost } = getTechniqueSelectionData();
+    const total = (Number(selectedBase ? selectedBase.price : 0) || 0) + extraCost;
+
+    const fileInput = document.getElementById('customDesignFile');
+    const fileObj = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+    const fileName = fileObj ? fileObj.name : 'Lo enviaré por chat';
+    const rawNotes = document.getElementById('customNotes')?.value.trim() || '';
+    const mixText = getSelectedMixSummaryText();
+    const sizeInfoText = `Género: ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} | Tipo: ${garmentType} | Medidas: ${mixText}`;
+    const notes = rawNotes ? `${sizeInfoText} — ${rawNotes}` : sizeInfoText;
+
+    const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+    const orderNumber = generateFolio('PEDIDO');
+    const initialStatus = 'Pago pendiente';
+    const createdAt = new Date().toISOString();
+
+    const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber} (${selectedBase.name}, ${techName}, ${mixText} - ${selectedGender})`;
+    const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
+    const waWindow = window.open('about:blank', '_blank');
+
+    let compressedImageBase64 = '';
+    if (fileObj) {
+        compressedImageBase64 = (await compressImageFile(fileObj)) || '';
+    }
+
+    let docId = null;
+    if (window.db) {
+        try {
+            const docRef = await window.db.collection('darelab_orders').add({
+                orderNumber: orderNumber,
+                orderType: 'pedido_darelab',
+                status: initialStatus,
+                userEmail: currentUser ? currentUser.email : 'Invitado (sin sesión)',
+                userName: currentUser ? currentUser.displayName : 'Invitado',
+                whatsapp: whatsapp,
+                baseName: selectedBase.name,
+                gender: selectedGender,
+                garmentType: garmentType,
+                size: mixText,
+                chestSize: selectedChestSize,
+                waistSize: selectedWaistSize,
+                lengthSize: selectedLengthSize,
+                technique: techName,
+                fileName: fileName,
+                imageData: compressedImageBase64,
+                notes: notes,
+                total: total,
+                createdAt: createdAt
+            });
+            docId = docRef.id;
+        } catch (err) {
+            console.error("Error guardando solicitud de Dare Lab:", err);
+        }
+    }
+
+    saveClientPendingOrder({
+        id: docId || orderNumber,
+        collection: 'darelab_orders',
+        folio: orderNumber,
+        typeLabel: 'Dare Lab',
+        summary: `${selectedBase.name} • ${mixText} (${techName})`,
+        total: total,
+        status: initialStatus,
+        delivered: false,
+        createdAt: createdAt
+    });
+
+    resetDareLabForm();
+    showFloatingToast(`Solicitud #${orderNumber} agregada a Pedido pendiente`);
+
+    if (waWindow) {
+        waWindow.location.href = waUrl;
+    } else {
+        window.location.href = waUrl;
+    }
 }
 
 function setupDareLab() {
@@ -1406,107 +1593,19 @@ function setupDareLab() {
 
     renderCustomBasesPublic();
     moveQuoteBelowWhatsapp();
+    bindDareLabTechniqueListeners();
+    updateCustomSummary();
 
-    const techSelect = document.getElementById('customTechniqueSelect');
-    if (techSelect) {
-        techSelect.addEventListener('change', updateCustomSummary);
-    }
+    const mockupBtn = getMockupSubmitButton();
+    if (mockupBtn && !mockupBtn.dataset.darecoreSubmitBound) {
+        mockupBtn.dataset.darecoreSubmitBound = 'true';
+        mockupBtn.addEventListener('click', handleMockupRequestSubmit);
 
-    const mockupBtn = document.getElementById('requestMockupBtn');
-    if (mockupBtn) {
-        mockupBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-
-            const whatsappInput = document.getElementById('customWhatsapp');
-            const whatsapp = whatsappInput ? whatsappInput.value.trim() : '';
-            if (!whatsapp) {
-                showFloatingToast('Ingresa tu WhatsApp para enviarte tu mockup');
-                if (whatsappInput) whatsappInput.focus();
-                return;
-            }
-
-            const bases = getCustomBases();
-            const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
-            const garmentType = detectGarmentTypeFromBase(selectedBase);
-            const techSelectElement = document.getElementById('customTechniqueSelect');
-            const selectedOption = techSelectElement ? techSelectElement.options[techSelectElement.selectedIndex] : null;
-            const techName = selectedOption ? selectedOption.value : 'Estándar';
-            const extraCost = selectedOption ? Number(selectedOption.getAttribute('data-extra') || 0) : 0;
-            const total = Number(selectedBase.price) + extraCost;
-
-            const fileInput = document.getElementById('customDesignFile');
-            const fileObj = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
-            const fileName = fileObj ? fileObj.name : 'Lo enviaré por chat';
-            const rawNotes = document.getElementById('customNotes')?.value.trim() || '';
-            const mixText = getSelectedMixSummaryText();
-            const sizeInfoText = `Género: ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} | Tipo: ${garmentType} | Medidas: ${mixText}`;
-            const notes = rawNotes ? `${sizeInfoText} — ${rawNotes}` : sizeInfoText;
-
-            const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
-            const orderNumber = generateFolio('PEDIDO');
-            const initialStatus = 'Pago pendiente';
-            const createdAt = new Date().toISOString();
-
-            const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber} (${selectedBase.name}, ${mixText} - ${selectedGender})`;
-            const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
-            const waWindow = window.open('about:blank', '_blank');
-
-            let compressedImageBase64 = '';
-            if (fileObj) {
-                compressedImageBase64 = (await compressImageFile(fileObj)) || '';
-            }
-
-            let docId = null;
-            if (window.db) {
-                try {
-                    const docRef = await window.db.collection('darelab_orders').add({
-                        orderNumber: orderNumber,
-                        orderType: 'pedido_darelab',
-                        status: initialStatus,
-                        userEmail: currentUser ? currentUser.email : 'Invitado (sin sesión)',
-                        userName: currentUser ? currentUser.displayName : 'Invitado',
-                        whatsapp: whatsapp,
-                        baseName: selectedBase.name,
-                        gender: selectedGender,
-                        garmentType: garmentType,
-                        size: mixText,
-                        chestSize: selectedChestSize,
-                        waistSize: selectedWaistSize,
-                        lengthSize: selectedLengthSize,
-                        technique: techName,
-                        fileName: fileName,
-                        imageData: compressedImageBase64,
-                        notes: notes,
-                        total: total,
-                        createdAt: createdAt
-                    });
-                    docId = docRef.id;
-                } catch (err) {
-                    console.error("Error guardando solicitud de Dare Lab:", err);
-                }
-            }
-
-            saveClientPendingOrder({
-                id: docId || orderNumber,
-                collection: 'darelab_orders',
-                folio: orderNumber,
-                typeLabel: 'Dare Lab',
-                summary: `${selectedBase.name} • ${mixText} (${techName})`,
-                total: total,
-                status: initialStatus,
-                delivered: false,
-                createdAt: createdAt
-            });
-
-            resetDareLabForm();
-            showFloatingToast(`Solicitud #${orderNumber} agregada a Pedido pendiente`);
-
-            if (waWindow) {
-                waWindow.location.href = waUrl;
-            } else {
-                window.location.href = waUrl;
-            }
-        });
+        const parentForm = mockupBtn.closest('form');
+        if (parentForm && !parentForm.dataset.darecoreFormBound) {
+            parentForm.dataset.darecoreFormBound = 'true';
+            parentForm.addEventListener('submit', handleMockupRequestSubmit);
+        }
     }
 }
 
@@ -1563,21 +1662,24 @@ function renderCustomBasesPublic() {
 function updateCustomSummary() {
     const bases = getCustomBases();
     const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
+    const basePrice = Number(selectedBase ? selectedBase.price : 0) || 0;
 
-    const techSelect = document.getElementById('customTechniqueSelect');
-    if (!techSelect) return;
-
-    const selectedOption = techSelect.options[techSelect.selectedIndex];
-    const extraCost = selectedOption ? Number(selectedOption.getAttribute('data-extra') || 0) : 0;
-    const totalPrice = Number(selectedBase.price) + extraCost;
+    const { label: techLabel, extra: extraCost } = getTechniqueSelectionData();
+    const totalPrice = basePrice + extraCost;
 
     const summaryBaseName = document.getElementById('summaryBaseName');
     const summaryTechName = document.getElementById('summaryTechName');
     const summaryTotalPrice = document.getElementById('summaryTotalPrice');
 
-    if (summaryBaseName) summaryBaseName.innerText = `${selectedBase.name} (${getSelectedMixSummaryText()})`;
-    if (summaryTechName) summaryTechName.innerText = selectedOption ? selectedOption.value : '';
-    if (summaryTotalPrice) summaryTotalPrice.innerText = `$${totalPrice.toLocaleString('es-MX')} MXN`;
+    if (summaryBaseName && selectedBase) {
+        summaryBaseName.textContent = `${selectedBase.name} (${getSelectedMixSummaryText()})`;
+    }
+    if (summaryTechName) {
+        summaryTechName.textContent = techLabel;
+    }
+    if (summaryTotalPrice) {
+        summaryTotalPrice.textContent = `$${totalPrice.toLocaleString('es-MX')} MXN`;
+    }
 }
 
 /* ==========================================
