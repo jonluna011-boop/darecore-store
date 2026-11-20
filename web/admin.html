@@ -3,243 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DARECORE // Panel de Administración</title>
+    <title>DARECORE // Dare Lab - Crea tu prenda a medida</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
-        .admin-container {
-            max-width: 1100px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-        .login-box {
-            max-width: 400px;
-            margin: 80px auto;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 30px;
-        }
-        .admin-grid {
+        .lab-grid {
             display: grid;
-            grid-template-columns: 1fr 1.5fr;
+            grid-template-columns: 2fr 1fr;
             gap: 30px;
+            margin-bottom: 60px;
         }
-        .panel-box {
+        .lab-box {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             padding: 25px;
+            margin-bottom: 20px;
         }
-        .form-group {
+        .lab-step-title {
+            font-size: 14px;
+            font-weight: 800;
             margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
+            color: var(--accent-color);
             text-transform: uppercase;
-            font-weight: 700;
         }
-        .form-control {
-            width: 100%;
-            background: #0b0b0b;
-            border: 1px solid var(--border-color);
-            color: white;
-            padding: 10px;
-            font-size: 13px;
-        }
-        .form-control:focus {
-            outline: none;
-            border-color: var(--accent-color);
-        }
-        .product-item-admin {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #0b0b0b;
-            border: 1px solid var(--border-color);
-            padding: 12px;
-            margin-bottom: 12px;
+        .options-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 15px;
         }
-        .product-item-admin img {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            background: #202020;
-        }
-        .btn-delete {
-            background: #2a1212;
-            color: #ff4d4d;
-            border: 1px solid #5c1a1a;
-            padding: 6px 12px;
-            font-size: 11px;
-            font-weight: 700;
+        .option-card {
+            border: 1px solid var(--border-color);
+            padding: 15px;
             cursor: pointer;
-            text-transform: uppercase;
+            transition: all 0.2s;
         }
-        .btn-delete:hover {
-            background: #ff3b1b;
-            color: white;
+        .option-card:hover, .option-card.selected {
+            border-color: var(--accent-color) !important;
         }
-        .hidden { display: none; }
-        @media(max-width: 850px) { .admin-grid { grid-template-columns: 1fr; } }
+        .form-input {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            margin-top: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            background: #fff;
+            color: #0b0b0e;
+        }
+        @media(max-width: 900px) {
+            .lab-grid { grid-template-columns: 1fr; }
+            .options-row { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
+    <div class="top-bar">
+        <span>DARE LAB CUSTOM STUDIO • DESDE 1 PIEZA HASTA EQUIPOS Y ESCUDERÍAS</span>
+    </div>
+
     <header>
         <div class="nav-container">
-            <a href="index.html" class="logo">DARE<span>CORE</span> <small style="font-size: 11px; color: var(--text-secondary);">ADMIN</small></a>
+            <a href="index.html" class="logo">DARE<span>CORE</span></a>
             <ul class="nav-links">
-                <li><a href="index.html">VER TIENDA PÚBLICA ↗</a></li>
-                <li><a href="#" id="logoutBtn" class="hidden" style="color: var(--accent-color);">CERRAR SESIÓN</a></li>
+                <li><a href="index.html">INICIO</a></li>
+                <li><a href="hombre.html">HOMBRE</a></li>
+                <li><a href="mujer.html">MUJER</a></li>
+                <li><a href="oversize.html">OVERSIZE</a></li>
+                <li><a href="personalizar.html" class="active">PERSONALIZAR</a></li>
             </ul>
+            <div class="nav-actions">
+                <input type="text" class="search-box" placeholder="Buscar en lab...">
+                <button class="cart-btn">🛒 <span class="cart-badge">0</span></button>
+            </div>
         </div>
     </header>
 
-    <!-- PANTALLA DE LOGIN (SOLO DUEÑO) -->
-    <div id="loginSection" class="login-box">
-        <h2 style="font-size: 20px; margin-bottom: 5px;">ACCESO RESTRINGIDO</h2>
-        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">Ingresa las credenciales de administrador de Dare Core.</p>
-        
-        <form id="loginForm">
-            <div class="form-group">
-                <label>Usuario / Correo</label>
-                <input type="text" id="adminUser" class="form-control" placeholder="admin" required>
-            </div>
-            <div class="form-group">
-                <label>Contraseña</label>
-                <input type="password" id="adminPass" class="form-control" placeholder="••••••••" required>
-            </div>
-            <p id="loginError" style="color: #ff3b1b; font-size: 12px; margin-bottom: 12px; display: none;">Credenciales incorrectas.</p>
-            <button type="submit" class="btn-primary" style="width: 100%;">ENTRAR AL PANEL</button>
-        </form>
-        <p style="font-size: 11px; color: #666; margin-top: 15px; text-align: center;">
-            Usuario: <strong>admin</strong> • Contraseña: <strong>darecore2026</strong>
-        </p>
-    </div>
+    <section class="hero">
+        <div class="hero-content">
+            <span style="color: var(--accent-color); font-size: 11px; font-weight: 700;">DARE LAB // CUSTOM STUDIO</span>
+            <h1>DARE LAB // CREA TU PRENDA A MEDIDA</h1>
+        </div>
+        <div class="hero-banner-side">
+            <span style="font-size: 11px; color: var(--text-secondary);">PRODUCCIÓN EN LEÓN, GTO</span>
+            <h3 style="font-size: 16px; margin-top: 5px;">SERIGRAFÍA HD • BORDADO 3D • DTF</h3>
+        </div>
+    </section>
 
-    <!-- PANEL DE CONTROL (OCULTO HASTA INICIAR SESIÓN) -->
-    <main id="dashboardSection" class="admin-container hidden">
-        <h1 style="font-size: 26px; margin-bottom: 5px;">PANEL DE ADMINISTRACIÓN</h1>
-        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 30px;">Los productos que agregues o elimines aquí se actualizarán automáticamente en la tienda pública.</p>
+    <main class="container">
+        <div class="lab-grid">
+            <!-- Columna de pasos -->
+            <div>
+                <div class="lab-box">
+                    <div class="lab-step-title">01. Selecciona Base & Gramaje</div>
+                    <div class="options-row" id="customBasesContainer"></div>
+                </div>
 
-        <div class="admin-grid">
-           <!-- FORMULARIO PARA AGREGAR / EDITAR PRENDA -->
-            <div class="panel-box">
-                <h3 id="formTitle" style="font-size: 15px; color: var(--accent-color); margin-bottom: 20px;">+ NUEVA PRENDA</h3>
-                <form id="addProductForm">
-                    <!-- Campo oculto para guardar el ID cuando se esté editando -->
-                    <input type="hidden" id="editingProductId" value="">
+                <div class="lab-box">
+                    <div class="lab-step-title">02. Técnica, Posición & Detalles de tu Diseño</div>
 
-                    <div class="form-group">
-                        <label>Sección donde aparecerá</label>
-                        <select id="prodCategory" class="form-control" required>
-                            <option value="inicio">Inicio (Drop Activo)</option>
-                            <option value="hombre">Hombre // Track & Core</option>
-                            <option value="mujer">Mujer // Active & Street</option>
-                            <option value="oversize">Oversize Drop // 240G & 400G</option>
-                        </select>
-                    </div>
+                    <label style="font-size: 12px; color: var(--text-secondary);">Técnica de estampado</label>
+                    <select class="form-input" id="customTechniqueSelect">
+                        <option value="Serigrafía HD" data-extra="120">Serigrafía HD (Alta Densidad) (+ $120 MXN)</option>
+                        <option value="Bordado 3D Relieve" data-extra="180">Bordado 3D Relieve (+ $180 MXN)</option>
+                        <option value="DTF Textil Ultrafino" data-extra="100">DTF Textil Ultrafino (+ $100 MXN)</option>
+                    </select>
 
-                    <div class="form-group">
-                        <label>Foto de la prenda (Desde PC o Celular)</label>
-                        <input type="file" id="prodImageFile" class="form-control" accept="image/*">
-                        <small style="font-size: 11px; color: var(--text-secondary); display: block; margin-top: 4px;">* Déjalo vacío si deseas conservar la foto actual al editar.</small>
-                    </div>
+                    <label style="font-size: 12px; color: var(--text-secondary);">Dónde va el estampado</label>
+                    <select class="form-input" id="customPlacementSelect">
+                        <option value="Pecho Izquierdo" data-extra="0">Pecho Izquierdo (+ $0 MXN)</option>
+                        <option value="Espalda Completa" data-extra="80">Espalda Completa (+ $80 MXN)</option>
+                        <option value="Pecho + Espalda" data-extra="140">Pecho + Espalda (+ $140 MXN)</option>
+                        <option value="Manga / Detalle" data-extra="60">Manga / Detalle (+ $60 MXN)</option>
+                    </select>
 
-                    <div class="form-group">
-                        <label>Etiqueta Superior (Ej: BEST SELLER, 400G, NUEVO)</label>
-                        <input type="text" id="prodTag" class="form-control" placeholder="NUEVO DROP" required>
-                    </div>
+                    <label style="font-size: 12px; color: var(--text-secondary);">Sube tu archivo o logotipo (PNG, AI, PDF)</label>
+                    <input type="file" class="form-input" id="customDesignFile">
 
-                    <div class="form-group">
-                        <label>Nombre del Producto</label>
-                        <input type="text" id="prodName" class="form-control" placeholder="Ej: MONTE CARLO RACING #04" required>
-                    </div>
+                    <label style="font-size: 12px; color: var(--text-secondary);">Instrucciones adicionales</label>
+                    <textarea class="form-input" id="customNotes" rows="3" placeholder="Ej: Logo en pecho izquierdo de 10cm y diseño grande en espalda..."></textarea>
 
-                    <div class="form-group">
-                        <label>Descripción corta</label>
-                        <textarea id="prodDesc" class="form-control" rows="2" placeholder="Ej: Corte boxy fit, algodón peinado 240g..." required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Precio (MXN)</label>
-                        <input type="number" id="prodPrice" class="form-control" placeholder="599" required>
-                    </div>
-
-                    <div style="display: flex; gap: 10px;">
-                        <button type="submit" id="submitBtn" class="btn-primary" style="width: 100%;">PUBLICAR EN TIENDA</button>
-                        <button type="button" id="cancelEditBtn" class="btn-delete hidden" style="width: 130px; text-align: center; display: flex; align-items: center; justify-content: center;">CANCELAR</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- LISTA DE PRODUCTOS PUBLICADOS -->
-            <div class="panel-box">
-                <h3 style="font-size: 15px; margin-bottom: 20px;">PRENDAS PUBLICADAS EN TIENDA (<span id="totalCount">0</span>)</h3>
-                <div id="adminProductList">
-                    <!-- Aquí se cargan dinámicamente los productos -->
+                    <label style="font-size: 12px; color: var(--text-secondary);">Número de WhatsApp</label>
+                    <input type="tel" class="form-input" id="customWhatsapp" placeholder="Ej: 477 123 4567" required>
                 </div>
             </div>
-        </div>
 
-        <!-- SECCIÓN DE GESTIÓN DE BASES Y PRECIOS (DARE LAB - PERSONALIZAR) -->
-        <div class="panel-box" style="margin-top: 35px;">
-            <h3 style="font-size: 15px; color: var(--accent-color); margin-bottom: 8px; text-transform: uppercase;">EDITAR BASES & GRAMAJES (DARE LAB PERSONALIZADO)</h3>
-            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">Modifica aquí los nombres, descripciones y precios base que verán los clientes en la sección de Personalizar.</p>
-            <div id="adminCustomBasesList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px;">
-                <!-- Se cargan dinámicamente las bases para editar -->
-            </div>
-        </div>
-
-        <!-- SECCIÓN: COMPRAS DESDE EL CARRITO -->
-        <div class="panel-box" style="margin-top: 35px;">
-            <h3 style="font-size: 15px; color: var(--accent-color); margin-bottom: 8px; text-transform: uppercase;">COMPRAS DEL CARRITO (<span id="ordersCount">0</span>)</h3>
-            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">Pedidos enviados a WhatsApp desde el carrito con su número de compra y desglose exacto de prendas.</p>
-            <div id="adminOrdersList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
-                <!-- Se cargan dinámicamente las compras del carrito -->
-            </div>
-        </div>
-
-        <!-- SECCIÓN: SOLICITUDES DARE LAB (FOTOS Y DISEÑOS) -->
-        <div class="panel-box" style="margin-top: 35px;">
-            <h3 style="font-size: 15px; color: var(--accent-color); margin-bottom: 8px; text-transform: uppercase;">SOLICITUDES DARE LAB // FOTOS Y DISEÑOS (<span id="dareLabCount">0</span>)</h3>
-            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">Haz clic en cualquier imagen subida por un cliente para descargarla en tu equipo.</p>
-            <div id="adminDareLabList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px;">
-                <!-- Se cargan dinámicamente las solicitudes de Dare Lab -->
-            </div>
-        </div>
-
-        <!-- SECCIÓN: CLIENTES REGISTRADOS CON GOOGLE -->
-        <div class="panel-box" style="margin-top: 35px;">
-            <h3 style="font-size: 15px; color: var(--accent-color); margin-bottom: 8px; text-transform: uppercase;">CLIENTES REGISTRADOS (<span id="usersCount">0</span>)</h3>
-            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">Usuarios que han iniciado sesión con Google en la tienda.</p>
-            <div id="adminUsersList" style="display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow-y: auto;">
-                <!-- Se cargan dinámicamente los clientes registrados -->
+            <!-- Columna de resumen -->
+            <div>
+                <div class="lab-box" style="position: sticky; top: 90px;">
+                    <div class="lab-step-title">Resumen de Cotización</div>
+                    <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px;">Configuración estimada para 1 pieza personalizada:</p>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
+                        <span>Prenda Base:</span>
+                        <strong id="summaryBaseName">Boxy Tee 240G</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
+                        <span>Estampado:</span>
+                        <strong id="summaryTechName">Serigrafía HD • Pecho Izquierdo</strong>
+                    </div>
+                    <hr style="border-color: var(--border-color); margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <span>Total Estimado:</span>
+                        <span id="summaryTotalPrice" style="font-size: 24px; font-weight: 900; color: var(--accent-color);">$700 MXN</span>
+                    </div>
+                    <button type="button" class="btn-primary" id="requestMockupBtn" style="width: 100%; text-align: center;">SOLICITAR MOCKUP DIGITAL</button>
+                </div>
             </div>
         </div>
     </main>
 
-    <!-- Conexión a Firebase Firestore -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-col">
+                <h4>DARECORE</h4>
+                <p>Tu estilo. Tus reglas. Prendas creadas con actitud, motorsport vibes y calidad premium desde León, Gto.</p>
+            </div>
+        </div>
+    </footer>
+
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyAVNhtTFpbnbhL9RpQ5rGoK_ZgYTKg74xY",
-        authDomain: "dare-core-store.firebaseapp.com",
-        projectId: "dare-core-store",
-        storageBucket: "dare-core-store.firebasestorage.app",
-        messagingSenderId: "104855215716",
-        appId: "1:104855215716:web:e6ef3fba67a906bf904971"
-      };
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      window.db = firebase.firestore();
+        const firebaseConfig = {
+            apiKey: "AIzaSyAVNhtTFpbnbhL9RpQ5rGoK_ZgYTKg74xY",
+            authDomain: "dare-core-store.firebaseapp.com",
+            projectId: "dare-core-store",
+            storageBucket: "dare-core-store.firebasestorage.app",
+            messagingSenderId: "104855215716",
+            appId: "1:104855215716:web:e6ef3fba67a906bf904971",
+            measurementId: "G-Q641EBS6LM"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        window.db = firebase.firestore();
+        window.auth = firebase.auth();
     </script>
     <script src="script.js"></script>
 </body>
