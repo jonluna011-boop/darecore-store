@@ -8,9 +8,6 @@ let selectedSizeLabel = 'M';
 let selectedChestSize = 'M';
 let selectedWaistSize = 'M';
 let selectedLengthSize = 'M';
-let selectedMeasurementZone = 'chest'; // 'chest' | 'waist' | 'length'
-let adminSelectedGender = 'hombre';
-let adminSelectedGarmentType = 'camisa';
 
 let cart = JSON.parse(localStorage.getItem('darecore_cart')) || [];
 let activeCartTab = 'cart';
@@ -29,7 +26,6 @@ const ORDER_STATUSES = [
 
 const STORE_URL = 'https://darecore-store-web.vercel.app';
 const AVATAR_URL = 'https://i.ibb.co/cSm45r2D/darecorelogo.png';
-
 const EMAIL_WEBHOOK_URL = '';
 
 const EMAILJS_CONFIG = {
@@ -78,85 +74,14 @@ const CINEMA_CARD_THEMES = [
     }
 ];
 
-const DEFAULT_SIZE_CHARTS = {
-    hombre: {
-        camisa: {
-            label: 'Camisa / Playera (Algodón)',
-            fabricNote: 'Corte recto / boxy en algodón peinado (sin elongación elástica alta).',
-            rows: [
-                { size: 'CH / S', chestCm: '102', waistCm: '96', lengthCm: '70' },
-                { size: 'M', chestCm: '108', waistCm: '102', lengthCm: '72' },
-                { size: 'G / L', chestCm: '114', waistCm: '108', lengthCm: '74' },
-                { size: 'EG / XL', chestCm: '120', waistCm: '114', lengthCm: '76' }
-            ]
-        },
-        sudadera: {
-            label: 'Sudadera / Hoodie (Felpa)',
-            fabricNote: 'Felpa pesada con holgura extra para capas internas.',
-            rows: [
-                { size: 'CH / S', chestCm: '110', waistCm: '104', lengthCm: '71' },
-                { size: 'M', chestCm: '116', waistCm: '110', lengthCm: '73' },
-                { size: 'G / L', chestCm: '122', waistCm: '116', lengthCm: '75' },
-                { size: 'EG / XL', chestCm: '128', waistCm: '122', lengthCm: '77' }
-            ]
-        },
-        top: {
-            label: 'Top / Compresión / Licra',
-            fabricNote: 'Tejido elástico tipo licra: medidas en cm con ajuste ceñido/compresivo.',
-            rows: [
-                { size: 'CH / S', chestCm: '88', waistCm: '74', lengthCm: '64' },
-                { size: 'M', chestCm: '94', waistCm: '80', lengthCm: '66' },
-                { size: 'G / L', chestCm: '100', waistCm: '86', lengthCm: '68' },
-                { size: 'EG / XL', chestCm: '106', waistCm: '92', lengthCm: '70' }
-            ]
-        }
-    },
-    mujer: {
-        camisa: {
-            label: 'Camisa / Playera (Algodón)',
-            fabricNote: 'Silueta adaptada a contorno de busto, cintura y cadera en algodón.',
-            rows: [
-                { size: 'CH / S', chestCm: '88', waistCm: '70', lengthCm: '62' },
-                { size: 'M', chestCm: '94', waistCm: '76', lengthCm: '64' },
-                { size: 'G / L', chestCm: '100', waistCm: '82', lengthCm: '66' },
-                { size: 'EG / XL', chestCm: '106', waistCm: '88', lengthCm: '68' }
-            ]
-        },
-        sudadera: {
-            label: 'Sudadera / Hoodie (Felpa)',
-            fabricNote: 'Corte relajado en felpa con caída cómoda.',
-            rows: [
-                { size: 'CH / S', chestCm: '98', waistCm: '84', lengthCm: '63' },
-                { size: 'M', chestCm: '104', waistCm: '90', lengthCm: '65' },
-                { size: 'G / L', chestCm: '110', waistCm: '96', lengthCm: '67' },
-                { size: 'EG / XL', chestCm: '116', waistCm: '102', lengthCm: '69' }
-            ]
-        },
-        top: {
-            label: 'Top / Licra / Seamless',
-            fabricNote: 'Licra / spandex de alta elasticidad: se toma medida corporal directa en cm.',
-            rows: [
-                { size: 'CH / S', chestCm: '82', waistCm: '62', lengthCm: '38' },
-                { size: 'M', chestCm: '88', waistCm: '68', lengthCm: '40' },
-                { size: 'G / L', chestCm: '94', waistCm: '74', lengthCm: '42' },
-                { size: 'EG / XL', chestCm: '100', waistCm: '80', lengthCm: '44' }
-            ]
-        }
-    }
-};
-
 function bootDarecoreApp() {
     if (window.__darecoreBooted) {
         setupDareLab();
+        initAdminPanel();
         return;
     }
     window.__darecoreBooted = true;
 
-    injectResponsiveMobileStyles();
-    updateTopAnnouncementBanner();
-    styleBrandLogoInHeader();
-    layoutPublicHeaderZones();
-    cleanExtraHeroBlocks();
     initHeroShowcase();
     initStore();
     setupSearch();
@@ -172,86 +97,6 @@ if (document.readyState === 'loading') {
     bootDarecoreApp();
 }
 
-window.addEventListener('resize', () => {
-    layoutPublicHeaderZones();
-    applyMobileGridLayout();
-});
-
-function injectResponsiveMobileStyles() {
-    if (document.getElementById('darecoreMobileResponsiveStyle')) return;
-    const style = document.createElement('style');
-    style.id = 'darecoreMobileResponsiveStyle';
-    style.textContent = `
-        #dareLabSizeGuideBox,
-        #dareLabSizeGuideBox * {
-            box-sizing: border-box;
-            max-width: 100%;
-        }
-
-        .darelab-guide-split {
-            display: grid;
-            grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
-            gap: 16px;
-            align-items: start;
-        }
-
-        .darelab-zones-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        @media (max-width: 768px) {
-            #productGrid,
-            .product-grid {
-                display: grid !important;
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                gap: 10px !important;
-                padding: 8px !important;
-            }
-
-            #productGrid .product-card,
-            .product-grid .product-card {
-                padding: 10px !important;
-                border-radius: 18px !important;
-                min-width: 0 !important;
-            }
-
-            #productGrid .product-img,
-            .product-grid .product-img {
-                height: 128px !important;
-                border-radius: 12px !important;
-                margin-bottom: 8px !important;
-            }
-
-            .darelab-guide-split {
-                grid-template-columns: minmax(0, 1fr) !important;
-                gap: 14px !important;
-            }
-
-            .darelab-zones-grid {
-                grid-template-columns: minmax(0, 1fr) !important;
-                gap: 8px !important;
-            }
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-function applyMobileGridLayout() {
-    const grid = document.getElementById('productGrid') || document.querySelector('.product-grid');
-    if (!grid) return;
-
-    if (window.innerWidth <= 768) {
-        grid.style.setProperty('display', 'grid', 'important');
-        grid.style.setProperty('grid-template-columns', 'repeat(2, minmax(0, 1fr))', 'important');
-        grid.style.setProperty('gap', '10px', 'important');
-    } else {
-        grid.style.removeProperty('grid-template-columns');
-        grid.style.removeProperty('gap');
-    }
-}
-
 function isHomePageSection() {
     const path = window.location.pathname.toLowerCase();
     const isSubpage =
@@ -262,13 +107,7 @@ function isHomePageSection() {
         path.includes('admin');
 
     if (isSubpage) return false;
-
-    return (
-        path === '/' ||
-        path === '' ||
-        path.endsWith('/index.html') ||
-        path === 'index.html'
-    );
+    return path === '/' || path === '' || path.endsWith('/index.html') || path === 'index.html';
 }
 
 function generateFolio(prefix) {
@@ -276,240 +115,9 @@ function generateFolio(prefix) {
     return `${prefix}-${randomPart}`;
 }
 
-function styleBrandLogoInHeader() {
-    const isAdminPage = window.location.pathname.toLowerCase().includes('admin');
-    const logoLinks = document.querySelectorAll('header a.logo, .navbar a.logo, .site-header a.logo, .logo');
-
-    logoLinks.forEach(logo => {
-        if (isAdminPage && logo.closest('.admin-header, [class*="admin"]')) return;
-
-        const cleanText = (logo.textContent || '').replace(/\s+/g, '').trim();
-        if (/^DARECORE$/i.test(cleanText)) {
-            const darePart = cleanText.slice(0, 4).toUpperCase();
-            const corePart = cleanText.slice(4).toUpperCase();
-            logo.innerHTML = `<span class="brand-dare" style="color:#0b0b0e !important;font-weight:900;">${darePart}</span><span class="brand-core-orange" style="color:#ff5500 !important;font-weight:900;">${corePart}</span>`;
-            logo.dataset.darecoreStyled = 'true';
-        }
-    });
-}
-
-function layoutPublicHeaderZones() {
-    if (window.location.pathname.toLowerCase().includes('admin')) return;
-
-    const header = document.querySelector('header');
-    const navContainer = document.querySelector('header .nav-container') || header;
-    if (!navContainer) return;
-
-    styleBrandLogoInHeader();
-
-    if (window.innerWidth > 1024) {
-        navContainer.style.setProperty('display', 'grid', 'important');
-        navContainer.style.setProperty('grid-template-columns', 'auto minmax(0, 1fr) auto', 'important');
-        navContainer.style.setProperty('align-items', 'center', 'important');
-        navContainer.style.setProperty('width', '100%', 'important');
-        navContainer.style.setProperty('max-width', '1440px', 'important');
-        navContainer.style.setProperty('margin', '0 auto', 'important');
-        navContainer.style.setProperty('padding', '0 24px', 'important');
-        navContainer.style.setProperty('gap', '32px', 'important');
-    } else {
-        navContainer.style.setProperty('display', 'flex', 'important');
-        navContainer.style.setProperty('flex-wrap', 'wrap', 'important');
-        navContainer.style.setProperty('justify-content', 'space-between', 'important');
-        navContainer.style.setProperty('gap', '12px', 'important');
-        navContainer.style.setProperty('padding', '0 16px', 'important');
-    }
-}
-
-function cleanExtraHeroBlocks() {
-    const descTarget = 'NUESTRAS PIEZAS DE HOMBRE SON CONSTRUIDAS CON HILO OPEN-END PEINADO.';
-    const extraTexts = [
-        'SPOTLIGHT / DRAG RACE CLUB',
-        'MONTE CARLO RACING #04',
-        'DROP ACTIVO: APEX & GYM',
-        'DISEÑOS DE ALTO RENDIMIENTO CON ESTÉTICA UNDERGROUND.',
-        'DISENOS DE ALTO RENDIMIENTO CON ESTETICA UNDERGROUND.',
-        'ALGODÓN 240G+ CON RIB GRUESO DE 3.2 CM',
-        'ALGODON 240G+ CON RIB GRUESO DE 3.2 CM',
-        'GRAMAJE POR PIEZA',
-        'ANCHO DEL RIB DE CUELLO',
-        'DEFORMACIÓN GARANTIZADA',
-        'DEFORMACION GARANTIZADA',
-        'ANATOMÍA DEL CORTE BOXY',
-        'ANATOMIA DEL CORTE BOXY',
-        'DROP SHOULDER 25 CM+',
-        'SQUAT-PROOF & SEAMLESS',
-        'ALTA COMPRESIÓN Y SOPORTE',
-        'ALTA COMPRESION Y SOPORTE',
-        'ESPECIFICACIÓN TÉCNICA',
-        'ESPECIFICACION TECNICA',
-        'ALGODÓN PEINADO 240G - 400G',
-        'ALGODON PEINADO 240G - 400G'
-    ];
-
-    document.querySelectorAll('p, span, div, h1, h2, h3, h4, section, article').forEach(el => {
-        if (el.id === 'darecoreHeroWrapper' || el.closest('#darecoreHeroWrapper')) return;
-        const txt = (el.textContent || '').trim().toUpperCase();
-        if (!txt) return;
-
-        const isCottonDesc = el.children.length === 0 && (txt.includes('CONSTRUIDAS CON HILO OPEN-END PEINADO') || txt === descTarget);
-        const isExtraBlockText = extraTexts.some(item => txt === item || (el.children.length === 0 && txt.includes(item)));
-
-        if (isCottonDesc || isExtraBlockText) {
-            if (el.children.length === 0) {
-                el.textContent = '';
-            }
-            el.style.display = 'none';
-            const smallContainer = el.closest('section, article, div');
-            if (
-                smallContainer &&
-                smallContainer.id !== 'darecoreHeroWrapper' &&
-                smallContainer.id !== 'productGrid' &&
-                !smallContainer.classList.contains('product-grid') &&
-                smallContainer.innerText.trim().length < 350
-            ) {
-                smallContainer.style.display = 'none';
-            }
-        }
-    });
-}
-
-function getHeroSlides() {
-    const products = getStoredProducts().filter(p => p && p.image);
-    if (products.length > 0) {
-        return products.slice(0, 5).map((p, idx) => {
-            const theme = CINEMA_CARD_THEMES[idx % CINEMA_CARD_THEMES.length];
-            return {
-                id: p.id || p.firestoreId,
-                kicker: p.tag || 'DROP UNDERGROUND • EDICIÓN LIMITADA',
-                title: p.name,
-                desc: p.desc || 'Corte boxy heavyweight diseñado para destacar en la escena urbana.',
-                watermark: (p.category || 'DARECORE').toUpperCase(),
-                image: p.image,
-                price: p.price,
-                heroBg: theme.heroBg
-            };
-        });
-    }
-
-    return [
-        {
-            id: null,
-            kicker: 'DROP 01 • HEAVYWEIGHT 280G',
-            title: 'Boxy Tee Nocturne',
-            desc: 'Algodón de alto gramaje con caída estructurada y estética cinematográfica oscura.',
-            watermark: 'DARECORE',
-            image: AVATAR_URL,
-            price: 550,
-            heroBg: CINEMA_CARD_THEMES[0].heroBg
-        }
-    ];
-}
-
-function initHeroShowcase() {
-    const existingHero = document.getElementById('darecoreHeroWrapper');
-
-    if (!isHomePageSection()) {
-        clearInterval(heroAutoTimer);
-        if (existingHero) existingHero.remove();
-        return;
-    }
-
-    const grid = document.getElementById('productGrid') || document.querySelector('.product-grid');
-    if (!grid) return;
-
-    let heroWrapper = existingHero;
-    if (!heroWrapper) {
-        heroWrapper = document.createElement('section');
-        heroWrapper.id = 'darecoreHeroWrapper';
-        heroWrapper.className = 'darecore-hero-wrapper';
-        const anchor = grid.closest('section') || grid;
-        anchor.parentNode.insertBefore(heroWrapper, anchor);
-    }
-
-    renderHeroSlide(0);
-    startHeroAutoPlay();
-}
-
-function renderHeroSlide(index) {
-    if (!isHomePageSection()) {
-        clearInterval(heroAutoTimer);
-        const existingHero = document.getElementById('darecoreHeroWrapper');
-        if (existingHero) existingHero.remove();
-        return;
-    }
-
-    const heroWrapper = document.getElementById('darecoreHeroWrapper');
-    if (!heroWrapper) return;
-
-    const slides = getHeroSlides();
-    heroSlideIndex = ((index % slides.length) + slides.length) % slides.length;
-    const current = slides[heroSlideIndex];
-
-    const dotsHtml = slides.map((_, idx) =>
-        `<button type="button" class="darecore-hero-dot ${idx === heroSlideIndex ? 'active' : ''}" onclick="goToHeroSlide(${idx})" aria-label="Slide ${idx + 1}"></button>`
-    ).join('');
-
-    const ctaAction = current.id
-        ? `openProductModal('${current.id}')`
-        : `document.getElementById('productGrid')?.scrollIntoView({ behavior: 'smooth' })`;
-
-    heroWrapper.innerHTML = `
-        <div class="darecore-hero-stage" style="background: ${current.heroBg};">
-            <div class="darecore-hero-watermark">${current.watermark}</div>
-            <div class="darecore-hero-content">
-                <span class="darecore-hero-kicker">${current.kicker}</span>
-                <h1 class="darecore-hero-title">${current.title}</h1>
-                <p class="darecore-hero-desc">${current.desc}</p>
-                <div class="darecore-hero-actions">
-                    <button type="button" class="darecore-hero-cta" onclick="${ctaAction}">
-                        Ver prenda • $${Number(current.price || 550).toLocaleString('es-MX')} MXN
-                    </button>
-                </div>
-            </div>
-            <div class="darecore-hero-visual">
-                <img src="${current.image}" alt="${current.title}">
-            </div>
-            <div class="darecore-hero-dots">${dotsHtml}</div>
-        </div>
-    `;
-}
-
-function goToHeroSlide(index) {
-    renderHeroSlide(index);
-    startHeroAutoPlay();
-}
-
-function startHeroAutoPlay() {
-    clearInterval(heroAutoTimer);
-    if (!isHomePageSection()) return;
-    heroAutoTimer = setInterval(() => {
-        renderHeroSlide(heroSlideIndex + 1);
-    }, 4500);
-}
-
-function updateTopAnnouncementBanner() {
-    const targetText = 'NUEVA COLECCIÓN DISPONIBLE • PERSONALIZA TU PRENDA IDEAL';
-    const allElements = document.querySelectorAll('header *, nav *, section *, div *, p, span, a');
-
-    allElements.forEach(el => {
-        if (el.children.length === 0 && el.textContent) {
-            const raw = el.textContent.trim();
-            const upper = raw.toUpperCase();
-            const isPromoStrip =
-                upper.includes('EDICIÓN LIMITADA') ||
-                upper.includes('EDICION LIMITADA') ||
-                upper.includes('HECHO EN MÉXICO') ||
-                upper.includes('HECHO EN MEXICO') ||
-                upper.includes('NUEVA COLECCIÓN DISPONIBLE') ||
-                upper.includes('NUEVA COLECCION DISPONIBLE');
-
-            if (isPromoStrip) {
-                el.textContent = targetText;
-            }
-        }
-    });
-}
-
+/* ==========================================
+   TOAST Y MODAL DE CONFIRMACIÓN
+   ========================================== */
 function showFloatingToast(message) {
     let toast = document.getElementById('darecoreFloatingToast');
     if (!toast) {
@@ -614,6 +222,113 @@ function getStatusBadgeStyle(status) {
     }
 }
 
+/* ==========================================
+   HERO SHOWCASE (SOLO INDEX)
+   ========================================== */
+function getHeroSlides() {
+    const products = getStoredProducts().filter(p => p && p.image);
+    if (products.length > 0) {
+        return products.slice(0, 5).map((p, idx) => {
+            const theme = CINEMA_CARD_THEMES[idx % CINEMA_CARD_THEMES.length];
+            return {
+                id: p.id || p.firestoreId,
+                kicker: p.tag || 'DROP UNDERGROUND • EDICIÓN LIMITADA',
+                title: p.name,
+                desc: p.desc || 'Corte boxy heavyweight diseñado para destacar en la escena urbana.',
+                watermark: (p.category || 'DARECORE').toUpperCase(),
+                image: p.image,
+                price: p.price,
+                heroBg: theme.heroBg
+            };
+        });
+    }
+
+    return [
+        {
+            id: null,
+            kicker: 'DROP 01 • HEAVYWEIGHT 280G',
+            title: 'Boxy Tee Nocturne',
+            desc: 'Algodón de alto gramaje con caída estructurada y estética cinematográfica oscura.',
+            watermark: 'DARECORE',
+            image: AVATAR_URL,
+            price: 550,
+            heroBg: CINEMA_CARD_THEMES[0].heroBg
+        }
+    ];
+}
+
+function initHeroShowcase() {
+    if (!isHomePageSection()) return;
+    const grid = document.getElementById('productGrid') || document.querySelector('.product-grid');
+    if (!grid) return;
+
+    let heroWrapper = document.getElementById('darecoreHeroWrapper');
+    if (!heroWrapper) {
+        heroWrapper = document.createElement('section');
+        heroWrapper.id = 'darecoreHeroWrapper';
+        heroWrapper.className = 'darecore-hero-wrapper';
+        const anchor = grid.closest('section') || grid;
+        anchor.parentNode.insertBefore(heroWrapper, anchor);
+    }
+
+    renderHeroSlide(0);
+    startHeroAutoPlay();
+}
+
+function renderHeroSlide(index) {
+    if (!isHomePageSection()) return;
+    const heroWrapper = document.getElementById('darecoreHeroWrapper');
+    if (!heroWrapper) return;
+
+    const slides = getHeroSlides();
+    heroSlideIndex = ((index % slides.length) + slides.length) % slides.length;
+    const current = slides[heroSlideIndex];
+
+    const dotsHtml = slides.map((_, idx) =>
+        `<button type="button" class="darecore-hero-dot ${idx === heroSlideIndex ? 'active' : ''}" onclick="goToHeroSlide(${idx})" aria-label="Slide ${idx + 1}"></button>`
+    ).join('');
+
+    const ctaAction = current.id
+        ? `openProductModal('${current.id}')`
+        : `document.getElementById('productGrid')?.scrollIntoView({ behavior: 'smooth' })`;
+
+    heroWrapper.innerHTML = `
+        <div class="darecore-hero-stage" style="background: ${current.heroBg};">
+            <div class="darecore-hero-watermark">${current.watermark}</div>
+            <div class="darecore-hero-content">
+                <span class="darecore-hero-kicker">${current.kicker}</span>
+                <h1 class="darecore-hero-title">${current.title}</h1>
+                <p class="darecore-hero-desc">${current.desc}</p>
+                <div class="darecore-hero-actions">
+                    <button type="button" class="darecore-hero-cta" onclick="${ctaAction}">
+                        Ver prenda • $${Number(current.price || 550).toLocaleString('es-MX')} MXN
+                    </button>
+                </div>
+            </div>
+            <div class="darecore-hero-visual">
+                <img src="${current.image}" alt="${current.title}">
+            </div>
+            <div class="darecore-hero-dots">${dotsHtml}</div>
+        </div>
+    `;
+}
+
+function goToHeroSlide(index) {
+    renderHeroSlide(index);
+    startHeroAutoPlay();
+}
+
+function startHeroAutoPlay() {
+    clearInterval(heroAutoTimer);
+    if (!isHomePageSection()) return;
+    heroAutoTimer = setInterval(() => {
+        renderHeroSlide(heroSlideIndex + 1);
+    }, 4500);
+}
+
+/* ==========================================
+   TIENDA Y PRODUCTOS
+   ========================================== */
 function getStoredProducts() {
     if (window.db && !isSyncing) {
         isSyncing = true;
@@ -662,33 +377,13 @@ function initStore() {
     renderProducts(filtered);
 }
 
-function setupTouchPopCards() {
-    const cards = document.querySelectorAll('.product-card');
-    if (!cards.length) return;
-
-    const activateCard = (targetCard) => {
-        cards.forEach(c => {
-            if (c !== targetCard) c.classList.remove('touch-pop-active');
-        });
-        if (targetCard) targetCard.classList.add('touch-pop-active');
-    };
-
-    cards.forEach(card => {
-        card.addEventListener('touchstart', () => {
-            activateCard(card);
-        }, { passive: true });
-    });
-}
-
 function renderProducts(products) {
     const grid = document.getElementById('productGrid') || document.querySelector('.product-grid');
     if (!grid) return;
 
-    applyMobileGridLayout();
-
     grid.innerHTML = '';
     if (!products || products.length === 0) {
-        grid.innerHTML = '<p style="color: #71717a; grid-column: 1/-1; text-align: center; padding: 48px; background: #ffffff; border-radius: 24px; border: 1.5px solid rgba(0,0,0,0.08);">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
+        grid.innerHTML = '<p style="color: #71717a; grid-column: 1/-1; text-align: center; padding: 48px;">No hay prendas registradas todavía. Agrega tus productos desde el Panel de Administración.</p>';
         return;
     }
 
@@ -721,16 +416,14 @@ function renderProducts(products) {
 
         grid.appendChild(card);
     });
-
-    setupTouchPopCards();
 }
 
 function setupSearch() {
     const searchInput = document.getElementById('searchInput') || document.querySelector('.search-box');
     if (!searchInput) return;
 
-    const applyFilter = (rawValue) => {
-        currentSearchTerm = (rawValue || '').toLowerCase().trim();
+    searchInput.addEventListener('input', (e) => {
+        currentSearchTerm = (e.target.value || '').toLowerCase().trim();
         const products = getStoredProducts();
 
         if (!currentSearchTerm) {
@@ -745,9 +438,7 @@ function setupSearch() {
             (p.tag && p.tag.toLowerCase().includes(currentSearchTerm))
         );
         renderProducts(filtered);
-    };
-
-    searchInput.addEventListener('input', (e) => applyFilter(e.target.value));
+    });
 }
 
 function openProductModal(productId) {
@@ -785,7 +476,7 @@ function closeProductModal() {
 }
 
 /* ==========================================
-   DARE LAB - COTIZACIÓN, ESTAMPADO, POSICIÓN Y MOCKUP
+   DARE LAB - PERSONALIZAR PRENDA
    ========================================== */
 function getCustomBases() {
     const local = localStorage.getItem('darecore_custom_bases');
@@ -801,27 +492,6 @@ function getCustomBases() {
         { id: 'b3', name: 'VARSITY JACKET BORDADA', price: 1750, desc: 'Chamarra de equipo', garmentType: 'sudadera' },
         { id: 'b4', name: 'TOP DEPORTIVO SEAMLESS', price: 460, desc: 'Top / licra compresión gym', garmentType: 'top' }
     ];
-}
-
-function getSizeChartsData() {
-    const local = localStorage.getItem('darecore_size_charts');
-    if (local) {
-        try {
-            const parsed = JSON.parse(local);
-            if (parsed && parsed.hombre && parsed.mujer) return parsed;
-        } catch (e) { /* fallback */ }
-    }
-    return JSON.parse(JSON.stringify(DEFAULT_SIZE_CHARTS));
-}
-
-function detectGarmentTypeFromBase(baseObj) {
-    const charts = getSizeChartsData();
-    const genderCharts = charts[selectedGender] || charts.hombre;
-    const keys = Object.keys(genderCharts);
-    if (baseObj && baseObj.garmentType && genderCharts[baseObj.garmentType]) {
-        return baseObj.garmentType;
-    }
-    return keys[0] || 'camisa';
 }
 
 function getSelectedMixSummaryText() {
@@ -881,7 +551,7 @@ function updateCustomSummary() {
     const summaryTotalPrice = document.getElementById('summaryTotalPrice');
 
     if (summaryBaseName && selectedBase) {
-        summaryBaseName.textContent = `${selectedBase.name} (${getSelectedMixSummaryText()})`;
+        summaryBaseName.textContent = selectedBase.name;
     }
     if (summaryTechName) {
         summaryTechName.textContent = techLabel;
@@ -939,6 +609,7 @@ function resetDareLabForm() {
     const notesInput = document.getElementById('customNotes');
     if (notesInput) notesInput.value = '';
 
+    renderCustomBasesPublic();
     updateCustomSummary();
 }
 
@@ -956,7 +627,6 @@ async function handleMockupRequestSubmit(e) {
 
     const bases = getCustomBases();
     const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
-    const garmentType = detectGarmentTypeFromBase(selectedBase);
     const { label: techName, extra: extraCost } = getTechniqueSelectionData();
     const total = (Number(selectedBase ? selectedBase.price : 0) || 0) + extraCost;
 
@@ -965,15 +635,14 @@ async function handleMockupRequestSubmit(e) {
     const fileName = fileObj ? fileObj.name : 'Lo enviaré por chat';
     const rawNotes = document.getElementById('customNotes')?.value.trim() || '';
     const mixText = getSelectedMixSummaryText();
-    const sizeInfoText = `Género: ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} | Tipo: ${garmentType} | Medidas: ${mixText}`;
-    const notes = rawNotes ? `${sizeInfoText} — ${rawNotes}` : sizeInfoText;
+    const notes = rawNotes ? `Talla: ${mixText} — ${rawNotes}` : `Talla: ${mixText}`;
 
     const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
     const orderNumber = generateFolio('PEDIDO');
     const initialStatus = 'Pago pendiente';
     const createdAt = new Date().toISOString();
 
-    const mensaje = `Hola Dare core, me gustaría solicitar mi mockup digital y procesar el pago de mi pedido #${orderNumber} (${selectedBase.name}, ${techName}, ${mixText}, WhatsApp: ${whatsapp})`;
+    const mensaje = `Hola Dare core, me gustaría solicitar mi mockup digital y procesar el pago de mi pedido #${orderNumber} (${selectedBase.name}, ${techName}, WhatsApp: ${whatsapp})`;
     const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
 
     let compressedImageBase64 = '';
@@ -992,12 +661,7 @@ async function handleMockupRequestSubmit(e) {
                 userName: currentUser ? currentUser.displayName : 'Invitado',
                 whatsapp: whatsapp,
                 baseName: selectedBase.name,
-                gender: selectedGender,
-                garmentType: garmentType,
                 size: mixText,
-                chestSize: selectedChestSize,
-                waistSize: selectedWaistSize,
-                lengthSize: selectedLengthSize,
                 technique: techName,
                 fileName: fileName,
                 imageData: compressedImageBase64,
@@ -1011,19 +675,17 @@ async function handleMockupRequestSubmit(e) {
         }
     }
 
-    if (typeof saveClientPendingOrder === 'function') {
-        saveClientPendingOrder({
-            id: docId || orderNumber,
-            collection: 'darelab_orders',
-            folio: orderNumber,
-            typeLabel: 'Dare Lab',
-            summary: `${selectedBase.name} • ${mixText} (${techName})`,
-            total: total,
-            status: initialStatus,
-            delivered: false,
-            createdAt: createdAt
-        });
-    }
+    saveClientPendingOrder({
+        id: docId || orderNumber,
+        collection: 'darelab_orders',
+        folio: orderNumber,
+        typeLabel: 'Dare Lab',
+        summary: `${selectedBase.name} (${techName})`,
+        total: total,
+        status: initialStatus,
+        delivered: false,
+        createdAt: createdAt
+    });
 
     resetDareLabForm();
     showFloatingToast(`Solicitud #${orderNumber} registrada. Abriendo WhatsApp...`);
@@ -1042,43 +704,22 @@ function renderCustomBasesPublic() {
     if (selectedCustomBaseIndex >= bases.length) {
         selectedCustomBaseIndex = 0;
     }
-    const activeBase = bases[selectedCustomBaseIndex] || bases[0];
 
-    container.style.cssText = 'display: block; width: 100%; grid-column: 1 / -1;';
-    container.innerHTML = `
-        <div style="background: #ffffff; border: 1.5px solid #ff2a00; border-radius: 22px; padding: 16px 18px; color: #0b0b0e;">
-            <label for="customBaseSelect" style="display: block; font-size: 12px; font-weight: 800; color: #0b0b0e; margin-bottom: 8px;">
-                Prenda base y gramaje
-            </label>
-            <select id="customBaseSelect" style="width: 100%; background: #ffffff; color: #0b0b0e; border: 1.5px solid #ff2a00; border-radius: 999px; padding: 11px 16px; font-size: 13px; font-weight: 700; cursor: pointer; outline: none;">
-                ${bases.map((base, index) => `
-                    <option value="${index}" ${index === selectedCustomBaseIndex ? 'selected' : ''}>
-                        ${base.name}${base.desc ? ` — ${base.desc}` : ''} ($${Number(base.price).toLocaleString('es-MX')} MXN)
-                    </option>
-                `).join('')}
-            </select>
-            <div id="customBaseHelperInfo" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: #52525b;">
-                <span>${activeBase ? (activeBase.desc || '') : ''}</span>
-                <strong style="color: #ff2a00; font-size: 14px;">$${Number(activeBase ? activeBase.price : 0).toLocaleString('es-MX')} MXN</strong>
-            </div>
+    container.innerHTML = bases.map((base, index) => `
+        <div class="option-card ${index === selectedCustomBaseIndex ? 'selected' : ''}" data-base-index="${index}">
+            <div style="font-weight: 800; font-size: 13px; margin-bottom: 4px;">${base.name}</div>
+            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">${base.desc || ''}</div>
+            <div style="font-weight: 800; font-size: 14px; color: var(--accent-color);">$${Number(base.price).toLocaleString('es-MX')} MXN</div>
         </div>
-    `;
+    `).join('');
 
-    const baseSelect = document.getElementById('customBaseSelect');
-    if (baseSelect) {
-        baseSelect.addEventListener('change', (e) => {
-            selectedCustomBaseIndex = Number(e.target.value) || 0;
-            const currentBase = bases[selectedCustomBaseIndex] || bases[0];
-            const helperEl = document.getElementById('customBaseHelperInfo');
-            if (helperEl && currentBase) {
-                helperEl.innerHTML = `
-                    <span>${currentBase.desc || ''}</span>
-                    <strong style="color: #ff2a00; font-size: 14px;">$${Number(currentBase.price).toLocaleString('es-MX')} MXN</strong>
-                `;
-            }
+    container.querySelectorAll('.option-card').forEach(card => {
+        card.addEventListener('click', () => {
+            selectedCustomBaseIndex = Number(card.getAttribute('data-base-index')) || 0;
+            renderCustomBasesPublic();
             updateCustomSummary();
         });
-    }
+    });
 }
 
 function setupDareLab() {
@@ -1110,7 +751,7 @@ function setupDareLab() {
 }
 
 /* ==========================================
-   CARRITO Y ADMIN
+   CARRITO DE COMPRAS
    ========================================== */
 function getClientPendingOrdersLocal() {
     try {
@@ -1146,6 +787,26 @@ function addToCart(productId) {
     showFloatingToast(`"${product.name}" agregado al carrito`);
 }
 
+function changeCartQty(index, delta) {
+    if (!cart[index]) return;
+    const nextQty = Number(cart[index].qty || 1) + delta;
+    if (nextQty <= 0) {
+        cart.splice(index, 1);
+    } else {
+        cart[index].qty = nextQty;
+    }
+    localStorage.setItem('darecore_cart', JSON.stringify(cart));
+    updateCartUI();
+    openCartModal('cart');
+}
+
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    localStorage.setItem('darecore_cart', JSON.stringify(cart));
+    updateCartUI();
+    openCartModal('cart');
+}
+
 function updateCartUI() {
     const badges = document.querySelectorAll('.cart-badge');
     const totalCount = cart.reduce((sum, item) => sum + Number(item.qty || 1), 0);
@@ -1154,48 +815,203 @@ function updateCartUI() {
 
 function initCartSystem() {
     updateCartUI();
-}
-
-function checkAbandonedCartReminder() {
-    // Reservado para recordatorios programados
-}
-
-function initAdminPanel() {
-    const loginForm = document.getElementById('loginForm');
-    if (!loginForm) return;
-
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const user = document.getElementById('adminUser')?.value.trim();
-        const pass = document.getElementById('adminPass')?.value.trim();
-        if ((user === 'admin' || user === 'admin@darecore.mx') && pass === 'darecore2026') {
-            localStorage.setItem('darecore_admin_logged', 'true');
-            window.location.reload();
-        } else {
-            const errorMsg = document.getElementById('loginError');
-            if (errorMsg) errorMsg.style.display = 'block';
+    document.querySelectorAll('.cart-btn').forEach(btn => {
+        if (!btn.dataset.cartBound) {
+            btn.dataset.cartBound = 'true';
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                openCartModal(activeCartTab);
+            });
         }
     });
 }
 
-/* ==========================================
-   FIX DISEÑO HEADER Y ACCESO ADMIN
-   ========================================== */
-function layoutPublicHeaderZones() {
-    styleBrandLogoInHeader();
-    const header = document.querySelector('header');
-    const navContainer = document.querySelector('header .nav-container') || header;
-    if (!navContainer) return;
-
-    // Respetar el diseño base de styles.css sin forzar grid invertido
-    navContainer.style.removeProperty('display');
-    navContainer.style.removeProperty('grid-template-columns');
-    navContainer.style.removeProperty('gap');
+function switchCartTab(tabName) {
+    activeCartTab = tabName;
+    openCartModal(tabName);
 }
 
+async function openCartModal(tab = activeCartTab) {
+    activeCartTab = tab;
+
+    let modalOverlay = document.getElementById('cartModalOverlay');
+    if (!modalOverlay) {
+        modalOverlay = document.createElement('div');
+        modalOverlay.id = 'cartModalOverlay';
+        modalOverlay.style.cssText = "display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:9999; justify-content:flex-end; align-items:stretch;";
+        document.body.appendChild(modalOverlay);
+    }
+
+    const pendingOrders = getClientPendingOrdersLocal();
+    const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty || 1)), 0);
+
+    const cartTabStyle = activeCartTab === 'cart'
+        ? 'background:#ff2a00; color:#fff; border:1px solid #ff2a00;'
+        : 'background:#1a1a20; color:#bbb; border:1px solid rgba(255,255,255,0.1);';
+
+    const pendingTabStyle = activeCartTab === 'pending'
+        ? 'background:#ff2a00; color:#fff; border:1px solid #ff2a00;'
+        : 'background:#1a1a20; color:#bbb; border:1px solid rgba(255,255,255,0.1);';
+
+    let bodyContentHtml = '';
+    if (activeCartTab === 'cart') {
+        if (cart.length === 0) {
+            bodyContentHtml = '<p style="color:#9ca3af; text-align:center; padding:40px 15px;">Tu carrito está vacío. Agrega prendas o revisa la pestaña <strong>Pedido pendiente</strong>.</p>';
+        } else {
+            bodyContentHtml = cart.map((item, idx) => {
+                const qty = Number(item.qty || 1);
+                const lineTotal = Number(item.price) * qty;
+                return `
+                    <div style="display:flex; gap:12px; align-items:center; background:#18181e; padding:12px; border-radius:20px; margin-bottom:10px; border:1px solid rgba(255,255,255,0.08);">
+                        <img src="${item.image || ''}" style="width:56px; height:56px; object-fit:cover; border-radius:14px; background:#24242c;">
+                        <div style="flex-grow:1; min-width:0;">
+                            <div style="font-weight:700; font-size:13px; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.name}</div>
+                            <div style="font-size:11px; color:#9ca3af;">$${Number(item.price).toLocaleString('es-MX')} MXN c/u • <strong style="color:#fff;">$${lineTotal.toLocaleString('es-MX')} MXN</strong></div>
+                            <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+                                <button onclick="changeCartQty(${idx}, -1)" style="background:#26262e; color:#fff; border:1px solid rgba(255,255,255,0.14); width:26px; height:26px; cursor:pointer; font-weight:800; border-radius:50%;">-</button>
+                                <span style="color:#fff; font-size:12px; font-weight:800; min-width:18px; text-align:center;">${qty}</span>
+                                <button onclick="changeCartQty(${idx}, 1)" style="background:#26262e; color:#fff; border:1px solid rgba(255,255,255,0.14); width:26px; height:26px; cursor:pointer; font-weight:800; border-radius:50%;">+</button>
+                            </div>
+                        </div>
+                        <button onclick="removeFromCart(${idx})" style="background:none; border:none; color:#ff2a00; cursor:pointer; font-size:20px; padding:0 6px;">&times;</button>
+                    </div>
+                `;
+            }).join('');
+        }
+    } else {
+        if (pendingOrders.length === 0) {
+            bodyContentHtml = '<p style="color:#9ca3af; text-align:center; padding:40px 15px;">Aún no tienes pedidos registrados aquí.</p>';
+        } else {
+            bodyContentHtml = pendingOrders.map((ord) => {
+                const badgeStyle = getStatusBadgeStyle(ord.status || 'Pago pendiente');
+                return `
+                    <div style="background:#18181e; border:1px solid rgba(255,255,255,0.1); padding:14px; border-radius:20px; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:6px;">
+                            <span style="color:#fff; font-weight:800; font-size:12px;">#${ord.folio}</span>
+                            <span style="font-size:10px; font-weight:800; padding:3px 10px; border-radius:999px; ${badgeStyle}">${ord.status || 'Pago pendiente'}</span>
+                        </div>
+                        <div style="color:#bbb; font-size:11px; margin-bottom:6px;">${ord.summary || 'Pedido DARECORE'}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#888;">
+                            <span>${ord.typeLabel || 'Tienda'}</span>
+                            <strong style="color:#ff2a00; font-size:12px;">$${Number(ord.total || 0).toLocaleString('es-MX')} MXN</strong>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    const footerHtml = activeCartTab === 'cart'
+        ? `
+            <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:15px; margin-bottom:15px; display:flex; justify-content:space-between; color:#fff; font-weight:800; font-size:16px;">
+                <span>Subtotal a Pagar:</span>
+                <span style="color:#ff2a00;">$${subtotal.toLocaleString('es-MX')} MXN</span>
+            </div>
+            <button onclick="checkoutCart()" style="background:linear-gradient(135deg, #ff2a00 0%, #ff5500 100%); color:#fff; border:none; border-radius:999px; width:100%; padding:13px; font-weight:800; cursor:pointer; text-transform:uppercase; margin-bottom:10px;">Proceder al Pago</button>
+        `
+        : `
+            <button onclick="switchCartTab('cart')" style="background:linear-gradient(135deg, #ff2a00 0%, #ff5500 100%); color:#fff; border:none; border-radius:999px; width:100%; padding:12px; font-weight:800; cursor:pointer; font-size:12px; text-transform:uppercase;">Seguir Comprando</button>
+        `;
+
+    modalOverlay.innerHTML = `
+        <div style="background:#111115; width:420px; max-width:100%; padding:26px; border-top-left-radius:28px; border-bottom-left-radius:28px; display:flex; flex-direction:column; justify-content:space-between; box-shadow: -8px 0 30px rgba(0,0,0,0.65);">
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:12px;">
+                    <h3 style="color:#fff; font-size:16px; margin:0; font-weight:900;">CARRITO DE COMPRAS</h3>
+                    <button onclick="closeCartModal()" style="background:rgba(255,255,255,0.08); border:none; color:#fff; width:32px; height:32px; border-radius:50%; font-size:20px; cursor:pointer;">&times;</button>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:16px;">
+                    <button onclick="switchCartTab('cart')" style="padding:9px; font-size:11px; font-weight:800; cursor:pointer; border-radius:999px; text-transform:uppercase; ${cartTabStyle}">Carrito (${cart.reduce((s, i) => s + Number(i.qty || 1), 0)})</button>
+                    <button onclick="switchCartTab('pending')" style="padding:9px; font-size:11px; font-weight:800; cursor:pointer; border-radius:999px; text-transform:uppercase; ${pendingTabStyle}">Pedido pendiente (${pendingOrders.length})</button>
+                </div>
+                <div style="max-height:52vh; overflow-y:auto;">
+                    ${bodyContentHtml}
+                </div>
+            </div>
+            <div>${footerHtml}</div>
+        </div>
+    `;
+    modalOverlay.style.display = 'flex';
+}
+
+function closeCartModal() {
+    const modalOverlay = document.getElementById('cartModalOverlay');
+    if (modalOverlay) modalOverlay.style.display = 'none';
+}
+
+async function checkoutCart() {
+    if (cart.length === 0) {
+        showFloatingToast('Tu carrito está vacío');
+        return;
+    }
+
+    const purchaseNumber = generateFolio('COMPRA');
+    const subtotal = cart.reduce((sum, item) => sum + (Number(item.price) * Number(item.qty || 1)), 0);
+    const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+    const initialStatus = 'Pago pendiente';
+    const createdAt = new Date().toISOString();
+
+    const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${purchaseNumber}`;
+    const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
+
+    const cleanItems = cart.map(item => ({
+        id: item.id || item.firestoreId || '',
+        name: item.name,
+        price: Number(item.price),
+        qty: Number(item.qty || 1)
+    }));
+
+    let docId = null;
+    if (window.db) {
+        try {
+            const docRef = await window.db.collection('orders').add({
+                purchaseNumber: purchaseNumber,
+                orderType: 'compra_carrito',
+                status: initialStatus,
+                userEmail: currentUser ? currentUser.email : 'Invitado (sin sesión)',
+                userName: currentUser ? currentUser.displayName : 'Invitado',
+                items: cleanItems,
+                total: subtotal,
+                createdAt: createdAt
+            });
+            docId = docRef.id;
+        } catch (err) {
+            console.error("Error guardando compra:", err);
+        }
+    }
+
+    const summaryText = cleanItems.map(i => `${i.qty}x ${i.name}`).join(', ');
+    saveClientPendingOrder({
+        id: docId || purchaseNumber,
+        collection: 'orders',
+        folio: purchaseNumber,
+        typeLabel: 'Carrito',
+        summary: summaryText,
+        total: subtotal,
+        status: initialStatus,
+        delivered: false,
+        createdAt: createdAt
+    });
+
+    cart = [];
+    localStorage.setItem('darecore_cart', JSON.stringify(cart));
+    updateCartUI();
+    openCartModal('pending');
+
+    const opened = window.open(waUrl, '_blank', 'noopener,noreferrer');
+    if (!opened) {
+        window.location.href = waUrl;
+    }
+}
+
+function checkAbandonedCartReminder() {}
+
+/* ==========================================
+   PANEL DE ADMINISTRACIÓN (admin.html)
+   ========================================== */
 function showAdminDashboardView() {
-    const loginSection = document.getElementById('loginSection') || document.querySelector('.login-section, #adminLoginBox');
-    const dashboardSection = document.getElementById('dashboardSection') || document.querySelector('.dashboard-section, #adminDashboard');
+    const loginSection = document.getElementById('loginSection');
+    const dashboardSection = document.getElementById('dashboardSection');
     const logoutBtn = document.getElementById('logoutBtn');
 
     if (loginSection) {
@@ -1208,57 +1024,46 @@ function showAdminDashboardView() {
     }
     if (logoutBtn) {
         logoutBtn.classList.remove('hidden');
-        logoutBtn.style.display = 'inline-flex';
+        logoutBtn.style.display = 'inline-block';
     }
 
-    if (typeof loadAdminProducts === 'function') loadAdminProducts();
-    if (typeof loadAdminCustomBases === 'function') loadAdminCustomBases();
-    if (typeof loadAdminUsers === 'function') loadAdminUsers();
-    if (typeof loadAdminDareLabOrders === 'function') loadAdminDareLabOrders();
-    if (typeof loadAdminOrders === 'function') loadAdminOrders();
-    if (typeof loadAdminDeliveredOrders === 'function') loadAdminDeliveredOrders();
+    loadAdminProducts();
+    loadAdminCustomBases();
+    loadAdminOrders();
+    loadAdminDareLabOrders();
+    loadAdminUsers();
 }
 
 function initAdminPanel() {
-    const loginForm = document.getElementById('loginForm') || document.querySelector('form[id*="login" i]');
+    const loginForm = document.getElementById('loginForm');
+    if (!loginForm) return;
+
     const logoutBtn = document.getElementById('logoutBtn');
 
     if (localStorage.getItem('darecore_admin_logged') === 'true') {
         showAdminDashboardView();
     }
 
-    if (loginForm && !loginForm.dataset.darecoreAdminBound) {
-        loginForm.dataset.darecoreAdminBound = 'true';
+    if (!loginForm.dataset.adminLoginBound) {
+        loginForm.dataset.adminLoginBound = 'true';
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const userInput = document.getElementById('adminUser') || loginForm.querySelector('input[type="text"], input[type="email"]');
-            const passInput = document.getElementById('adminPass') || loginForm.querySelector('input[type="password"]');
+            const user = (document.getElementById('adminUser')?.value || '').trim();
+            const pass = (document.getElementById('adminPass')?.value || '').trim();
             const errorMsg = document.getElementById('loginError');
-
-            const user = (userInput ? userInput.value : '').trim();
-            const pass = (passInput ? passInput.value : '').trim();
-
-            // Acepta las credenciales configuradas o cualquier usuario/contraseña no vacío si ya estabas usando otra clave
-            const validCredentials =
-                ((user === 'admin' || user === 'admin@darecore.mx') && pass === 'darecore2026') ||
-                (user.length > 0 && pass.length > 0 && !errorMsg);
 
             if ((user === 'admin' || user === 'admin@darecore.mx') && pass === 'darecore2026') {
                 localStorage.setItem('darecore_admin_logged', 'true');
                 if (errorMsg) errorMsg.style.display = 'none';
                 showAdminDashboardView();
-            } else if (user.length > 0 && pass.length > 0) {
-                // Si el error persiste por usuario/contraseña distinto, muestra el mensaje o avisa
-                if (errorMsg) {
-                    errorMsg.style.display = 'block';
-                    errorMsg.textContent = 'Usuario o contraseña incorrectos (usa admin / darecore2026).';
-                }
+            } else {
+                if (errorMsg) errorMsg.style.display = 'block';
             }
         });
     }
 
-    if (logoutBtn && !logoutBtn.dataset.darecoreLogoutBound) {
-        logoutBtn.dataset.darecoreLogoutBound = 'true';
+    if (logoutBtn && !logoutBtn.dataset.logoutBound) {
+        logoutBtn.dataset.logoutBound = 'true';
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
             localStorage.removeItem('darecore_admin_logged');
@@ -1267,15 +1072,373 @@ function initAdminPanel() {
     }
 
     const addProductForm = document.getElementById('addProductForm');
-    if (addProductForm && !addProductForm.dataset.darecoreProdBound && typeof handleProductSubmit === 'function') {
-        addProductForm.dataset.darecoreProdBound = 'true';
+    if (addProductForm && !addProductForm.dataset.prodFormBound) {
+        addProductForm.dataset.prodFormBound = 'true';
         addProductForm.addEventListener('submit', handleProductSubmit);
+    }
+
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    if (cancelEditBtn && !cancelEditBtn.dataset.cancelEditBound) {
+        cancelEditBtn.dataset.cancelEditBound = 'true';
+        cancelEditBtn.addEventListener('click', () => {
+            document.getElementById('addProductForm')?.reset();
+            const editingInput = document.getElementById('editingProductId');
+            if (editingInput) editingInput.value = '';
+            const formTitle = document.getElementById('formTitle');
+            if (formTitle) formTitle.innerText = '+ NUEVA PRENDA';
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) submitBtn.innerText = 'PUBLICAR EN TIENDA';
+            cancelEditBtn.classList.add('hidden');
+        });
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    layoutPublicHeaderZones();
-    initAdminPanel();
-});
+function loadAdminProducts() {
+    const container = document.getElementById('adminProductList');
+    const countSpan = document.getElementById('totalCount');
+    if (!container) return;
 
+    const products = getStoredProducts();
+    if (countSpan) countSpan.innerText = products.length;
+
+    container.innerHTML = '';
+    if (products.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-secondary); font-size: 12px;">Aún no hay prendas publicadas.</p>';
+        return;
+    }
+
+    products.forEach((p) => {
+        const item = document.createElement('div');
+        item.className = 'product-item-admin';
+        item.innerHTML = `
+            <img src="${p.image || ''}" alt="${p.name}">
+            <div style="flex-grow: 1;">
+                <div style="font-weight: 700; font-size: 13px;">${p.name}</div>
+                <div style="font-size: 11px; color: var(--text-secondary);">${p.category || 'inicio'} | $${Number(p.price).toLocaleString('es-MX')} MXN</div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn-primary" style="padding: 6px 12px; font-size: 11px;" onclick="editProduct('${p.id || p.firestoreId}')">Editar</button>
+                <button type="button" class="btn-delete" onclick="deleteProduct('${p.id || p.firestoreId}')">Eliminar</button>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function handleProductSubmit(e) {
+    e.preventDefault();
+    const editingId = document.getElementById('editingProductId')?.value;
+    const name = document.getElementById('prodName').value;
+    const category = document.getElementById('prodCategory').value;
+    const tag = document.getElementById('prodTag').value;
+    const desc = document.getElementById('prodDesc').value;
+    const price = Number(document.getElementById('prodPrice').value);
+    const imageFile = document.getElementById('prodImageFile').files[0];
+
+    let products = getStoredProducts();
+
+    const saveProductData = (imgUrl) => {
+        if (editingId) {
+            products = products.map(p => {
+                if (p.id == editingId || p.firestoreId == editingId) {
+                    const updated = { ...p, name, category, tag, desc, price, image: imgUrl || p.image };
+                    if (window.db && p.firestoreId) {
+                        window.db.collection('products').doc(p.firestoreId).update({ name, category, tag, desc, price, image: imgUrl || p.image }).catch(err => console.log(err));
+                    }
+                    return updated;
+                }
+                return p;
+            });
+            showFloatingToast(`"${name}" actualizada`);
+        } else {
+            const newId = 'prod_' + Date.now();
+            const newProduct = { id: newId, category, tag, name, desc, price, image: imgUrl || '' };
+            products.unshift(newProduct);
+
+            if (window.db) {
+                window.db.collection('products').add(newProduct).then(docRef => {
+                    newProduct.firestoreId = docRef.id;
+                    saveProductsLocal(products);
+                    loadAdminProducts();
+                }).catch(err => console.log(err));
+            }
+            showFloatingToast(`"${name}" publicada en tienda`);
+        }
+
+        saveProductsLocal(products);
+        document.getElementById('addProductForm').reset();
+        const editingInput = document.getElementById('editingProductId');
+        if (editingInput) editingInput.value = '';
+        const formTitle = document.getElementById('formTitle');
+        if (formTitle) formTitle.innerText = '+ NUEVA PRENDA';
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) submitBtn.innerText = 'PUBLICAR EN TIENDA';
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        if (cancelEditBtn) cancelEditBtn.classList.add('hidden');
+
+        loadAdminProducts();
+    };
+
+    if (imageFile) {
+        const reader = new FileReader();
+        reader.onload = (event) => saveProductData(event.target.result);
+        reader.readAsDataURL(imageFile);
+    } else if (editingId) {
+        const existing = products.find(p => p.id == editingId || p.firestoreId == editingId);
+        saveProductData(existing ? existing.image : '');
+    } else {
+        saveProductData('');
+    }
+}
+
+function editProduct(productId) {
+    const products = getStoredProducts();
+    const product = products.find(p => p.id == productId || p.firestoreId == productId);
+    if (!product) return;
+
+    document.getElementById('editingProductId').value = product.id || product.firestoreId;
+    document.getElementById('prodCategory').value = product.category || 'inicio';
+    document.getElementById('prodTag').value = product.tag || '';
+    document.getElementById('prodName').value = product.name || '';
+    document.getElementById('prodDesc').value = product.desc || '';
+    document.getElementById('prodPrice').value = product.price || '';
+
+    const formTitle = document.getElementById('formTitle');
+    if (formTitle) formTitle.innerText = 'EDITAR PRENDA';
+    const submitBtn = document.getElementById('submitBtn');
+    if (submitBtn) submitBtn.innerText = 'GUARDAR CAMBIOS';
+    const cancelEditBtn = document.getElementById('cancelEditBtn');
+    if (cancelEditBtn) cancelEditBtn.classList.remove('hidden');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function deleteProduct(productId) {
+    const confirmed = await showConfirmModal('¿Estás seguro de eliminar esta prenda?');
+    if (!confirmed) return;
+
+    let products = getStoredProducts();
+    const target = products.find(p => p.id == productId || p.firestoreId == productId);
+    products = products.filter(p => p.id != productId && p.firestoreId != productId);
+    saveProductsLocal(products);
+
+    if (window.db && target && target.firestoreId) {
+        window.db.collection('products').doc(target.firestoreId).delete().catch(err => console.log(err));
+    }
+
+    loadAdminProducts();
+    showFloatingToast('Prenda eliminada');
+}
+
+function persistCustomBases(bases) {
+    localStorage.setItem('darecore_custom_bases', JSON.stringify(bases));
+    if (window.db) {
+        window.db.collection('settings').doc('customBases').set({ items: bases }).catch(err => console.log(err));
+    }
+}
+
+function loadAdminCustomBases() {
+    const container = document.getElementById('adminCustomBasesList');
+    if (!container) return;
+
+    const bases = getCustomBases();
+    container.innerHTML = '';
+
+    bases.forEach((base, index) => {
+        const box = document.createElement('div');
+        box.style.cssText = "background: #0b0b0b; border: 1px solid var(--border-color); padding: 15px;";
+        box.innerHTML = `
+            <div class="form-group">
+                <label>Nombre Base</label>
+                <input type="text" id="baseName_${index}" value="${base.name}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Descripción / Gramaje</label>
+                <input type="text" id="baseDesc_${index}" value="${base.desc || ''}" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Precio (MXN)</label>
+                <input type="number" id="basePrice_${index}" value="${base.price}" class="form-control">
+            </div>
+            <button type="button" class="btn-primary" style="width: 100%; font-size: 11px;" onclick="updateCustomBaseItem(${index})">Guardar Base</button>
+        `;
+        container.appendChild(box);
+    });
+}
+
+function updateCustomBaseItem(index) {
+    const bases = getCustomBases();
+    const nameInput = document.getElementById(`baseName_${index}`);
+    const descInput = document.getElementById(`baseDesc_${index}`);
+    const priceInput = document.getElementById(`basePrice_${index}`);
+
+    if (nameInput && priceInput) {
+        bases[index].name = nameInput.value;
+        if (descInput) bases[index].desc = descInput.value;
+        bases[index].price = Number(priceInput.value);
+        persistCustomBases(bases);
+        showFloatingToast('Base actualizada');
+        loadAdminCustomBases();
+    }
+}
+
+function renderStatusSelectHtml(collectionName, docId, currentStatus) {
+    const active = currentStatus || 'Pago pendiente';
+    const optionsHtml = ORDER_STATUSES.map(st =>
+        `<option value="${st}" ${st === active ? 'selected' : ''}>${st}</option>`
+    ).join('');
+
+    return `
+        <div style="margin-top: 6px;">
+            <label style="font-size: 10px; color: var(--text-secondary); display: block; margin-bottom: 4px; text-transform: uppercase;">Estatus:</label>
+            <select onchange="updateOrderStatus('${collectionName}', '${docId}', this.value)" class="form-control" style="padding: 7px; font-size: 12px;">
+                ${optionsHtml}
+            </select>
+        </div>
+    `;
+}
+
+function updateOrderStatus(collectionName, docId, newStatus) {
+    if (!window.db || !docId) return;
+    window.db.collection(collectionName).doc(docId).update({
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+    }).then(() => {
+        showFloatingToast(`Estatus actualizado: ${newStatus}`);
+    }).catch(err => console.error("Error actualizando estatus:", err));
+}
+
+function loadAdminOrders() {
+    const container = document.getElementById('adminOrdersList');
+    const countSpan = document.getElementById('ordersCount');
+    if (!container || !window.db) return;
+
+    window.db.collection('orders').orderBy('createdAt', 'desc').get().then((snapshot) => {
+        if (countSpan) countSpan.innerText = snapshot.size;
+        container.innerHTML = '';
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color: var(--text-secondary); font-size: 12px;">Aún no hay compras registradas desde el carrito.</p>';
+            return;
+        }
+
+        snapshot.forEach((doc) => {
+            const order = doc.data();
+            const status = order.status || 'Pago pendiente';
+            const badgeStyle = getStatusBadgeStyle(status);
+            const folio = order.purchaseNumber || doc.id;
+
+            const itemsList = Array.isArray(order.items)
+                ? order.items.map(i => `<li><strong>${i.qty}x</strong> ${i.name} ($${Number(i.price).toLocaleString('es-MX')} MXN)</li>`).join('')
+                : '<li>Sin detalle</li>';
+
+            const card = document.createElement('div');
+            card.style.cssText = "background: #0b0b0b; border: 1px solid var(--border-color); padding: 15px; display: flex; flex-direction: column; gap: 8px;";
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color: var(--accent-color); font-weight: 800; font-size: 12px;">#${folio}</span>
+                    <span style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 999px; ${badgeStyle}">${status}</span>
+                </div>
+                <div style="font-size: 12px;"><strong>Cliente:</strong> ${order.userName || 'Invitado'} (${order.userEmail || 'Sin correo'})</div>
+                <ul style="font-size: 12px; padding-left: 16px; color: var(--text-secondary); margin: 4px 0;">${itemsList}</ul>
+                <div style="font-size: 13px; font-weight: 800;">Total: $${Number(order.total || 0).toLocaleString('es-MX')} MXN</div>
+                ${renderStatusSelectHtml('orders', doc.id, status)}
+                <button type="button" class="btn-delete" style="margin-top: 6px;" onclick="deleteAdminOrder('${doc.id}')">Eliminar / Archivar</button>
+            `;
+            container.appendChild(card);
+        });
+    }).catch(err => console.error("Error cargando compras:", err));
+}
+
+async function deleteAdminOrder(docId) {
+    const confirmed = await showConfirmModal('¿Eliminar esta compra del listado activo?');
+    if (!confirmed || !window.db) return;
+    await window.db.collection('orders').doc(docId).delete();
+    showFloatingToast('Compra archivada');
+    loadAdminOrders();
+}
+
+function loadAdminDareLabOrders() {
+    const container = document.getElementById('adminDareLabList');
+    const countSpan = document.getElementById('dareLabCount');
+    if (!container || !window.db) return;
+
+    window.db.collection('darelab_orders').orderBy('createdAt', 'desc').get().then((snapshot) => {
+        if (countSpan) countSpan.innerText = snapshot.size;
+        container.innerHTML = '';
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color: var(--text-secondary); font-size: 12px;">No hay solicitudes personalizadas todavía.</p>';
+            return;
+        }
+
+        snapshot.forEach((doc) => {
+            const order = doc.data();
+            const status = order.status || 'Pago pendiente';
+            const badgeStyle = getStatusBadgeStyle(status);
+            const folio = order.orderNumber || doc.id;
+
+            const imgHtml = order.imageData
+                ? `<a href="${order.imageData}" download="${order.fileName || 'diseno-darelab.jpg'}" title="Clic para descargar">
+                     <img src="${order.imageData}" style="width: 100%; height: 160px; object-fit: contain; background: #141414;">
+                   </a>`
+                : `<div style="height: 70px; background: #141414; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 11px;">Sin imagen adjunta</div>`;
+
+            const card = document.createElement('div');
+            card.style.cssText = "background: #0b0b0b; border: 1px solid var(--border-color); padding: 15px; display: flex; flex-direction: column; gap: 8px;";
+            card.innerHTML = `
+                ${imgHtml}
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="color: var(--accent-color); font-weight: 800; font-size: 12px;">#${folio}</span>
+                    <span style="font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 999px; ${badgeStyle}">${status}</span>
+                </div>
+                <div style="font-size: 13px; font-weight: 700;">${order.baseName}</div>
+                <div style="font-size: 12px;"><strong>WhatsApp:</strong> ${order.whatsapp || 'No proporcionado'}</div>
+                <div style="font-size: 11px; color: var(--text-secondary);"><strong>Estampado:</strong> ${order.technique}</div>
+                <div style="font-size: 11px; color: var(--text-secondary);"><strong>Notas:</strong> ${order.notes || ''}</div>
+                <div style="font-size: 13px; font-weight: 800;">Total: $${Number(order.total || 0).toLocaleString('es-MX')} MXN</div>
+                ${renderStatusSelectHtml('darelab_orders', doc.id, status)}
+                <button type="button" class="btn-delete" style="margin-top: 6px;" onclick="deleteDareLabOrder('${doc.id}')">Eliminar / Archivar</button>
+            `;
+            container.appendChild(card);
+        });
+    }).catch(err => console.error("Error cargando Dare Lab:", err));
+}
+
+async function deleteDareLabOrder(docId) {
+    const confirmed = await showConfirmModal('¿Eliminar esta solicitud de Dare Lab?');
+    if (!confirmed || !window.db) return;
+    await window.db.collection('darelab_orders').doc(docId).delete();
+    showFloatingToast('Solicitud archivada');
+    loadAdminDareLabOrders();
+}
+
+function loadAdminUsers() {
+    const container = document.getElementById('adminUsersList');
+    const countSpan = document.getElementById('usersCount');
+    if (!container || !window.db) return;
+
+    window.db.collection('users').orderBy('lastLogin', 'desc').get().then((snapshot) => {
+        if (countSpan) countSpan.innerText = snapshot.size;
+        container.innerHTML = '';
+
+        if (snapshot.empty) {
+            container.innerHTML = '<p style="color: var(--text-secondary); font-size: 12px;">Aún no hay usuarios registrados.</p>';
+            return;
+        }
+
+        snapshot.forEach((doc) => {
+            const u = doc.data();
+            const row = document.createElement('div');
+            row.style.cssText = "display: flex; align-items: center; gap: 12px; background: #0b0b0b; border: 1px solid var(--border-color); padding: 10px 14px;";
+            row.innerHTML = `
+                <img src="${u.photoURL || 'https://via.placeholder.com/40'}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                <div style="flex-grow: 1;">
+                    <div style="font-weight: 700; font-size: 13px;">${u.name || 'Usuario'}</div>
+                    <div style="color: var(--text-secondary); font-size: 11px;">${u.email}</div>
+                </div>
+            `;
+            container.appendChild(row);
+        });
+    }).catch(err => console.error("Error cargando usuarios:", err));
 }
