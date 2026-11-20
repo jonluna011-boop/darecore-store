@@ -960,6 +960,65 @@ function renderSculptedAnatomySvg(gender, zone) {
     `;
 }
 
+function updateActiveAnatomyAndSummary() {
+    const viewport = document.getElementById('dareLabThreeViewport');
+    if (viewport) {
+        viewport.innerHTML = renderSculptedAnatomySvg(selectedGender, selectedMeasurementZone);
+    }
+
+    const caption = document.getElementById('dareLabZoneCaption');
+    if (caption) {
+        caption.textContent = getZoneLabelText(selectedMeasurementZone, selectedGender);
+    }
+
+    const bases = getCustomBases();
+    const activeBase = bases[selectedCustomBaseIndex] || bases[0];
+    const charts = getSizeChartsData();
+    const genderMap = charts[selectedGender] || charts.hombre;
+    const garmentKeys = Object.keys(genderMap);
+    const activeGarmentKey = detectGarmentTypeFromBase(activeBase);
+    const activeChart = genderMap[activeGarmentKey] || genderMap[garmentKeys[0]];
+    const rows = Array.isArray(activeChart?.rows) ? activeChart.rows : [];
+    const activeRow = rows.find(r => r.size === selectedSizeLabel) || rows[0] || {
+        size: 'M',
+        chestCm: '100',
+        waistCm: '82',
+        lengthCm: '68'
+    };
+
+    const chestCard = document.getElementById('cardZoneChest');
+    const waistCard = document.getElementById('cardZoneWaist');
+    const lengthCard = document.getElementById('cardZoneLength');
+    if (chestCard) chestCard.style.borderColor = selectedMeasurementZone === 'chest' ? '#ff2a00' : '#e4e4e7';
+    if (waistCard) waistCard.style.borderColor = selectedMeasurementZone === 'waist' ? '#ff2a00' : '#e4e4e7';
+    if (lengthCard) lengthCard.style.borderColor = selectedMeasurementZone === 'length' ? '#ff2a00' : '#e4e4e7';
+
+    const measuresBar = document.getElementById('dareLabActiveMeasuresBar');
+    if (measuresBar) {
+        measuresBar.innerHTML = `
+            <span><strong>Pecho/Busto:</strong> ${activeRow.chestCm} cm</span>
+            <span><strong>Cintura:</strong> ${activeRow.waistCm} cm</span>
+            <span><strong>Largo:</strong> ${activeRow.lengthCm} cm</span>
+        `;
+    }
+
+    const selectedLabelEl = document.getElementById('dareLabSelectedSizeSummary');
+    if (selectedLabelEl) {
+        selectedLabelEl.innerHTML = `
+            Talla seleccionada: <strong style="color:#ff2a00;">${selectedSizeLabel}</strong> (${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} • ${activeChart?.label || activeGarmentKey})
+        `;
+    }
+
+    ['dropdownChestMeasure', 'dropdownWaistMeasure', 'dropdownLengthMeasure'].forEach(id => {
+        const sel = document.getElementById(id);
+        if (sel && sel.value !== selectedSizeLabel) {
+            sel.value = selectedSizeLabel;
+        }
+    });
+
+    updateCustomSummary();
+}
+
 function renderSizeGuideBlock() {
     const container = document.getElementById('customBasesContainer');
     if (!container) return;
@@ -1031,29 +1090,29 @@ function renderSizeGuideBlock() {
 
             <div style="display:flex; flex-direction:column; gap:12px;">
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:10px;">
-                    <div style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'chest' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;" onclick="setMeasurementZone('chest')">
+                    <div id="cardZoneChest" style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'chest' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;">
                         <label for="dropdownChestMeasure" style="display:block; font-size:11px; font-weight:800; color:#ff2a00; margin-bottom:6px; cursor:pointer;">Pecho / Busto (cm)</label>
-                        <select id="dropdownChestMeasure" onchange="setMeasurementZone('chest'); selectDareLabSize(this.value);" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
+                        <select id="dropdownChestMeasure" onmousedown="setMeasurementZone('chest')" onfocus="setMeasurementZone('chest')" onchange="selectDareLabSize(this.value)" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
                             ${rows.map(r => `<option value="${r.size}" ${r.size === selectedSizeLabel ? 'selected' : ''}>Talla ${r.size} — ${r.chestCm} cm</option>`).join('')}
                         </select>
                     </div>
 
-                    <div style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'waist' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;" onclick="setMeasurementZone('waist')">
+                    <div id="cardZoneWaist" style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'waist' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;">
                         <label for="dropdownWaistMeasure" style="display:block; font-size:11px; font-weight:800; color:#ff2a00; margin-bottom:6px; cursor:pointer;">Cintura (cm)</label>
-                        <select id="dropdownWaistMeasure" onchange="setMeasurementZone('waist'); selectDareLabSize(this.value);" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
+                        <select id="dropdownWaistMeasure" onmousedown="setMeasurementZone('waist')" onfocus="setMeasurementZone('waist')" onchange="selectDareLabSize(this.value)" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
                             ${rows.map(r => `<option value="${r.size}" ${r.size === selectedSizeLabel ? 'selected' : ''}>Talla ${r.size} — ${r.waistCm} cm</option>`).join('')}
                         </select>
                     </div>
 
-                    <div style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'length' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;" onclick="setMeasurementZone('length')">
+                    <div id="cardZoneLength" style="background:#fafafa; border:1.5px solid ${selectedMeasurementZone === 'length' ? '#ff2a00' : '#e4e4e7'}; border-radius:16px; padding:10px;">
                         <label for="dropdownLengthMeasure" style="display:block; font-size:11px; font-weight:800; color:#ff2a00; margin-bottom:6px; cursor:pointer;">Largo (cm)</label>
-                        <select id="dropdownLengthMeasure" onchange="setMeasurementZone('length'); selectDareLabSize(this.value);" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
+                        <select id="dropdownLengthMeasure" onmousedown="setMeasurementZone('length')" onfocus="setMeasurementZone('length')" onchange="selectDareLabSize(this.value)" style="width:100%; padding:8px 10px; border-radius:10px; border:1px solid #d4d4d8; font-size:12px; font-weight:700; background:#fff; color:#0b0b0e; cursor:pointer;">
                             ${rows.map(r => `<option value="${r.size}" ${r.size === selectedSizeLabel ? 'selected' : ''}>Talla ${r.size} — ${r.lengthCm} cm</option>`).join('')}
                         </select>
                     </div>
                 </div>
 
-                <div style="background:#f9fafb; border:1px solid #e4e4e7; border-radius:16px; padding:12px; font-size:12px; color:#27272a; display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px;">
+                <div id="dareLabActiveMeasuresBar" style="background:#f9fafb; border:1px solid #e4e4e7; border-radius:16px; padding:12px; font-size:12px; color:#27272a; display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px;">
                     <span><strong>Pecho/Busto:</strong> ${activeRow.chestCm} cm</span>
                     <span><strong>Cintura:</strong> ${activeRow.waistCm} cm</span>
                     <span><strong>Largo:</strong> ${activeRow.lengthCm} cm</span>
@@ -1061,7 +1120,7 @@ function renderSizeGuideBlock() {
             </div>
         </div>
 
-        <div style="margin-top:12px; font-size:12px; color:#0b0b0e;">
+        <div id="dareLabSelectedSizeSummary" style="margin-top:12px; font-size:12px; color:#0b0b0e;">
             Talla seleccionada: <strong style="color:#ff2a00;">${selectedSizeLabel}</strong> (${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} • ${activeChart?.label || activeGarmentKey})
         </div>
     `;
@@ -1070,8 +1129,9 @@ function renderSizeGuideBlock() {
 }
 
 function setMeasurementZone(zone) {
+    if (selectedMeasurementZone === zone) return;
     selectedMeasurementZone = zone;
-    renderSizeGuideBlock();
+    updateActiveAnatomyAndSummary();
 }
 
 function setDareLabGender(gender) {
@@ -1090,7 +1150,7 @@ function setDareLabGarmentType(garmentKey) {
 
 function selectDareLabSize(sizeLabel) {
     selectedSizeLabel = sizeLabel;
-    renderSizeGuideBlock();
+    updateActiveAnatomyAndSummary();
 }
 
 function moveQuoteBelowWhatsapp() {
