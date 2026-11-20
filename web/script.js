@@ -741,10 +741,10 @@ function getCustomBases() {
         } catch (e) { /* fallback */ }
     }
     return [
-        { id: 'b1', name: 'Hoodie Heavyweight Oversized (380g)', price: 1150, desc: 'Algodón premium con fleece afelpado interno.' },
-        { id: 'b2', name: 'Playera Boxy Fit Heavy (240G/280G)', price: 550, desc: 'Corte urbano relajado, cuello robusto.' },
-        { id: 'b3', name: 'Sweater Crewneck Minimal (350g)', price: 980, desc: 'Silueta clásica estructurada.' },
-        { id: 'b4', name: 'Sudadera 400G Heavyweight', price: 1250, desc: 'Doble capa sin cordón, máxima densidad.' }
+        { id: 'b1', name: 'BOXY TEE 240G', price: 580, desc: 'Algodón peinado pesado' },
+        { id: 'b2', name: 'HEAVY HOODIE 400G', price: 1099, desc: 'Felpa francesa alto gramaje' },
+        { id: 'b3', name: 'VARSITY JACKET BORDADA', price: 1750, desc: 'Chamarra de equipo' },
+        { id: 'b4', name: 'TOP DEPORTIVO SEAMLESS', price: 460, desc: 'Compresión gym' }
     ];
 }
 
@@ -896,33 +896,47 @@ function renderCustomBasesPublic() {
     if (!container) return;
 
     const bases = getCustomBases();
-    container.innerHTML = '';
+    if (selectedCustomBaseIndex >= bases.length) {
+        selectedCustomBaseIndex = 0;
+    }
 
-    bases.forEach((base, index) => {
-        const isSelected = index === selectedCustomBaseIndex;
-        const card = document.createElement('div');
-        card.className = `option-card ${isSelected ? 'selected' : ''}`;
-        card.style.cssText = `border: 1.5px solid ${isSelected ? '#ff2a00' : 'rgba(0,0,0,0.12)'}; padding: 18px; cursor: pointer; transition: all 0.22s ease; border-radius: 22px; background: #ffffff;`;
+    const activeBase = bases[selectedCustomBaseIndex] || bases[0];
 
-        card.innerHTML = `
-            <div style="font-weight: 800; font-size: 14px; color: #0b0b0e; margin-bottom: 5px;">${base.name}</div>
-            <div style="font-size: 12px; color: #52525b; margin-bottom: 10px;">${base.desc}</div>
-            <div style="font-weight: 900; font-size: 15px; color: #ff2a00;">$${Number(base.price).toLocaleString('es-MX')} MXN</div>
-        `;
+    container.style.cssText = 'display: block; width: 100%;';
+    container.innerHTML = `
+        <div style="background: #ffffff; border: 1.5px solid rgba(0,0,0,0.14); border-radius: 20px; padding: 18px;">
+            <label for="customBaseSelect" style="display: block; font-size: 11px; font-weight: 800; color: #52525b; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">
+                Elige prenda base y gramaje
+            </label>
+            <select id="customBaseSelect" style="width: 100%; background: #ffffff; color: #0b0b0e; border: 1.5px solid #0b0b0e; border-radius: 14px; padding: 12px 14px; font-size: 13px; font-weight: 800; cursor: pointer; outline: none;">
+                ${bases.map((base, index) => `
+                    <option value="${index}" ${index === selectedCustomBaseIndex ? 'selected' : ''}>
+                        ${base.name}${base.desc ? ` — ${base.desc}` : ''} ($${Number(base.price).toLocaleString('es-MX')} MXN)
+                    </option>
+                `).join('')}
+            </select>
+            <div id="customBaseHelperInfo" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #52525b;">
+                <span>${activeBase ? (activeBase.desc || '') : ''}</span>
+                <strong style="color: #ff2a00; font-size: 14px;">$${Number(activeBase ? activeBase.price : 0).toLocaleString('es-MX')} MXN</strong>
+            </div>
+        </div>
+    `;
 
-        card.addEventListener('click', () => {
-            selectedCustomBaseIndex = index;
-            document.querySelectorAll('#customBasesContainer .option-card').forEach(c => {
-                c.classList.remove('selected');
-                c.style.borderColor = 'rgba(0,0,0,0.12)';
-            });
-            card.classList.add('selected');
-            card.style.borderColor = '#ff2a00';
+    const selectEl = document.getElementById('customBaseSelect');
+    if (selectEl) {
+        selectEl.addEventListener('change', (e) => {
+            selectedCustomBaseIndex = Number(e.target.value) || 0;
+            const currentBase = bases[selectedCustomBaseIndex] || bases[0];
+            const helperEl = document.getElementById('customBaseHelperInfo');
+            if (helperEl && currentBase) {
+                helperEl.innerHTML = `
+                    <span>${currentBase.desc || ''}</span>
+                    <strong style="color: #ff2a00; font-size: 14px;">$${Number(currentBase.price).toLocaleString('es-MX')} MXN</strong>
+                `;
+            }
             updateCustomSummary();
         });
-
-        container.appendChild(card);
-    });
+    }
 
     updateCustomSummary();
 }
