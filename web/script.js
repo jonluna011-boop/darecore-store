@@ -16,21 +16,6 @@ let currentSearchTerm = '';
 let heroSlideIndex = 0;
 let heroAutoTimer = null;
 
-let threeSceneState = {
-    renderer: null,
-    scene: null,
-    camera: null,
-    animId: null,
-    glowMesh: null,
-    bodyGroup: null,
-    loadedModel: null
-};
-
-const THREE_AVATAR_CONFIG = {
-    hombreGlbUrl: 'models/avatar_hombre.glb',
-    mujerGlbUrl: 'models/avatar_mujer.glb'
-};
-
 const ORDER_STATUSES = [
     'Pago pendiente',
     'Pedido pendiente',
@@ -818,7 +803,6 @@ function closeProductModal() {
 }
 
 /* ==========================================
-/* ==========================================
 4. DARE LAB (SILUETA ANATÓMICA 3D, DESPLEGABLES POR MEDIDA Y COTIZACIÓN)
    ========================================== */
 function getCustomBases() {
@@ -921,11 +905,9 @@ function renderSculptedAnatomySvg(gender, zone) {
                 </filter>
             </defs>
 
-            <!-- Cabeza y cuello en pose T -->
             <ellipse cx="130" cy="40" rx="${isFemale ? 18 : 19}" ry="23" fill="url(#bodySculptGrad)" stroke="#18181b" stroke-width="1.2" />
             <rect x="${130 - (isFemale ? 8 : 10)}" y="60" width="${isFemale ? 16 : 20}" height="15" rx="5" fill="url(#bodySculptGrad)" />
 
-            <!-- Torso y extremidades esculpidas (pose T anatómica) -->
             <path d="
                 M ${130 - chestWidth} 76
                 Q 130 71 ${130 + chestWidth} 76
@@ -942,7 +924,6 @@ function renderSculptedAnatomySvg(gender, zone) {
                 Z
             " fill="url(#bodySculptGrad)" stroke="#18181b" stroke-width="1.2" />
 
-            <!-- Brazos extendidos en T -->
             <path d="
                 M ${130 - chestWidth + 2} 77
                 L ${130 - shoulderHalfSpan} 92
@@ -958,11 +939,9 @@ function renderSculptedAnatomySvg(gender, zone) {
                 Z
             " fill="url(#bodySculptGrad)" stroke="#18181b" stroke-width="1.1" />
 
-            <!-- Líneas de volumen muscular sutiles -->
             <path d="M ${130 - chestWidth + 7} 95 Q 130 104 ${130 + chestWidth - 7} 95" fill="none" stroke="rgba(24,24,27,0.28)" stroke-width="1.4" />
             <path d="M 130 82 L 130 145" fill="none" stroke="rgba(24,24,27,0.18)" stroke-width="1.2" />
 
-            <!-- Halo difuminado naranja según medida seleccionada -->
             ${chestActive ? `
                 <ellipse cx="130" cy="96" rx="${chestWidth + 14}" ry="22" fill="url(#darecoreOrangeGlow)" filter="url(#softOrangeBlur)" />
                 <ellipse cx="130" cy="96" rx="${chestWidth + 6}" ry="14" fill="none" stroke="#ff5500" stroke-width="2" stroke-dasharray="4 3" opacity="0.9" />
@@ -1112,6 +1091,262 @@ function setDareLabGarmentType(garmentKey) {
 function selectDareLabSize(sizeLabel) {
     selectedSizeLabel = sizeLabel;
     renderSizeGuideBlock();
+}
+
+function moveQuoteBelowWhatsapp() {
+    if (!window.location.pathname.toLowerCase().includes('personalizar')) return;
+
+    const whatsappEl = document.getElementById('customWhatsapp');
+    const summaryPriceEl = document.getElementById('summaryTotalPrice');
+    const quoteBox =
+        (summaryPriceEl && summaryPriceEl.closest('div[class*="card"], div[class*="summary"], div[class*="quote"], section, aside')) ||
+        Array.from(document.querySelectorAll('h2, h3, h4, div')).find(el =>
+            el.children.length <= 8 &&
+            (el.textContent || '').toUpperCase().includes('RESUMEN DE COTIZACIÓN')
+        )?.closest('div');
+
+    if (!whatsappEl || !quoteBox) return;
+
+    const whatsappContainer =
+        whatsappEl.closest('.form-group, .input-group, .field-group, div[class*="form"], div[class*="input"]') ||
+        whatsappEl.parentElement;
+
+    if (!whatsappContainer || whatsappContainer.contains(quoteBox)) return;
+
+    const mainRowOrGrid = quoteBox.parentElement;
+    if (mainRowOrGrid && mainRowOrGrid !== document.body) {
+        mainRowOrGrid.style.setProperty('grid-template-columns', 'minmax(0, 1fr)', 'important');
+        mainRowOrGrid.style.setProperty('display', 'block', 'important');
+    }
+
+    quoteBox.style.setProperty('width', '100%', 'important');
+    quoteBox.style.setProperty('max-width', '100%', 'important');
+    quoteBox.style.setProperty('margin-top', '24px', 'important');
+
+    whatsappContainer.insertAdjacentElement('afterend', quoteBox);
+}
+
+function compressImageFile(file, maxWidth = 800, quality = 0.7) {
+    return new Promise((resolve) => {
+        if (!file || !file.type.startsWith('image/')) {
+            resolve(null);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => resolve(null);
+            img.src = event.target.result;
+        };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+}
+
+function resetDareLabForm() {
+    selectedCustomBaseIndex = 0;
+    selectedGender = 'hombre';
+    selectedSizeLabel = 'M';
+    selectedMeasurementZone = 'chest';
+    const fileInput = document.getElementById('customDesignFile');
+    if (fileInput) fileInput.value = '';
+    const notesInput = document.getElementById('customNotes');
+    if (notesInput) notesInput.value = '';
+    const techSelect = document.getElementById('customTechniqueSelect');
+    if (techSelect) techSelect.selectedIndex = 0;
+    renderCustomBasesPublic();
+}
+
+function setupDareLab() {
+    const container = document.getElementById('customBasesContainer');
+    if (!container) return;
+
+    renderCustomBasesPublic();
+    moveQuoteBelowWhatsapp();
+
+    const techSelect = document.getElementById('customTechniqueSelect');
+    if (techSelect) {
+        techSelect.addEventListener('change', updateCustomSummary);
+    }
+
+    const mockupBtn = document.getElementById('requestMockupBtn');
+    if (mockupBtn) {
+        mockupBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            const whatsappInput = document.getElementById('customWhatsapp');
+            const whatsapp = whatsappInput ? whatsappInput.value.trim() : '';
+            if (!whatsapp) {
+                showFloatingToast('Ingresa tu WhatsApp para enviarte tu mockup');
+                if (whatsappInput) whatsappInput.focus();
+                return;
+            }
+
+            const bases = getCustomBases();
+            const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
+            const garmentType = detectGarmentTypeFromBase(selectedBase);
+            const techSelectElement = document.getElementById('customTechniqueSelect');
+            const selectedOption = techSelectElement ? techSelectElement.options[techSelectElement.selectedIndex] : null;
+            const techName = selectedOption ? selectedOption.value : 'Estándar';
+            const extraCost = selectedOption ? Number(selectedOption.getAttribute('data-extra') || 0) : 0;
+            const total = Number(selectedBase.price) + extraCost;
+
+            const fileInput = document.getElementById('customDesignFile');
+            const fileObj = fileInput && fileInput.files[0] ? fileInput.files[0] : null;
+            const fileName = fileObj ? fileObj.name : 'Lo enviaré por chat';
+            const rawNotes = document.getElementById('customNotes')?.value.trim() || '';
+            const sizeInfoText = `Género: ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'} | Tipo: ${garmentType} | Talla: ${selectedSizeLabel}`;
+            const notes = rawNotes ? `${sizeInfoText} — ${rawNotes}` : sizeInfoText;
+
+            const currentUser = window.auth && window.auth.currentUser ? window.auth.currentUser : null;
+            const orderNumber = generateFolio('PEDIDO');
+            const initialStatus = 'Pago pendiente';
+            const createdAt = new Date().toISOString();
+
+            const mensaje = `Hola Dare core, me gustaría procesar el pago de mi pedido #${orderNumber} (${selectedBase.name}, Talla ${selectedSizeLabel} - ${selectedGender})`;
+            const waUrl = `https://wa.me/5214777035509?text=${encodeURIComponent(mensaje)}`;
+            const waWindow = window.open('about:blank', '_blank');
+
+            let compressedImageBase64 = '';
+            if (fileObj) {
+                compressedImageBase64 = (await compressImageFile(fileObj)) || '';
+            }
+
+            let docId = null;
+            if (window.db) {
+                try {
+                    const docRef = await window.db.collection('darelab_orders').add({
+                        orderNumber: orderNumber,
+                        orderType: 'pedido_darelab',
+                        status: initialStatus,
+                        userEmail: currentUser ? currentUser.email : 'Invitado (sin sesión)',
+                        userName: currentUser ? currentUser.displayName : 'Invitado',
+                        whatsapp: whatsapp,
+                        baseName: selectedBase.name,
+                        gender: selectedGender,
+                        garmentType: garmentType,
+                        size: selectedSizeLabel,
+                        technique: techName,
+                        fileName: fileName,
+                        imageData: compressedImageBase64,
+                        notes: notes,
+                        total: total,
+                        createdAt: createdAt
+                    });
+                    docId = docRef.id;
+                } catch (err) {
+                    console.error("Error guardando solicitud de Dare Lab:", err);
+                }
+            }
+
+            saveClientPendingOrder({
+                id: docId || orderNumber,
+                collection: 'darelab_orders',
+                folio: orderNumber,
+                typeLabel: 'Dare Lab',
+                summary: `${selectedBase.name} • Talla ${selectedSizeLabel} (${techName})`,
+                total: total,
+                status: initialStatus,
+                delivered: false,
+                createdAt: createdAt
+            });
+
+            resetDareLabForm();
+            showFloatingToast(`Solicitud #${orderNumber} agregada a Pedido pendiente`);
+
+            if (waWindow) {
+                waWindow.location.href = waUrl;
+            } else {
+                window.location.href = waUrl;
+            }
+        });
+    }
+}
+
+function renderCustomBasesPublic() {
+    const container = document.getElementById('customBasesContainer');
+    if (!container) return;
+
+    const bases = getCustomBases();
+    if (selectedCustomBaseIndex >= bases.length) {
+        selectedCustomBaseIndex = 0;
+    }
+
+    const activeBase = bases[selectedCustomBaseIndex] || bases[0];
+
+    container.style.cssText = 'display: block; width: 100%;';
+    container.innerHTML = `
+        <div style="background: #ffffff; border: 1.5px solid #ff2a00; border-radius: 26px; padding: 18px 20px; box-shadow: 0 10px 26px rgba(255, 42, 0, 0.08);">
+            <label for="customBaseSelect" style="display: block; font-size: 12px; font-weight: 800; color: #0b0b0e; margin-bottom: 10px;">
+                Prenda base y gramaje
+            </label>
+            <select id="customBaseSelect" style="width: 100%; background: #ffffff; color: #0b0b0e; border: 1.5px solid #ff2a00; border-radius: 999px; padding: 12px 18px; font-size: 13px; font-weight: 700; cursor: pointer; outline: none;">
+                ${bases.map((base, index) => `
+                    <option value="${index}" ${index === selectedCustomBaseIndex ? 'selected' : ''}>
+                        ${base.name}${base.desc ? ` — ${base.desc}` : ''} ($${Number(base.price).toLocaleString('es-MX')} MXN)
+                    </option>
+                `).join('')}
+            </select>
+            <div id="customBaseHelperInfo" style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #52525b; padding: 0 4px;">
+                <span>${activeBase ? (activeBase.desc || '') : ''}</span>
+                <strong style="color: #ff2a00; font-size: 14px;">$${Number(activeBase ? activeBase.price : 0).toLocaleString('es-MX')} MXN</strong>
+            </div>
+        </div>
+    `;
+
+    const selectEl = document.getElementById('customBaseSelect');
+    if (selectEl) {
+        selectEl.addEventListener('change', (e) => {
+            selectedCustomBaseIndex = Number(e.target.value) || 0;
+            const currentBase = bases[selectedCustomBaseIndex] || bases[0];
+            const helperEl = document.getElementById('customBaseHelperInfo');
+            if (helperEl && currentBase) {
+                helperEl.innerHTML = `
+                    <span>${currentBase.desc || ''}</span>
+                    <strong style="color: #ff2a00; font-size: 14px;">$${Number(currentBase.price).toLocaleString('es-MX')} MXN</strong>
+                `;
+            }
+            renderSizeGuideBlock();
+        });
+    }
+
+    renderSizeGuideBlock();
+}
+
+function updateCustomSummary() {
+    const bases = getCustomBases();
+    const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
+
+    const techSelect = document.getElementById('customTechniqueSelect');
+    if (!techSelect) return;
+
+    const selectedOption = techSelect.options[techSelect.selectedIndex];
+    const extraCost = selectedOption ? Number(selectedOption.getAttribute('data-extra') || 0) : 0;
+    const totalPrice = Number(selectedBase.price) + extraCost;
+
+    const summaryBaseName = document.getElementById('summaryBaseName');
+    const summaryTechName = document.getElementById('summaryTechName');
+    const summaryTotalPrice = document.getElementById('summaryTotalPrice');
+
+    if (summaryBaseName) summaryBaseName.innerText = `${selectedBase.name} (${selectedSizeLabel})`;
+    if (summaryTechName) summaryTechName.innerText = selectedOption ? selectedOption.value : '';
+    if (summaryTotalPrice) summaryTotalPrice.innerText = `$${totalPrice.toLocaleString('es-MX')} MXN`;
 }
 
 /* ==========================================
