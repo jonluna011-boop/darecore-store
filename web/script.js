@@ -5,6 +5,7 @@
 let selectedCustomBaseIndex = 0;
 let selectedGender = 'hombre';
 let selectedSizeLabel = 'M';
+let selectedMeasurementZone = 'chest'; // 'chest' | 'waist' | 'length'
 let adminSelectedGender = 'hombre';
 let adminSelectedGarmentType = 'camisa';
 
@@ -14,6 +15,21 @@ let isSyncing = false;
 let currentSearchTerm = '';
 let heroSlideIndex = 0;
 let heroAutoTimer = null;
+
+let threeSceneState = {
+    renderer: null,
+    scene: null,
+    camera: null,
+    animId: null,
+    glowMesh: null,
+    bodyGroup: null,
+    loadedModel: null
+};
+
+const THREE_AVATAR_CONFIG = {
+    hombreGlbUrl: 'models/avatar_hombre.glb',
+    mujerGlbUrl: 'models/avatar_mujer.glb'
+};
 
 const ORDER_STATUSES = [
     'Pago pendiente',
@@ -802,7 +818,7 @@ function closeProductModal() {
 }
 
 /* ==========================================
-4. DARE LAB (PERSONALIZACIÓN, TABLAS DE MEDIDAS Y COTIZACIÓN)
+4. DARE LAB (PERSONALIZACIÓN, AVATAR 3D THREE.JS, TABLAS DE MEDIDAS Y COTIZACIÓN)
    ========================================== */
 function getCustomBases() {
     const local = localStorage.getItem('darecore_custom_bases');
@@ -861,6 +877,210 @@ function detectGarmentTypeFromBase(baseObj) {
     return keys[0] || 'camisa';
 }
 
+function createSoftOrangeGlowTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createRadialGradient(128, 128, 12, 128, 128, 124);
+    grad.addColorStop(0, 'rgba(255, 85, 0, 0.95)');
+    grad.addColorStop(0.45, 'rgba(255, 42, 0, 0.55)');
+    grad.addColorStop(1, 'rgba(255, 42, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 256);
+    return new THREE.CanvasTexture(canvas);
+}
+
+function buildFallbackThreeAvatar(scene, gender) {
+    const isFemale = gender === 'mujer';
+    const group = new THREE.Group();
+    const baseMat = new THREE.MeshStandardMaterial({
+        color: isFemale ? 0x2a2630 : 0x22252c,
+        roughness: 0.45,
+        metalness: 0.15
+    });
+
+    const chestRadiusTop = isFemale ? 0.44 : 0.54;
+    const chestRadiusBottom = isFemale ? 0.36 : 0.46;
+    const torsoGeo = new THREE.CylinderGeometry(chestRadiusTop, chestRadiusBottom, 1.35, 28);
+    const torso = new THREE.Mesh(torsoGeo, baseMat);
+    torso.position.set(0, 0.65, 0);
+    group.add(torso);
+
+    const headGeo = new THREE.SphereGeometry(0.27, 24, 24);
+    const head = new THREE.Mesh(headGeo, baseMat);
+    head.position.set(0, 1.62, 0);
+    group.add(head);
+
+    const armRadius = isFemale ? 0.105 : 0.135;
+    const armGeo = new THREE.CylinderGeometry(armRadius, armRadius * 0.85, 1.2, 18);
+    const leftArm = new THREE.Mesh(armGeo, baseMat);
+    leftArm.position.set(isFemale ? -0.58 : -0.68, 0.62, 0);
+    leftArm.rotation.z = -0.1;
+    group.add(leftArm);
+
+    const rightArm = new THREE.Mesh(armGeo, baseMat);
+    rightArm.position.set(isFemale ? 0.58 : 0.68, 0.62, 0);
+    rightArm.rotation.z = 0.1;
+    group.add(rightArm);
+
+    const legRadius = isFemale ? 0.145 : 0.165;
+    const legGeo = new THREE.CylinderGeometry(legRadius, legRadius * 0.78, 1.35, 20);
+    const leftLeg = new THREE.Mesh(legGeo, baseMat);
+    leftLeg.position.set(-0.22, -0.68, 0);
+    group.add(leftLeg);
+
+    const rightLeg = new THREE.Mesh(legGeo, baseMat);
+    rightLeg.position.set(0.22, -0.68, 0);
+    group.add(rightLeg);
+
+    scene.add(group);
+    return group;
+}
+
+function updateThreeGlowZone(zone) {
+    if (!threeSceneState.glowMesh) return;
+    const mesh = threeSceneState.glowMesh;
+
+    if (zone === 'waist') {
+        mesh.position.set(0, 0.35, 0.36);
+        mesh.scale.set(1.25, 0.68, 1);
+    } else if (zone === 'length') {
+        mesh.position.set(0, 0.05, 0.38);
+        mesh.scale.set(1.05, 1.55, 1);
+    } else {
+        mesh.position.set(0, 0.96, 0.38);
+        mesh.scale.set(1.38, 0.75, 1);
+    }
+}
+
+function initThreeAvatarViewport(gender, zone) {
+    const mount = document.getElementById('dareLabThreeViewport');
+    if (!mount) return;
+
+    if (threeSceneState.animId) cancelAnimationFrame(threeSceneState.animId);
+    if (threeSceneState.renderer && threeSceneState.renderer.domElement) {
+        threeSceneState.renderer.dispose();
+    }
+    mount.innerHTML = '';
+
+    if (!window.THREE) {
+        mount.innerHTML = `<div style="display:flex;height:100%;align-items:center;justify-content:center;color:#fb923c;font-size:12px;padding:16px;text-align:center;">Agrega Three.js y GLTFLoader en tu HTML para activar el visor 3D.</div>`;
+        return;
+    }
+
+    const width = mount.clientWidth || 260;
+    const height = mount.clientHeight || 280;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0c0c10);
+
+    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100);
+    camera.position.set(0, 0.55, 3.8);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    mount.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.15);
+    scene.add(ambientLight);
+
+    const orangeLight = new THREE.PointLight(0xff2a00, 3.5, 8);
+    orangeLight.position.set(0, 0.7, 2.2);
+    scene.add(orangeLight);
+
+    const rimLight = new THREE.DirectionalLight(0xff5500, 1.4);
+    rimLight.position.set(2, 3, 2);
+    scene.add(rimLight);
+
+    const glowTex = createSoftOrangeGlowTexture();
+    const glowMat = new THREE.MeshBasicMaterial({
+        map: glowTex,
+        transparent: true,
+        opacity: 0.9,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        side: THREE.DoubleSide
+    });
+    const glowMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.35, 1.15), glowMat);
+    scene.add(glowMesh);
+
+    const fallbackGroup = buildFallbackThreeAvatar(scene, gender);
+    threeSceneState = {
+        renderer,
+        scene,
+        camera,
+        animId: null,
+        glowMesh,
+        bodyGroup: fallbackGroup,
+        loadedModel: null
+    };
+
+    updateThreeGlowZone(zone);
+
+    const glbUrl = gender === 'mujer' ? THREE_AVATAR_CONFIG.mujerGlbUrl : THREE_AVATAR_CONFIG.hombreGlbUrl;
+    if (typeof THREE.GLTFLoader === 'function' && glbUrl) {
+        const loader = new THREE.GLTFLoader();
+        loader.load(
+            glbUrl,
+            (gltf) => {
+                if (!threeSceneState.scene) return;
+                if (threeSceneState.bodyGroup) {
+                    threeSceneState.scene.remove(threeSceneState.bodyGroup);
+                }
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const size = new THREE.Vector3();
+                const center = new THREE.Vector3();
+                box.getSize(size);
+                box.getCenter(center);
+
+                const maxDim = Math.max(size.x, size.y, size.z) || 1;
+                const scale = 2.6 / maxDim;
+                model.scale.setScalar(scale);
+                model.position.set(-center.x * scale, -center.y * scale + 0.35, -center.z * scale);
+
+                threeSceneState.scene.add(model);
+                threeSceneState.bodyGroup = model;
+                threeSceneState.loadedModel = model;
+            },
+            undefined,
+            () => {
+                // Mantiene el avatar 3D articulado si el .glb aún no está en el servidor
+            }
+        );
+    }
+
+    let pulse = 0;
+    const animate = () => {
+        threeSceneState.animId = requestAnimationFrame(animate);
+        pulse += 0.05;
+        if (threeSceneState.bodyGroup) {
+            threeSceneState.bodyGroup.rotation.y += 0.006;
+        }
+        if (threeSceneState.glowMesh) {
+            const breathe = 1 + Math.sin(pulse) * 0.08;
+            threeSceneState.glowMesh.scale.setScalar(breathe);
+            threeSceneState.glowMesh.material.opacity = 0.72 + Math.sin(pulse) * 0.18;
+        }
+        renderer.render(scene, camera);
+    };
+    animate();
+}
+
+function getZoneLabelText(zone, gender) {
+    if (zone === 'waist') {
+        return 'Cintura (cm): Contorno natural de la cintura donde se toma la referencia.';
+    }
+    if (zone === 'length') {
+        return 'Largo (cm): Medida desde el punto más alto del hombro hasta el borde inferior.';
+    }
+    return gender === 'mujer'
+        ? 'Busto / Pecho (cm): Contorno completo sobre la parte más prominente del busto.'
+        : 'Pecho (cm): Contorno completo alrededor del pecho a la altura de las axilas.';
+}
+
 function renderSizeGuideBlock() {
     const container = document.getElementById('customBasesContainer');
     if (!container) return;
@@ -890,7 +1110,7 @@ function renderSizeGuideBlock() {
     guideBox.innerHTML = `
         <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px;">
             <div>
-                <div style="font-size:11px; font-weight:900; color:#ff2a00; text-transform:uppercase; letter-spacing:0.6px;">TABLA DE MEDIDAS (CM)</div>
+                <div style="font-size:11px; font-weight:900; color:#ff2a00; text-transform:uppercase; letter-spacing:0.6px;">TABLA DE MEDIDAS EN 3D (CM)</div>
                 <div style="font-size:14px; font-weight:800; color:#0b0b0e;">${activeChart?.label || 'Guía de tallas'} • ${selectedGender === 'mujer' ? 'Mujer' : 'Hombre'}</div>
             </div>
             <div style="display:flex; gap:8px;">
@@ -907,38 +1127,51 @@ function renderSizeGuideBlock() {
             }).join('')}
         </div>
 
-        ${activeChart?.fabricNote ? `<p style="margin:0 0 12px 0; font-size:12px; color:#52525b;">${activeChart.fabricNote}</p>` : ''}
+        ${activeChart?.fabricNote ? `<p style="margin:0 0 14px 0; font-size:12px; color:#52525b;">${activeChart.fabricNote}</p>` : ''}
 
-        <div style="overflow-x:auto;">
-            <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:center;">
-                <thead>
-                    <tr style="background:#111115; color:#ffffff;">
-                        <th style="padding:9px 10px; border-radius:10px 0 0 10px;">Talla</th>
-                        <th style="padding:9px 10px;">Pecho / Busto (cm)</th>
-                        <th style="padding:9px 10px;">Cintura (cm)</th>
-                        <th style="padding:9px 10px;">Largo (cm)</th>
-                        <th style="padding:9px 10px; border-radius:0 10px 10px 0;">Elegir</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${rows.map(row => {
-                        const isSelected = row.size === selectedSizeLabel;
-                        return `
-                            <tr onclick="selectDareLabSize('${row.size}')" style="cursor:pointer; border-bottom:1px solid #e4e4e7; background:${isSelected ? 'rgba(255, 42, 0, 0.10)' : '#ffffff'}; font-weight:${isSelected ? '800' : '500'};">
-                                <td style="padding:9px 10px; color:#0b0b0e;">${row.size}</td>
-                                <td style="padding:9px 10px; color:#27272a;">${row.chestCm} cm</td>
-                                <td style="padding:9px 10px; color:#27272a;">${row.waistCm} cm</td>
-                                <td style="padding:9px 10px; color:#27272a;">${row.lengthCm} cm</td>
-                                <td style="padding:9px 10px;">
-                                    <button type="button" onclick="event.stopPropagation(); selectDareLabSize('${row.size}')" style="padding:5px 12px; border-radius:999px; font-size:11px; font-weight:800; cursor:pointer; border:none; background:${isSelected ? '#ff2a00' : '#e4e4e7'}; color:${isSelected ? '#fff' : '#0b0b0e'};">
-                                        ${isSelected ? 'Seleccionada' : 'Elegir'}
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
+        <div style="display:grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); gap:18px; align-items:start;">
+            <div style="background:#0c0c10; border:1.5px solid #ff2a00; border-radius:20px; padding:12px; color:#fff; box-shadow: 0 12px 28px rgba(255, 42, 0, 0.16);">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:10px; font-weight:800; color:#ff5500; text-transform:uppercase; margin-bottom:8px;">
+                    <span>AVATAR 3D • ${selectedGender === 'mujer' ? 'MUJER' : 'HOMBRE'}</span>
+                    <span>HALO NARANJA</span>
+                </div>
+                <div id="dareLabThreeViewport" style="width:100%; height:265px; border-radius:14px; overflow:hidden; background:#0c0c10;"></div>
+                <div id="dareLabZoneCaption" style="margin-top:10px; font-size:11px; color:#e4e4e7; line-height:1.45; background:rgba(255, 42, 0, 0.12); border:1px solid rgba(255, 85, 0, 0.35); padding:8px 10px; border-radius:12px;">
+                    ${getZoneLabelText(selectedMeasurementZone, selectedGender)}
+                </div>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:center;">
+                    <thead>
+                        <tr style="background:#111115; color:#ffffff;">
+                            <th style="padding:9px 10px; border-radius:10px 0 0 10px;">Talla</th>
+                            <th style="padding:9px 10px; cursor:pointer; color:#ff5500;" onclick="setMeasurementZone('chest')" title="Iluminar pecho/busto en 3D">Pecho / Busto (cm)</th>
+                            <th style="padding:9px 10px; cursor:pointer; color:#ff5500;" onclick="setMeasurementZone('waist')" title="Iluminar cintura en 3D">Cintura (cm)</th>
+                            <th style="padding:9px 10px; cursor:pointer; color:#ff5500;" onclick="setMeasurementZone('length')" title="Iluminar largo en 3D">Largo (cm)</th>
+                            <th style="padding:9px 10px; border-radius:0 10px 10px 0;">Elegir</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(row => {
+                            const isSelected = row.size === selectedSizeLabel;
+                            return `
+                                <tr onclick="selectDareLabSize('${row.size}')" style="cursor:pointer; border-bottom:1px solid #e4e4e7; background:${isSelected ? 'rgba(255, 42, 0, 0.10)' : '#ffffff'}; font-weight:${isSelected ? '800' : '500'};">
+                                    <td style="padding:9px 10px; color:#0b0b0e;">${row.size}</td>
+                                    <td onclick="event.stopPropagation(); setMeasurementZone('chest'); selectDareLabSize('${row.size}');" style="padding:9px 10px; color:#27272a; ${selectedMeasurementZone === 'chest' ? 'box-shadow: inset 0 0 12px rgba(255, 42, 0, 0.28); font-weight:800;' : ''}">${row.chestCm} cm</td>
+                                    <td onclick="event.stopPropagation(); setMeasurementZone('waist'); selectDareLabSize('${row.size}');" style="padding:9px 10px; color:#27272a; ${selectedMeasurementZone === 'waist' ? 'box-shadow: inset 0 0 12px rgba(255, 42, 0, 0.28); font-weight:800;' : ''}">${row.waistCm} cm</td>
+                                    <td onclick="event.stopPropagation(); setMeasurementZone('length'); selectDareLabSize('${row.size}');" style="padding:9px 10px; color:#27272a; ${selectedMeasurementZone === 'length' ? 'box-shadow: inset 0 0 12px rgba(255, 42, 0, 0.28); font-weight:800;' : ''}">${row.lengthCm} cm</td>
+                                    <td style="padding:9px 10px;">
+                                        <button type="button" onclick="event.stopPropagation(); selectDareLabSize('${row.size}')" style="padding:5px 12px; border-radius:999px; font-size:11px; font-weight:800; cursor:pointer; border:none; background:${isSelected ? '#ff2a00' : '#e4e4e7'}; color:${isSelected ? '#fff' : '#0b0b0e'};">
+                                            ${isSelected ? 'Seleccionada' : 'Elegir'}
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <div style="margin-top:12px; font-size:12px; color:#0b0b0e;">
@@ -946,7 +1179,13 @@ function renderSizeGuideBlock() {
         </div>
     `;
 
+    initThreeAvatarViewport(selectedGender, selectedMeasurementZone);
     updateCustomSummary();
+}
+
+function setMeasurementZone(zone) {
+    selectedMeasurementZone = zone;
+    renderSizeGuideBlock();
 }
 
 function setDareLabGender(gender) {
@@ -1038,6 +1277,7 @@ function resetDareLabForm() {
     selectedCustomBaseIndex = 0;
     selectedGender = 'hombre';
     selectedSizeLabel = 'M';
+    selectedMeasurementZone = 'chest';
     const fileInput = document.getElementById('customDesignFile');
     if (fileInput) fileInput.value = '';
     const notesInput = document.getElementById('customNotes');
@@ -1886,7 +2126,7 @@ function loadAdminSizeChartsEditor() {
                     TABLAS DE MEDIDAS POR GÉNERO Y PRENDA / TELA (CM)
                 </h3>
                 <p style="margin:0; font-size:12px; color:#52525b;">
-                    Modifica tallas o centímetros (pecho/busto, cintura y largo) para hombre o mujer según el tipo de tela (algodón, felpa, licra, top, etc.)[cite: 9].
+                    Modifica tallas o centímetros (pecho/busto, cintura y largo) para hombre o mujer según el tipo de tela (algodón, felpa, licra, top, etc.).
                 </p>
             </div>
             <div style="display:flex; gap:8px;">
@@ -1940,7 +2180,7 @@ function loadAdminSizeChartsEditor() {
 
         <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px;">
             <button type="button" class="btn-primary" style="padding:9px 16px; font-size:11px;" onclick="addSizeChartRow()">+ Agregar fila de talla</button>
-            <button type="button" class="btn-primary" style="padding:9px 18px; font-size:11px; background:#16a34a;" onclick="saveCurrentSizeChart()">Guardar tabla (${selectedGender === adminSelectedGender ? adminSelectedGender : adminSelectedGender})</button>
+            <button type="button" class="btn-primary" style="padding:9px 18px; font-size:11px; background:#16a34a;" onclick="saveCurrentSizeChart()">Guardar tabla (${adminSelectedGender})</button>
         </div>
 
         <div style="border-top:1px dashed #d4d4d8; padding-top:16px;">
