@@ -1383,54 +1383,51 @@ function compressImageFile(file, maxWidth = 800, quality = 0.7) {
     });
 }
 
-function resetDareLabForm() {
-    selectedCustomBaseIndex = 0;
-    selectedGender = 'hombre';
-    selectedSizeLabel = 'M';
-    selectedChestSize = 'M';
-    selectedWaistSize = 'M';
-    selectedLengthSize = 'M';
-    selectedMeasurementZone = 'chest';
-    const fileInput = document.getElementById('customDesignFile');
-    if (fileInput) fileInput.value = '';
-    const notesInput = document.getElementById('customNotes');
-    if (notesInput) notesInput.value = '';
-    const techSelect =
-        document.getElementById('customTechniqueSelect') ||
-        document.querySelector('select[name*="technique" i], select[id*="technique" i], select[id*="estampado" i], select[name*="estampado" i], select[id*="ubicacion" i], select[name*="ubicacion" i]');
-    if (techSelect) techSelect.selectedIndex = 0;
-    renderCustomBasesPublic();
+function getSelectExtra(selectEl) {
+    if (!selectEl || !selectEl.options || selectEl.selectedIndex < 0) {
+        return { label: '', extra: 0 };
+    }
+    const opt = selectEl.options[selectEl.selectedIndex];
+    const labelText = (opt.textContent || opt.value || '').trim();
+    const rawExtra =
+        opt.getAttribute('data-extra') ??
+        opt.getAttribute('data-price') ??
+        opt.dataset?.extra ??
+        opt.dataset?.price ??
+        '0';
+
+    let extra = Number(String(rawExtra).replace(/[^0-9.-]/g, ''));
+    if (!Number.isFinite(extra)) extra = 0;
+
+    if (extra === 0 && !opt.hasAttribute('data-extra') && !opt.hasAttribute('data-price') && labelText.includes('+')) {
+        const match = labelText.match(/\+\s*\$?\s*([0-9]+(?:\.[0-9]+)?)/);
+        if (match) {
+            const parsedNum = Number(match[1]);
+            if (Number.isFinite(parsedNum)) extra = parsedNum;
+        }
+    }
+
+    const cleanLabel = (opt.value || labelText.split('(+')[0] || labelText).trim();
+    return { label: cleanLabel, extra };
 }
 
 function getTechniqueSelectionData() {
     const techSelect =
         document.getElementById('customTechniqueSelect') ||
-        document.querySelector('select[name*="technique" i], select[id*="technique" i], select[id*="estampado" i], select[name*="estampado" i], select[id*="ubicacion" i], select[name*="ubicacion" i]');
+        document.querySelector('select[name*="technique" i], select[id*="technique" i], select[id*="estampado" i], select[name*="estampado" i]');
 
-    if (techSelect && techSelect.options && techSelect.selectedIndex >= 0) {
-        const opt = techSelect.options[techSelect.selectedIndex];
-        const labelText = (opt.textContent || opt.value || '').trim();
-        const rawExtra =
-            opt.getAttribute('data-extra') ??
-            opt.getAttribute('data-price') ??
-            opt.dataset?.extra ??
-            opt.dataset?.price ??
-            '0';
+    const placementSelect =
+        document.getElementById('customPlacementSelect') ||
+        document.querySelector('select[id*="placement" i], select[name*="placement" i], select[id*="ubicacion" i], select[name*="ubicacion" i], select[id*="posicion" i], select[name*="posicion" i]');
 
-        let extra = Number(String(rawExtra).replace(/[^0-9.-]/g, ''));
-        if (!Number.isFinite(extra)) extra = 0;
+    if (techSelect || placementSelect) {
+        const techInfo = getSelectExtra(techSelect);
+        const placeInfo = getSelectExtra(placementSelect);
 
-        if (extra === 0 && !opt.hasAttribute('data-extra') && !opt.hasAttribute('data-price') && labelText.includes('+')) {
-            const match = labelText.match(/\+\s*\$?\s*([0-9]+(?:\.[0-9]+)?)/);
-            if (match) {
-                const parsedNum = Number(match[1]);
-                if (Number.isFinite(parsedNum)) extra = parsedNum;
-            }
-        }
-
+        const parts = [techInfo.label, placeInfo.label].filter(Boolean);
         return {
-            label: labelText || opt.value || 'Estándar',
-            extra
+            label: parts.length > 0 ? parts.join(' • ') : 'Estándar',
+            extra: techInfo.extra + placeInfo.extra
         };
     }
 
@@ -1455,10 +1452,53 @@ function getTechniqueSelectionData() {
     return { label: 'Estándar', extra: 0 };
 }
 
+function updateCustomSummary() {
+    const bases = getCustomBases();
+    const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
+    const basePrice = Number(selectedBase ? selectedBase.price : 0) || 0;
+
+    const { label: techLabel, extra: extraCost } = getTechniqueSelectionData();
+    const totalPrice = basePrice + extraCost;
+
+    const summaryBaseName = document.getElementById('summaryBaseName');
+    const summaryTechName = document.getElementById('summaryTechName');
+    const summaryTotalPrice = document.getElementById('summaryTotalPrice');
+
+    if (summaryBaseName && selectedBase) {
+        summaryBaseName.textContent = `${selectedBase.name} (${getSelectedMixSummaryText()})`;
+    }
+    if (summaryTechName) {
+        summaryTechName.textContent = techLabel;
+    }
+    if (summaryTotalPrice) {
+        summaryTotalPrice.textContent = `$${totalPrice.toLocaleString('es-MX')} MXN`;
+    }
+}
+
+function resetDareLabForm() {
+    selectedCustomBaseIndex = 0;
+    selectedGender = 'hombre';
+    selectedSizeLabel = 'M';
+    selectedChestSize = 'M';
+    selectedWaistSize = 'M';
+    selectedLengthSize = 'M';
+    selectedMeasurementZone = 'chest';
+    const fileInput = document.getElementById('customDesignFile');
+    if (fileInput) fileInput.value = '';
+    const notesInput = document.getElementById('customNotes');
+    if (notesInput) notesInput.value = '';
+    const techSelect = document.getElementById('customTechniqueSelect');
+    if (techSelect) techSelect.selectedIndex = 0;
+    const placementSelect = document.getElementById('customPlacementSelect');
+    if (placementSelect) placementSelect.selectedIndex = 0;
+    renderCustomBasesPublic();
+}
+
 function bindDareLabTechniqueListeners() {
     const controls = document.querySelectorAll(
-        '#customTechniqueSelect, #customTechnique, #estampadoInput, ' +
-        'select[name*="technique" i], select[id*="technique" i], select[id*="estampado" i], select[name*="estampado" i], select[id*="ubicacion" i], select[name*="ubicacion" i]'
+        '#customTechniqueSelect, #customPlacementSelect, #customTechnique, #estampadoInput, ' +
+        'select[name*="technique" i], select[id*="technique" i], select[id*="estampado" i], select[name*="estampado" i], ' +
+        'select[id*="placement" i], select[name*="placement" i], select[id*="ubicacion" i], select[name*="ubicacion" i]'
     );
     controls.forEach(el => {
         if (!el.dataset.darecoreBound) {
@@ -1657,29 +1697,6 @@ function renderCustomBasesPublic() {
     }
 
     renderSizeGuideBlock();
-}
-
-function updateCustomSummary() {
-    const bases = getCustomBases();
-    const selectedBase = bases[selectedCustomBaseIndex] || bases[0];
-    const basePrice = Number(selectedBase ? selectedBase.price : 0) || 0;
-
-    const { label: techLabel, extra: extraCost } = getTechniqueSelectionData();
-    const totalPrice = basePrice + extraCost;
-
-    const summaryBaseName = document.getElementById('summaryBaseName');
-    const summaryTechName = document.getElementById('summaryTechName');
-    const summaryTotalPrice = document.getElementById('summaryTotalPrice');
-
-    if (summaryBaseName && selectedBase) {
-        summaryBaseName.textContent = `${selectedBase.name} (${getSelectedMixSummaryText()})`;
-    }
-    if (summaryTechName) {
-        summaryTechName.textContent = techLabel;
-    }
-    if (summaryTotalPrice) {
-        summaryTotalPrice.textContent = `$${totalPrice.toLocaleString('es-MX')} MXN`;
-    }
 }
 
 /* ==========================================
